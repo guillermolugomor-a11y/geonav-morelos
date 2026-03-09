@@ -1,0 +1,111 @@
+import React from 'react';
+import { authService } from '../services/authService';
+import { UsuarioPerfil } from '../types';
+import { LogOut, User, Map as MapIcon, ClipboardList } from 'lucide-react';
+
+interface NavbarProps {
+  perfil: UsuarioPerfil | null;
+  user: any;
+  onLogout: () => void;
+  currentView: 'map' | 'admin' | 'profile' | 'tasks';
+  onViewChange: (view: 'map' | 'admin' | 'profile' | 'tasks') => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ perfil, user, onLogout, currentView, onViewChange }) => {
+  const adminEmails = [
+    'guillermo.lugo.mor@gmail.com', 
+    'guillermo.lugo@morelos.gob.mx',
+    'daniel.sotelo@morelos.gob.mx'
+  ];
+  const isAdmin = perfil?.rol === 'admin' || 
+                  (perfil?.email && adminEmails.includes(perfil.email)) ||
+                  (user?.email && adminEmails.includes(user.email));
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      onLogout();
+    } catch (err) {
+      console.error('Error logging out:', err);
+    }
+  };
+
+  return (
+    <nav className="bg-white border-b border-stone-200 px-6 py-3 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+      <div className="flex items-center gap-2">
+        <div className="bg-emerald-600 p-1.5 rounded-lg">
+          <MapIcon className="text-white w-5 h-5" />
+        </div>
+        <span className="font-bold text-xl text-stone-900 tracking-tight">GeoNav <span className="text-emerald-600">Morelos</span></span>
+      </div>
+
+      <div className="flex items-center gap-6">
+        <div className="flex items-center bg-stone-100 p-1 rounded-xl">
+          <button
+            onClick={() => onViewChange('map')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              currentView === 'map' ? 'bg-white text-emerald-600 shadow-sm' : 'text-stone-500 hover:text-stone-700'
+            }`}
+          >
+            <MapIcon size={14} />
+            Mapa
+          </button>
+          {isAdmin ? (
+            <button
+              onClick={() => onViewChange('admin')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                currentView === 'admin' ? 'bg-white text-indigo-600 shadow-sm' : 'text-stone-500 hover:text-stone-700'
+              }`}
+            >
+              <User size={14} />
+              Asignación
+            </button>
+          ) : (
+            <button
+              onClick={() => onViewChange('tasks')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                currentView === 'tasks' ? 'bg-white text-indigo-600 shadow-sm' : 'text-stone-500 hover:text-stone-700'
+              }`}
+            >
+              <ClipboardList size={14} />
+              Mis Tareas
+            </button>
+          )}
+        </div>
+
+        {perfil && (
+          <button 
+            onClick={() => onViewChange('profile')}
+            className={`flex items-center gap-3 px-3 py-1.5 rounded-full border transition-all ${
+              currentView === 'profile' 
+                ? 'bg-emerald-50 border-emerald-200 shadow-sm' 
+                : 'bg-stone-50 border-stone-100 hover:bg-stone-100'
+            }`}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              currentView === 'profile' ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-200 text-stone-500'
+            }`}>
+              <User size={18} />
+            </div>
+            <div className="hidden sm:block text-left">
+              <p className={`text-sm font-semibold leading-none ${currentView === 'profile' ? 'text-emerald-900' : 'text-stone-800'}`}>
+                {perfil.nombre}
+              </p>
+              <p className={`text-[10px] uppercase tracking-wider font-bold mt-0.5 ${currentView === 'profile' ? 'text-emerald-600' : 'text-stone-500'}`}>
+                {perfil.rol}
+              </p>
+            </div>
+          </button>
+        )}
+
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 text-stone-500 hover:text-red-600 transition-colors text-sm font-medium"
+        >
+          <LogOut size={18} />
+          <span className="hidden sm:inline">Cerrar Sesión</span>
+        </button>
+      </div>
+    </nav>
+  );
+};

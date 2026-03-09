@@ -1,0 +1,5 @@
+{
+  "name": "GeoNav Morelos",
+  "description": "Aplicación geoespacial para la visualización y consulta de zonas geográficas en Morelos, utilizando Supabase y Leaflet.",
+  "requestFramePermissions": ["geolocation"]
+}

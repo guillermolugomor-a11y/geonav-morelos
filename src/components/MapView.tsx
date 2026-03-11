@@ -1,12 +1,17 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { MapContainer, TileLayer, GeoJSON, useMap, LayersControl, LayerGroup } from 'react-leaflet';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { MapContainer, TileLayer, GeoJSON, useMap, LayerGroup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Poligono } from '../types';
 import { poligonosService } from '../services/poligonosService';
 import { taskService } from '../services/taskService';
 import { supabase } from '../lib/supabaseClient';
-import { Info } from 'lucide-react';
+import { Info, Navigation, X, ExternalLink, Menu } from 'lucide-react';
+import { RouteController, LatLng, RouteResult } from './RouteController';
+import { RoutingSidebar } from './RoutingSidebar';
+import { routeService } from '../services/routeService';
+import { PolygonLayer } from './layers/PolygonLayer';
+import { ManzanaLayer } from './layers/ManzanaLayer';
 
 // Fix Leaflet icon issue
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -20,45 +25,59 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-const MANZANA_COLORS = [
-  '#f43f5e', // rose
-  '#8b5cf6', // violet
-  '#0ea5e9', // sky
-  '#10b981', // emerald
-  '#f59e0b', // amber
-  '#ec4899', // pink
-  '#6366f1', // indigo
-  '#14b8a6', // teal
-  '#84cc16', // lime
-  '#f97316', // orange
-];
-
-const getManzanaColor = (id: number) => {
-  return MANZANA_COLORS[id % MANZANA_COLORS.length];
-};
+// MANZANA_COLORS y getManzanaColor fueron extraídos a ManzanaLayer.tsx
 
 interface MapViewProps {
   onPoligonoSelect: (poligono: Poligono | null) => void;
   isAdmin?: boolean;
   userId?: string;
+  focusPolygonId?: number | null;
+  onFocusHandled?: () => void;
 }
 
-const MapController: React.FC<{ 
-  poligonos: Poligono[], 
+const MapController: React.FC<{
+  poligonos: Poligono[],
   onPoligonoSelect: (p: Poligono | null) => void,
   onSearchMatch: (ids: number[]) => void,
-  onZoomChange: (isHigh: boolean) => void
-}> = ({ poligonos, onPoligonoSelect, onSearchMatch, onZoomChange }) => {
+  onZoomChange: (isHigh: boolean) => void,
+  focusPolygon?: Poligono | null,
+  onFocusHandled?: () => void,
+  handleMapSelection?: (latlng: { lat: number, lng: number }) => void
+}> = ({ poligonos, onPoligonoSelect, onSearchMatch, onZoomChange, focusPolygon, onFocusHandled, handleMapSelection }) => {
   const map = useMap();
+
+  useEffect(() => {
+    if (!handleMapSelection) return;
+    const onMapClick = (e: L.LeafletMouseEvent) => {
+      handleMapSelection({ lat: e.latlng.lat, lng: e.latlng.lng });
+    };
+    map.on('click', onMapClick);
+    return () => {
+      map.off('click', onMapClick);
+    };
+  }, [map, handleMapSelection]);
+
+  // Direct zoom when a polygon is requested from another view (no event needed)
+  useEffect(() => {
+    if (focusPolygon && focusPolygon.geom) {
+      try {
+        const bounds = L.geoJSON(focusPolygon.geom).getBounds();
+        map.flyToBounds(bounds, { padding: [80, 80], duration: 1.5 });
+        onFocusHandled?.();
+      } catch (e) {
+        console.error('Error en zoom automático:', e);
+      }
+    }
+  }, [focusPolygon, map, onFocusHandled]);
 
   useEffect(() => {
     const handleZoom = () => {
       onZoomChange(map.getZoom() >= 16);
     };
-    
+
     handleZoom();
     map.on('zoomend', handleZoom);
-    
+
     const handleSearch = (e: any) => {
       const query = e.detail;
       if (!query) {
@@ -69,18 +88,18 @@ const MapController: React.FC<{
       let encontrado;
       const cleanQuery = query.toString().trim();
       let matchedIds: number[] = [];
-      
+
       if (cleanQuery.includes('-')) {
         const [sec, manz] = cleanQuery.split('-');
-        encontrado = poligonos.find(p => 
+        encontrado = poligonos.find(p =>
           p.tipo === 'Manzana' &&
-          p.metadata?.seccion?.toString() === sec.trim() && 
+          p.metadata?.seccion?.toString() === sec.trim() &&
           p.metadata?.manzana?.toString() === manz.trim()
         );
         if (encontrado) matchedIds = [encontrado.id];
       } else {
         // Primero intentar buscar el polígono de tipo Sección
-        encontrado = poligonos.find(p => 
+        encontrado = poligonos.find(p =>
           p.tipo === 'Sección' &&
           p.metadata?.seccion?.toString() === cleanQuery
         );
@@ -89,11 +108,11 @@ const MapController: React.FC<{
           matchedIds = [encontrado.id];
         } else {
           // Si no hay polígono de tipo Sección, buscar todas las Manzanas de esa sección
-          const manzanasDeSeccion = poligonos.filter(p => 
+          const manzanasDeSeccion = poligonos.filter(p =>
             p.tipo === 'Manzana' &&
             p.metadata?.seccion?.toString() === cleanQuery
           );
-          
+
           if (manzanasDeSeccion.length > 0) {
             encontrado = manzanasDeSeccion[0];
             matchedIds = manzanasDeSeccion.map(m => m.id);
@@ -105,12 +124,12 @@ const MapController: React.FC<{
 
       if (encontrado) {
         onPoligonoSelect(encontrado);
-        
+
         // Si es una búsqueda de sección pero solo encontramos manzanas, 
         // podríamos querer hacer zoom a todas las manzanas de esa sección
         if (!cleanQuery.includes('-') && matchedIds.length > 1) {
           const manzanasDeSeccion = poligonos.filter(p => matchedIds.includes(p.id));
-          
+
           if (manzanasDeSeccion.length > 0) {
             const featureGroup = L.featureGroup(
               manzanasDeSeccion.map(m => L.geoJSON(m.geom))
@@ -146,7 +165,7 @@ const MapController: React.FC<{
       if (poligono && poligono.geom) {
         const bounds = L.geoJSON(poligono.geom).getBounds();
         map.flyToBounds(bounds, { padding: [50, 50], duration: 1.5 });
-        
+
         // Find the layer and highlight it
         map.eachLayer((layer: any) => {
           if (layer.feature && layer.feature.properties && layer.feature.properties.id === poligono.id) {
@@ -158,14 +177,14 @@ const MapController: React.FC<{
                   // but the map will re-render or we can just highlight the selected one
                 }
               });
-              
+
               layer.setStyle({
                 weight: 5,
                 color: '#4f46e5', // Indigo 600
                 dashArray: '',
                 fillOpacity: 0.7
               });
-              
+
               if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
                 layer.bringToFront();
               }
@@ -186,14 +205,23 @@ const MapController: React.FC<{
       }
     };
 
+    const handleLocateUserOrigin = (e: any) => {
+      const latlng = e.detail;
+      if (latlng) {
+        map.flyTo([latlng.lat, latlng.lng], 16, { duration: 1.5 });
+      }
+    };
+
     window.addEventListener('search-section', handleSearch);
     window.addEventListener('locate-user', handleLocate);
+    window.addEventListener('locate-user-origin', handleLocateUserOrigin);
     window.addEventListener('focus-poligono', handleFocusPoligono);
     window.addEventListener('reset-zoom', handleResetZoom);
     return () => {
       map.off('zoomend', handleZoom);
       window.removeEventListener('search-section', handleSearch);
       window.removeEventListener('locate-user', handleLocate);
+      window.removeEventListener('locate-user-origin', handleLocateUserOrigin);
       window.removeEventListener('focus-poligono', handleFocusPoligono);
       window.removeEventListener('reset-zoom', handleResetZoom);
     };
@@ -202,13 +230,14 @@ const MapController: React.FC<{
   return null;
 };
 
-export const MapView: React.FC<MapViewProps> = ({ onPoligonoSelect, isAdmin, userId }) => {
+export const MapView: React.FC<MapViewProps> = ({ onPoligonoSelect, isAdmin, userId, focusPolygonId, onFocusHandled }) => {
   const [poligonos, setPoligonos] = useState<Poligono[]>([]);
   const [tareas, setTareas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchedPoligonoIds, setSearchedPoligonoIds] = useState<number[]>([]);
   const [isHighZoom, setIsHighZoom] = useState(false);
+  const [focusTarget, setFocusTarget] = useState<Poligono | null>(null);
   const [visibleLayers, setVisibleLayers] = useState({
     secciones: true,
     manzanas: true,
@@ -216,6 +245,59 @@ export const MapView: React.FC<MapViewProps> = ({ onPoligonoSelect, isAdmin, use
   });
 
   const [tasksUpdateKey, setTasksUpdateKey] = useState(0);
+
+  // Routing state
+  const [routeMode, setRouteMode] = useState(false);
+  const [routeOrigin, setRouteOrigin] = useState<LatLng | null>(null);
+  const [routeDest, setRouteDest] = useState<LatLng | null>(null);
+  const [routeResult, setRouteResult] = useState<RouteResult | null>(null);
+  const [travelMode, setTravelMode] = useState<'driving' | 'foot'>('driving');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // Stale-closure safe references for Leaflet events
+  const routeStateRef = useRef({ routeMode, routeOrigin, routeDest });
+  useEffect(() => {
+    routeStateRef.current = { routeMode, routeOrigin, routeDest };
+  }, [routeMode, routeOrigin, routeDest]);
+
+  const handleResetRoute = useCallback(() => {
+    setRouteMode(false);
+    setRouteOrigin(null);
+    setRouteDest(null);
+    setRouteResult(null);
+  }, []);
+
+  const handleStartRouting = useCallback(() => {
+    setRouteMode(true);
+    setRouteResult(null);
+
+    // Auto-geolocalizar al usuario como Origen si aún no ha seleccionado ninguno
+    if (!routeOrigin && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const latlng = { lat: position.coords.latitude, lng: position.coords.longitude };
+          setRouteOrigin(latlng);
+          // Notificar al MapController interno para que vuele la cámara a la ubicación
+          window.dispatchEvent(new CustomEvent('locate-user-origin', { detail: latlng }));
+        },
+        (error) => {
+          console.warn("Ubicación automática denegada o inaccesible:", error);
+        }
+      );
+    }
+  }, [routeOrigin]);
+
+  const handleMapSelection = useCallback((latlng: { lat: number; lng: number }) => {
+    const { routeMode: currentRouteMode, routeOrigin: currentOrigin, routeDest: currentDest } = routeStateRef.current;
+
+    if (currentRouteMode) {
+      if (!currentOrigin) {
+        setRouteOrigin(latlng);
+      } else if (!currentDest) {
+        setRouteDest(latlng);
+      }
+    }
+  }, []);
 
   const loadTasks = useCallback(async () => {
     let tasksData: any[] = [];
@@ -236,9 +318,9 @@ export const MapView: React.FC<MapViewProps> = ({ onPoligonoSelect, isAdmin, use
         setError(null);
         const data = await poligonosService.getPoligonos();
         console.log(`Datos recibidos: ${data.length} polígonos`);
-        
+
         await loadTasks();
-        
+
         if (data.length === 0) {
           // Intentamos verificar si hay un error de permisos o conexión
           const { error: testError } = await supabase.from('poligonos_geojson').select('id').limit(1);
@@ -269,69 +351,22 @@ export const MapView: React.FC<MapViewProps> = ({ onPoligonoSelect, isAdmin, use
     return () => window.removeEventListener('refresh-map-tasks', loadTasks);
   }, [loadTasks]);
 
-  const onEachFeature = useCallback((feature: any, layer: L.Layer) => {
-    layer.on({
-      click: (e) => {
-        L.DomEvent.stopPropagation(e);
-        const props = feature.properties;
-        onPoligonoSelect(props);
-        
-        const l = e.target as L.Path;
-        l.setStyle({
-          fillOpacity: props.tipo === 'Sección' ? 0.1 : 0.8,
-          weight: 4,
-          color: props.tipo === 'Sección' ? '#1e293b' : '#059669'
+  // Auto-zoom: dispatch focus event directly once polygon data is ready.
+  // MapController is a child of MapContainer (mounted inside MapView) so its 
+  // focus-poligono listener is guaranteed to be registered by now.
+  // requestAnimationFrame ensures the Leaflet canvas has fully painted before zoom.
+  useEffect(() => {
+    if (focusPolygonId && poligonos.length > 0 && !loading) {
+      const target = poligonos.find(p => p.id === focusPolygonId);
+      if (target) {
+        onPoligonoSelect(target);
+        requestAnimationFrame(() => {
+          window.dispatchEvent(new CustomEvent('focus-poligono', { detail: target }));
+          onFocusHandled?.();
         });
-      },
-      mouseover: (e) => {
-        const l = e.target as L.Path;
-        l.setStyle({ fillOpacity: feature.properties.tipo === 'Sección' ? 0.05 : 0.5 });
-      },
-      mouseout: (e) => {
-        const l = e.target as L.Path;
-        l.setStyle({ fillOpacity: feature.properties.tipo === 'Sección' ? 0 : 0.2 });
       }
-    });
-  }, [onPoligonoSelect]);
-
-  const getStyle = useCallback((p: any) => {
-    const isAssigned = tareas.some(t => t.polygon_id === p.id && t.status !== 'completada');
-    const isSearched = searchedPoligonoIds.includes(p.id);
-    
-    if (p.tipo === 'Sección') {
-      return {
-        fillColor: isSearched ? '#3b82f6' : (isAssigned ? '#ef4444' : 'transparent'), // Blue if searched, Red if assigned
-        weight: isSearched ? 4 : 3,
-        opacity: 0.8,
-        color: isSearched ? '#1d4ed8' : (isAssigned ? '#b91c1c' : '#1e293b'),
-        fillOpacity: isSearched ? 0.3 : (isAssigned ? 0.2 : 0),
-        interactive: true
-      };
     }
-
-    // Determine base color based on zoom level
-    let baseColor = '';
-    let borderColor = '';
-    
-    if (isHighZoom) {
-      // High zoom: different color per manzana
-      baseColor = getManzanaColor(p.id);
-      borderColor = '#1e293b'; // Dark border to keep them visible
-    } else {
-      // Low zoom: uniform color
-      baseColor = p.tipo === 'Manzana Completa' ? '#fbbf24' : '#a855f7';
-      borderColor = p.tipo === 'Manzana Completa' ? '#d97706' : '#7e22ce';
-    }
-
-    return {
-      fillColor: isSearched ? '#3b82f6' : (isAssigned ? '#ef4444' : baseColor),
-      weight: isSearched ? 2 : 1,
-      opacity: 1,
-      color: isSearched ? '#1d4ed8' : (isAssigned ? '#b91c1c' : borderColor),
-      fillOpacity: isSearched ? 0.8 : (isAssigned ? 0.6 : (isHighZoom ? 0.6 : 0.4)),
-      interactive: true
-    };
-  }, [tareas, searchedPoligonoIds, isHighZoom]);
+  }, [focusPolygonId, poligonos, loading, onPoligonoSelect, onFocusHandled]);
 
   const secciones = useMemo(() => poligonos.filter(p => p.tipo === 'Sección'), [poligonos]);
   const manzanas = useMemo(() => poligonos.filter(p => p.tipo === 'Manzana'), [poligonos]);
@@ -368,7 +403,7 @@ export const MapView: React.FC<MapViewProps> = ({ onPoligonoSelect, isAdmin, use
     return (
       <div className="h-full w-full flex items-center justify-center bg-stone-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8C3154] mx-auto mb-4"></div>
           <p className="text-stone-500 font-medium">Cargando cartografía...</p>
         </div>
       </div>
@@ -390,7 +425,7 @@ export const MapView: React.FC<MapViewProps> = ({ onPoligonoSelect, isAdmin, use
               <p className="text-sm mt-1">La base de datos no devolvió polígonos. Verifica que las tablas tengan datos y que la vista SQL esté configurada correctamente.</p>
             )}
           </div>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="bg-stone-900 text-white px-6 py-2 rounded-xl text-sm font-bold hover:bg-stone-800 transition-colors"
           >
@@ -401,104 +436,175 @@ export const MapView: React.FC<MapViewProps> = ({ onPoligonoSelect, isAdmin, use
     );
   }
 
+  const handleUseMyLocationAsDestination = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const latlng = { lat: position.coords.latitude, lng: position.coords.longitude };
+          setRouteDest(latlng);
+          if (!routeOrigin) {
+            setRouteMode(true);
+          }
+        },
+        (error) => {
+          console.error("Error obteniendo ubicación:", error);
+          alert("No se pudo obtener tu ubicación actual.");
+        }
+      );
+    } else {
+      alert("Geolocalización no soportada por el navegador.");
+    }
+  };
+
+  const googleMapsUrlReal = routeService.getGoogleMapsUrl(routeOrigin, routeDest, travelMode);
+
   return (
-    <div className="h-full w-full relative">
-      <MapContainer
-        center={[18.92, -99.23]}
-        zoom={12}
-        className="h-full w-full z-0"
+    <div className="flex flex-col md:flex-row h-full w-full relative overflow-hidden bg-white">
+      {/* Botón flotante para mostrar sidebar en móvil */}
+      <button
+        onClick={() => setIsSidebarOpen(true)}
+        className="md:hidden absolute top-4 left-4 z-50 bg-white p-3 rounded-xl shadow-lg border border-stone-200"
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        <Menu className="w-6 h-6 text-slate-700" />
+      </button>
+
+      {/* Overlay para móvil */}
+      <div
+        className={`md:hidden fixed inset-0 bg-black/50 z-[999] transition-opacity ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setIsSidebarOpen(false)}
+      />
+
+      <div className={`fixed inset-y-0 left-0 z-[1000] transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        {/* Botón de cerrar en móvil */}
+        <button
+          onClick={() => setIsSidebarOpen(false)}
+          className="md:hidden absolute top-4 right-4 z-50 bg-stone-100 p-2 rounded-lg text-slate-500 hover:bg-stone-200"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        <RoutingSidebar
+          isOpen={true}
+          isAdmin={isAdmin}
+          origin={routeOrigin}
+          destination={routeDest}
+          onUseMyLocationAsDestination={handleUseMyLocationAsDestination}
+          travelMode={travelMode}
+          setTravelMode={setTravelMode}
+          onVerRuta={handleStartRouting}
+          isRoutingActive={routeMode}
+          onCancelRouting={handleResetRoute}
+          visibleLayers={visibleLayers}
+          setVisibleLayers={setVisibleLayers}
         />
-        
-        <MapController 
-          poligonos={poligonos} 
-          onPoligonoSelect={onPoligonoSelect} 
-          onSearchMatch={setSearchedPoligonoIds}
-          onZoomChange={setIsHighZoom}
-        />
+      </div>
 
-        {visibleLayers.secciones && seccionesFC.features.length > 0 && (
-          <LayerGroup>
-            <GeoJSON
-              key={`layer-secciones-${tasksUpdateKey}-${searchedPoligonoIds.join(',')}-${isHighZoom}`} // Force re-render when tasks or search change to update styles
-              data={seccionesFC}
-              style={(feature) => getStyle(feature?.properties)}
-              onEachFeature={onEachFeature}
-            />
-          </LayerGroup>
-        )}
+      <div className="flex-1 h-full w-full relative z-0">
+        <MapContainer
+          center={[18.92, -99.23]}
+          zoom={12}
+          className="h-full w-full z-0"
+          style={{ cursor: routeMode ? 'crosshair' : 'grab' }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
 
-        {visibleLayers.manzanas && manzanasFC.features.length > 0 && (
-          <LayerGroup>
-            <GeoJSON
-              key={`layer-manzanas-${tasksUpdateKey}-${searchedPoligonoIds.join(',')}-${isHighZoom}`}
-              data={manzanasFC}
-              style={(feature) => getStyle(feature?.properties)}
-              onEachFeature={onEachFeature}
-            />
-          </LayerGroup>
-        )}
+          <MapController
+            poligonos={poligonos}
+            onPoligonoSelect={onPoligonoSelect}
+            onSearchMatch={setSearchedPoligonoIds}
+            onZoomChange={setIsHighZoom}
+            focusPolygon={focusTarget}
+            onFocusHandled={() => { setFocusTarget(null); onFocusHandled?.(); }}
+            handleMapSelection={handleMapSelection}
+          />
 
-        {visibleLayers.manzanasCompletas && manzanasCompletasFC.features.length > 0 && (
-          <LayerGroup>
-            <GeoJSON
-              key={`layer-manzanas-completas-${tasksUpdateKey}-${searchedPoligonoIds.join(',')}-${isHighZoom}`}
-              data={manzanasCompletasFC}
-              style={(feature) => getStyle(feature?.properties)}
-              onEachFeature={onEachFeature}
-            />
-          </LayerGroup>
-        )}
-      </MapContainer>
+          {/* Route layer controller - disponible para todos los roles */}
+          <RouteController
+            active={routeMode}
+            origin={routeOrigin}
+            destination={routeDest}
+            travelMode={travelMode}
+            onOriginSet={setRouteOrigin}
+            onDestinationSet={setRouteDest}
+            onRouteResult={setRouteResult}
+            onReset={handleResetRoute}
+          />
 
-      <div className="absolute bottom-6 left-6 z-10 bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-lg border border-stone-200 max-w-xs">
-        <h3 className="text-sm font-bold text-stone-800 mb-3 flex items-center gap-2">
-          <Info size={16} className="text-emerald-600" />
-          Capas del Mapa
-        </h3>
-        <div className="space-y-3">
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <input 
-              type="checkbox" 
-              checked={visibleLayers.manzanasCompletas}
-              onChange={() => setVisibleLayers(prev => ({ ...prev, manzanasCompletas: !prev.manzanasCompletas }))}
-              className="w-4 h-4 rounded border-stone-300 text-amber-500 focus:ring-amber-500 cursor-pointer"
-            />
-            <div className="flex items-center gap-2 flex-1">
-              <div className="w-4 h-4 bg-amber-400/40 border-2 border-amber-600 rounded"></div>
-              <span className="text-xs text-stone-600 group-hover:text-stone-900 transition-colors">Manzanas Completas</span>
+          {visibleLayers.secciones && seccionesFC.features.length > 0 && (
+            <LayerGroup>
+              <PolygonLayer
+                data={seccionesFC}
+                tareas={tareas}
+                searchedPoligonoIds={searchedPoligonoIds}
+                isHighZoom={isHighZoom}
+                onPoligonoSelect={onPoligonoSelect}
+                handleMapSelection={handleMapSelection}
+                isRoutingActive={routeMode}
+              />
+            </LayerGroup>
+          )}
+
+          {visibleLayers.manzanas && manzanasFC.features.length > 0 && (
+            <LayerGroup>
+              <ManzanaLayer
+                layerKeyPrefix="layer-manzanas"
+                data={manzanasFC}
+                tareas={tareas}
+                searchedPoligonoIds={searchedPoligonoIds}
+                isHighZoom={isHighZoom}
+                onPoligonoSelect={onPoligonoSelect}
+                handleMapSelection={handleMapSelection}
+                isRoutingActive={routeMode}
+              />
+            </LayerGroup>
+          )}
+
+          {visibleLayers.manzanasCompletas && manzanasCompletasFC.features.length > 0 && (
+            <LayerGroup>
+              <ManzanaLayer
+                layerKeyPrefix="layer-manzanas-completas"
+                data={manzanasCompletasFC}
+                tareas={tareas}
+                searchedPoligonoIds={searchedPoligonoIds}
+                isHighZoom={isHighZoom}
+                onPoligonoSelect={onPoligonoSelect}
+                handleMapSelection={handleMapSelection}
+                isRoutingActive={routeMode}
+              />
+            </LayerGroup>
+          )}
+        </MapContainer>
+
+        {/* Route Result Card */}
+        {routeResult && googleMapsUrlReal && (
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 bg-white/95 backdrop-blur-sm border border-[#7C4A36]/30 shadow-2xl rounded-2xl p-4 flex items-center gap-6 text-sm">
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Distancia</span>
+              <span className="text-lg font-black text-slate-900">
+                {(routeResult.distance / 1000).toFixed(1)} <span className="text-xs font-normal text-slate-500">km</span>
+              </span>
             </div>
-          </label>
-
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <input 
-              type="checkbox" 
-              checked={visibleLayers.manzanas}
-              onChange={() => setVisibleLayers(prev => ({ ...prev, manzanas: !prev.manzanas }))}
-              className="w-4 h-4 rounded border-stone-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
-            />
-            <div className="flex items-center gap-2 flex-1">
-              <div className="w-4 h-4 bg-purple-500/30 border-2 border-purple-700 rounded"></div>
-              <span className="text-xs text-stone-600 group-hover:text-stone-900 transition-colors">Manzanas Capa 1</span>
+            <div className="w-px h-10 bg-slate-200" />
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Tiempo est.</span>
+              <span className="text-lg font-black text-slate-900">
+                {Math.round(routeResult.duration / 60)} <span className="text-xs font-normal text-slate-500">min</span>
+              </span>
             </div>
-          </label>
-
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <input 
-              type="checkbox" 
-              checked={visibleLayers.secciones}
-              onChange={() => setVisibleLayers(prev => ({ ...prev, secciones: !prev.secciones }))}
-              className="w-4 h-4 rounded border-stone-300 text-slate-800 focus:ring-slate-800 cursor-pointer"
-            />
-            <div className="flex items-center gap-2 flex-1">
-              <div className="w-4 h-4 border-2 border-slate-800 rounded"></div>
-              <span className="text-xs text-stone-600 group-hover:text-stone-900 transition-colors">Secciones (Límites)</span>
-            </div>
-          </label>
-        </div>
+            <div className="w-px h-10 bg-slate-200" />
+            <a
+              href={googleMapsUrlReal}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-[#8C3154] hover:bg-[#7a2a49] text-white text-xs font-bold rounded-xl transition-all active:scale-95 shadow"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Ir con Google Maps
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

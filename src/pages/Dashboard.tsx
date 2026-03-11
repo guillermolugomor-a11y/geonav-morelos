@@ -25,7 +25,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ perfil, user, onLogout, on
   const [loadingTask, setLoadingTask] = useState(false);
   const [taskComments, setTaskComments] = useState('');
   const [updatingTask, setUpdatingTask] = useState(false);
-  
+
   // Admin assignment state
   const [usuarios, setUsuarios] = useState<UsuarioPerfil[]>([]);
   const [assigningUser, setAssigningUser] = useState('');
@@ -34,19 +34,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ perfil, user, onLogout, on
   const [isAssigning, setIsAssigning] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [view, setView] = useState<'map' | 'admin' | 'profile' | 'tasks'>('map');
+  const [view, setView] = useState<'map' | 'admin_gestion' | 'admin_monitor' | 'profile' | 'tasks'>('map');
+  const [pendingFocusPolygonId, setPendingFocusPolygonId] = useState<number | null>(null);
 
   // ⚠️ DEUDA TÉCNICA: Los correos de administrador están hardcodeados en el frontend.
   // Esto debe migrarse a una validación basada en el rol de la base de datos (perfil.rol === 'admin')
   // o preferiblemente usando Custom JWT Claims en Supabase.
   const adminEmails = [
-    'guillermo.lugo.mor@gmail.com', 
+    'guillermo.lugo.mor@gmail.com',
     'guillermo.lugo@morelos.gob.mx',
     'daniel.sotelo@morelos.gob.mx'
   ];
-  const isAdmin = perfil?.rol === 'admin' || 
-                  (perfil?.email && adminEmails.includes(perfil.email)) ||
-                  (user?.email && adminEmails.includes(user.email));
+  const isAdmin = perfil?.rol === 'admin' ||
+    (perfil?.email && adminEmails.includes(perfil.email)) ||
+    (user?.email && adminEmails.includes(user.email));
 
   useEffect(() => {
     if (isAdmin) {
@@ -61,7 +62,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ perfil, user, onLogout, on
         setActiveTask(null);
         try {
           const tasks = await taskService.getTareasByPoligono(
-            selectedPoligono.id, 
+            selectedPoligono.id,
             isAdmin ? undefined : user.id
           );
           if (tasks.length > 0) {
@@ -121,7 +122,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ perfil, user, onLogout, on
       } else if (selectedPoligono.tipo === 'Localidad') {
         tipoCapa = 'localidades';
       }
-      
+
       const { data, error } = await taskService.asignarTarea({
         polygon_id: selectedPoligono.id,
         user_id: assigningUser,
@@ -162,11 +163,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ perfil, user, onLogout, on
   return (
     <div className="h-screen flex flex-col bg-stone-50 overflow-hidden">
       <Navbar perfil={perfil} user={user} onLogout={onLogout} currentView={view} onViewChange={setView} />
-      
+
       <main className="flex-1 relative flex overflow-hidden">
         <AnimatePresence mode="wait">
           {view === 'map' ? (
-            <motion.div 
+            <motion.div
               key="map-view"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -177,28 +178,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ perfil, user, onLogout, on
               <div className="absolute top-6 right-6 z-10 flex flex-col gap-2 items-end">
                 <div className="bg-white/90 backdrop-blur-sm p-2 rounded-2xl shadow-xl border border-stone-200 flex items-center gap-2 w-64">
                   <div className="bg-stone-100 p-2 rounded-xl">
-                    <Database size={18} className="text-stone-500" />
+                    <Database size={18} className="text-[#8C3154]" />
                   </div>
-                  <input 
-                    type="text" 
-                    placeholder="Ej: 188 o 188-5" 
+                  <input
+                    type="text"
+                    placeholder="Ej: 188 o 188-5"
                     className="bg-transparent border-none outline-none text-sm font-medium text-stone-800 w-full"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                
+
                 <div className="flex gap-2">
-                  <button 
+                  <button
                     onClick={() => window.dispatchEvent(new CustomEvent('reset-zoom'))}
                     className="bg-white hover:bg-stone-50 text-stone-700 p-3 rounded-full shadow-lg border border-stone-200 transition-all active:scale-95 flex items-center gap-2"
                     title="Restablecer vista"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
                   </button>
-                  <button 
+                  <button
                     onClick={() => window.dispatchEvent(new CustomEvent('locate-user'))}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-full shadow-lg transition-all active:scale-95 flex items-center gap-2"
+                    className="bg-[#8C3154] hover:bg-[#7a2a49] text-white p-3 rounded-full shadow-lg transition-all active:scale-95 flex items-center gap-2"
                     title="Mi ubicación"
                   >
                     <MapPin size={20} />
@@ -223,18 +224,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ perfil, user, onLogout, on
                     initial={{ x: -400 }}
                     animate={{ x: 0 }}
                     exit={{ x: -400 }}
-                    className="absolute left-4 top-4 bottom-4 w-80 bg-white z-20 rounded-2xl shadow-2xl border border-stone-200 flex flex-col overflow-hidden"
+                    className="absolute md:left-[340px] left-4 top-4 bottom-4 w-80 bg-white z-20 rounded-2xl shadow-2xl border border-stone-200 flex flex-col overflow-hidden"
                   >
-                    <div className="p-5 bg-emerald-600 text-white flex items-center justify-between">
+                    <div className="p-5 bg-[#8C3154] text-white flex items-center justify-between">
                       <div>
                         <h2 className="font-bold text-lg leading-tight">{selectedPoligono.nombre}</h2>
-                        <p className="text-emerald-100 text-xs flex items-center gap-1 mt-1">
+                        <p className="text-stone-100 text-xs flex items-center gap-1 mt-1">
                           <MapPin size={12} /> {selectedPoligono.municipio}
                         </p>
                       </div>
-                      <button 
+                      <button
                         onClick={() => setSelectedPoligono(null)}
-                        className="p-1.5 hover:bg-emerald-500 rounded-lg transition-colors"
+                        className="p-1.5 hover:bg-[#5d634a] rounded-lg transition-colors"
                       >
                         <X size={20} />
                       </button>
@@ -266,11 +267,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ perfil, user, onLogout, on
                             <>
                               <div className="flex justify-between items-center py-2 border-b border-stone-100">
                                 <span className="text-xs text-stone-500">Sección</span>
-                                <span className="text-xs font-bold text-emerald-700">{selectedPoligono.metadata.seccion}</span>
+                                <span className="text-xs font-bold text-[#8C3154]">{selectedPoligono.metadata.seccion}</span>
                               </div>
                               <div className="flex justify-between items-center py-2 border-b border-stone-100">
                                 <span className="text-xs text-stone-500">Manzana</span>
-                                <span className="text-xs font-bold text-blue-600">{selectedPoligono.metadata.manzana}</span>
+                                <span className="text-xs font-bold text-[#BC9B73]">{selectedPoligono.metadata.manzana}</span>
                               </div>
                               <div className="flex justify-between items-center py-2 border-b border-stone-100">
                                 <span className="text-xs text-stone-500">Localidad</span>
@@ -312,12 +313,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ perfil, user, onLogout, on
                               )}
                               <div className="flex justify-between items-center py-2 border-b border-stone-100">
                                 <span className="text-xs text-stone-500">Promotor Asignado</span>
-                                <span className="text-xs font-bold text-emerald-600">
+                                <span className="text-xs font-bold text-[#8C3154]">
                                   {loadingTask ? (
                                     <span className="text-stone-400">Cargando...</span>
                                   ) : activeTask ? (
-                                    isAdmin 
-                                      ? usuarios.find(u => u.id === activeTask.user_id)?.nombre || 'Usuario Desconocido' 
+                                    isAdmin
+                                      ? usuarios.find(u => u.id === activeTask.user_id)?.nombre || 'Usuario Desconocido'
                                       : perfil?.nombre || 'Mi Usuario'
                                   ) : (
                                     selectedPoligono.metadata.promotor || 'Sin asignar'
@@ -331,26 +332,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ perfil, user, onLogout, on
 
                       {loadingTask ? (
                         <div className="flex justify-center py-4">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#8C3154]"></div>
                         </div>
                       ) : activeTask ? (
                         <section className="mt-6 border-t border-stone-100 pt-6">
-                          <h3 className="text-[10px] uppercase tracking-widest font-bold text-indigo-600 mb-3 flex items-center gap-2">
+                          <h3 className="text-[10px] uppercase tracking-widest font-bold text-[#BC9B73] mb-3 flex items-center gap-2">
                             <ClipboardList size={12} /> Gestión de Tarea
                           </h3>
-                          <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 space-y-4">
+                          <div className="bg-[#BC9B73]/5 p-4 rounded-xl border border-[#BC9B73]/20 space-y-4">
                             <div>
-                              <p className="text-[10px] text-indigo-400 uppercase font-bold mb-1">Instrucciones</p>
+                              <p className="text-[10px] text-[#BC9B73] uppercase font-bold mb-1">Instrucciones</p>
                               <p className="text-sm text-stone-700">{activeTask.instruccion}</p>
                             </div>
-                            
+
                             <div>
-                              <p className="text-[10px] text-indigo-400 uppercase font-bold mb-1">Estado</p>
-                              <select 
+                              <p className="text-[10px] text-[#BC9B73] uppercase font-bold mb-1">Estado</p>
+                              <select
                                 value={activeTask.status}
                                 onChange={(e) => handleUpdateTaskStatus(activeTask.id, e.target.value as any)}
                                 disabled={updatingTask || (isAdmin && activeTask.user_id !== user.id)}
-                                className="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm font-medium text-stone-800 focus:ring-2 focus:ring-indigo-500 outline-none disabled:bg-stone-100 disabled:text-stone-500"
+                                className="w-full bg-white border border-[#BC9B73]/20 rounded-lg px-3 py-2 text-sm font-medium text-stone-800 focus:ring-2 focus:ring-[#BC9B73] outline-none disabled:bg-stone-100 disabled:text-stone-500"
                               >
                                 <option value="pendiente">Pendiente</option>
                                 <option value="en_progreso">En Progreso</option>
@@ -359,19 +360,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ perfil, user, onLogout, on
                             </div>
 
                             <div>
-                              <p className="text-[10px] text-indigo-400 uppercase font-bold mb-1">Mis Comentarios</p>
-                              <textarea 
+                              <p className="text-[10px] text-[#BC9B73] uppercase font-bold mb-1">Mis Comentarios</p>
+                              <textarea
                                 value={taskComments}
                                 onChange={(e) => setTaskComments(e.target.value)}
                                 disabled={updatingTask || (isAdmin && activeTask.user_id !== user.id)}
                                 placeholder="Agrega notas sobre tu avance..."
-                                className="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm text-stone-800 focus:ring-2 focus:ring-indigo-500 outline-none min-h-[80px] resize-none disabled:bg-stone-100 disabled:text-stone-500"
+                                className="w-full bg-white border border-[#BC9B73]/20 rounded-lg px-3 py-2 text-sm text-stone-800 focus:ring-2 focus:ring-[#BC9B73] outline-none min-h-[80px] resize-none disabled:bg-stone-100 disabled:text-stone-500"
                               />
                               {(!isAdmin || activeTask.user_id === user.id) && (
-                                <button 
+                                <button
                                   onClick={() => handleSaveComments(activeTask.id)}
                                   disabled={updatingTask || taskComments === activeTask.comentarios_usuario}
-                                  className="mt-2 w-full bg-indigo-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 disabled:bg-indigo-300 transition-colors"
+                                  className="mt-2 w-full bg-[#BC9B73] text-white py-2 rounded-lg text-xs font-bold hover:bg-[#a68965] disabled:bg-[#d9c8b3] transition-colors"
                                 >
                                   Guardar Comentarios
                                 </button>
@@ -383,17 +384,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ perfil, user, onLogout, on
                         <section className="mt-6 border-t border-stone-100 pt-6">
                           {isAdmin ? (
                             <div>
-                              <h3 className="text-[10px] uppercase tracking-widest font-bold text-indigo-600 mb-3 flex items-center gap-2">
+                              <h3 className="text-[10px] uppercase tracking-widest font-bold text-[#8C3154] mb-3 flex items-center gap-2">
                                 <Send size={12} /> Asignar Tarea
                               </h3>
                               <form onSubmit={handleAssignTask} className="bg-stone-50 p-4 rounded-xl border border-stone-200 space-y-4">
                                 <div>
                                   <label className="block text-[10px] text-stone-500 uppercase font-bold mb-1">Usuario</label>
-                                  <select 
+                                  <select
                                     required
                                     value={assigningUser}
                                     onChange={(e) => setAssigningUser(e.target.value)}
-                                    className="w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    className="w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-800 focus:ring-2 focus:ring-[#8C3154] outline-none"
                                   >
                                     <option value="">Selecciona un usuario...</option>
                                     {usuarios.map(u => (
@@ -401,32 +402,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ perfil, user, onLogout, on
                                     ))}
                                   </select>
                                 </div>
-                                
+
                                 <div>
                                   <label className="block text-[10px] text-stone-500 uppercase font-bold mb-1">Instrucciones</label>
-                                  <textarea 
+                                  <textarea
                                     required
                                     value={assigningInstruction}
                                     onChange={(e) => setAssigningInstruction(e.target.value)}
                                     placeholder="Describe la tarea a realizar..."
-                                    className="w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-800 focus:ring-2 focus:ring-indigo-500 outline-none min-h-[80px] resize-none"
+                                    className="w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-800 focus:ring-2 focus:ring-[#8C3154] outline-none min-h-[80px] resize-none"
                                   />
                                 </div>
 
                                 <div>
                                   <label className="block text-[10px] text-stone-500 uppercase font-bold mb-1">Fecha Límite (Opcional)</label>
-                                  <input 
+                                  <input
                                     type="date"
                                     value={assigningDate}
                                     onChange={(e) => setAssigningDate(e.target.value)}
-                                    className="w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    className="w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-800 focus:ring-2 focus:ring-[#8C3154] outline-none"
                                   />
                                 </div>
 
-                                <button 
+                                <button
                                   type="submit"
                                   disabled={isAssigning || !assigningUser || !assigningInstruction}
-                                  className="w-full bg-indigo-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 disabled:bg-indigo-300 transition-colors flex items-center justify-center gap-2"
+                                  className="w-full bg-[#8C3154] text-white py-2 rounded-lg text-xs font-bold hover:bg-[#7a2a49] disabled:bg-[#aab09d] transition-colors flex items-center justify-center gap-2"
                                 >
                                   {isAssigning ? (
                                     <svg className="w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -462,14 +463,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ perfil, user, onLogout, on
 
               {/* Map Area */}
               <div className="flex-1 h-full">
-                <MapView 
-                  onPoligonoSelect={setSelectedPoligono} 
+                <MapView
+                  onPoligonoSelect={setSelectedPoligono}
                   isAdmin={isAdmin}
                   userId={user?.id}
+                  focusPolygonId={pendingFocusPolygonId}
+                  onFocusHandled={() => setPendingFocusPolygonId(null)}
                 />
               </div>
             </motion.div>
-          ) : view === 'admin' && isAdmin ? (
+          ) : (view === 'admin_gestion' || view === 'admin_monitor') && isAdmin ? (
             <motion.div
               key="admin-view"
               initial={{ opacity: 0, y: 20 }}
@@ -478,49 +481,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ perfil, user, onLogout, on
               className="flex-1 p-8 overflow-y-auto"
             >
               <div className="max-w-4xl mx-auto">
-                <AdminPanel />
+                <AdminPanel
+                  viewMode={view === 'admin_gestion' ? 'gestion' : 'monitor'}
+                  onNavigateToMap={(poligonoId) => {
+                    setPendingFocusPolygonId(poligonoId);
+                    setView('map');
+                  }}
+                />
               </div>
             </motion.div>
           ) : view === 'profile' && perfil ? (
-            <UserProfile 
-              key="profile-view" 
-              perfil={perfil} 
-              onProfileUpdate={onProfileUpdate} 
-              onNavigateToMap={async (poligonoId) => {
-                try {
-                  const poligonos = await poligonosService.getPoligonos();
-                  const poligono = poligonos.find(p => p.id === poligonoId);
-                  if (poligono) {
-                    setSelectedPoligono(poligono);
-                    setView('map');
-                    // Add a small delay to ensure the map view is rendered before dispatching
-                    setTimeout(() => {
-                      window.dispatchEvent(new CustomEvent('focus-poligono', { detail: poligono }));
-                    }, 100);
-                  }
-                } catch (error) {
-                  console.error('Error navigating to poligono:', error);
-                }
+            <UserProfile
+              key="profile-view"
+              perfil={perfil}
+              onProfileUpdate={onProfileUpdate}
+              onNavigateToMap={(poligonoId) => {
+                setPendingFocusPolygonId(poligonoId);
+                setView('map');
               }}
             />
           ) : view === 'tasks' && perfil ? (
-            <UserTasks 
-              key="tasks-view" 
-              perfil={perfil} 
-              onNavigateToMap={async (poligonoId) => {
-                try {
-                  const poligonos = await poligonosService.getPoligonos();
-                  const poligono = poligonos.find(p => p.id === poligonoId);
-                  if (poligono) {
-                    setSelectedPoligono(poligono);
-                    setView('map');
-                    setTimeout(() => {
-                      window.dispatchEvent(new CustomEvent('focus-poligono', { detail: poligono }));
-                    }, 100);
-                  }
-                } catch (error) {
-                  console.error('Error navigating to poligono:', error);
-                }
+            <UserTasks
+              key="tasks-view"
+              perfil={perfil}
+              onNavigateToMap={(poligonoId) => {
+                setPendingFocusPolygonId(poligonoId);
+                setView('map');
               }}
             />
           ) : (

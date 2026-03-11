@@ -50,7 +50,7 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
 
   const handleSaveEdit = async () => {
     if (!editingTask) return;
-    
+
     setSavingTask(true);
     try {
       const success = await taskService.updateTareaStatus(editingTask.id, editStatus, editComments);
@@ -69,7 +69,7 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
@@ -84,23 +84,23 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
         <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
           <div className="p-6 border-b border-stone-100 bg-stone-50/50 flex justify-between items-center">
             <h2 className="text-lg font-bold text-stone-800 flex items-center gap-2">
-              <CheckSquare className="w-5 h-5 text-indigo-600" />
+              <CheckSquare className="w-5 h-5 text-[#8C3154]" />
               Lista de Tareas
             </h2>
-            <button 
+            <button
               onClick={fetchTasks}
-              className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+              className="text-xs font-bold text-[#8C3154] hover:text-[#7a2a49] flex items-center gap-1"
               disabled={loadingTasks}
             >
               {loadingTasks ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckSquare className="w-3 h-3" />}
               Actualizar
             </button>
           </div>
-          
+
           <div className="p-6">
             {loadingTasks ? (
               <div className="flex justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+                <Loader2 className="w-8 h-8 animate-spin text-[#8C3154]" />
               </div>
             ) : tareas.length === 0 ? (
               <div className="text-center py-16">
@@ -113,11 +113,10 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                 {tareas.map(tarea => (
                   <div key={tarea.id} className="bg-stone-50 border border-stone-200 rounded-xl p-5 flex flex-col hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start mb-4">
-                      <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                        tarea.status === 'completada' ? 'bg-emerald-100 text-emerald-700' :
-                        tarea.status === 'en_progreso' ? 'bg-amber-100 text-amber-700' :
-                        'bg-stone-200 text-stone-600'
-                      }`}>
+                      <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${tarea.status === 'completada' ? 'bg-[#8C3154]/10 text-[#8C3154]' :
+                        tarea.status === 'en_progreso' ? 'bg-[#BC9B73]/10 text-[#BC9B73]' :
+                          'bg-stone-200 text-stone-600'
+                        }`}>
                         {tarea.status.replace('_', ' ')}
                       </span>
                       <div className="flex items-center gap-2">
@@ -126,14 +125,14 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                         </span>
                         <button
                           onClick={() => handleEditClick(tarea)}
-                          className="p-1 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                          className="p-1 text-stone-400 hover:text-[#8C3154] hover:bg-stone-50 rounded-md transition-colors"
                           title="Documentar tarea"
                         >
                           <Edit3 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
-                    
+
                     <p className="text-sm text-stone-700 font-medium mb-4 flex-1">
                       {tarea.instruccion}
                     </p>
@@ -143,18 +142,26 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                         "{tarea.comentarios_usuario}"
                       </div>
                     )}
-                    
+
                     <div className="flex items-center justify-between mt-auto pt-4 border-t border-stone-200">
                       <div className="flex flex-col">
                         <span className="text-[10px] text-stone-400 uppercase font-bold">Asignada el</span>
                         <span className="text-xs text-stone-600 font-medium">
-                          {new Date(tarea.created_at).toLocaleDateString()}
+                          {tarea.created_at
+                            ? new Date(tarea.created_at).toLocaleDateString("es-MX", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit"
+                            })
+                            : "Fecha pendiente"}
                         </span>
                       </div>
                       {onNavigateToMap && (
-                        <button 
+                        <button
                           onClick={() => onNavigateToMap(tarea.polygon_id)}
-                          className="flex items-center gap-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-lg transition-colors"
+                          className="flex items-center gap-1.5 text-xs font-bold text-white bg-[#8C3154] hover:bg-[#7a2a49] px-3 py-1.5 rounded-lg transition-colors"
                         >
                           Ver en mapa <ArrowRight className="w-3.5 h-3.5" />
                         </button>
@@ -201,7 +208,7 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                   <select
                     value={editStatus}
                     onChange={(e) => setEditStatus(e.target.value as Tarea['status'])}
-                    className="w-full px-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-sm font-medium text-stone-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                    className="w-full px-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-sm font-medium text-stone-700 focus:outline-none focus:ring-2 focus:ring-[#8C3154]/20 focus:border-[#8C3154] transition-all"
                   >
                     <option value="pendiente">Pendiente</option>
                     <option value="en_progreso">En Progreso</option>
@@ -217,7 +224,7 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                     value={editComments}
                     onChange={(e) => setEditComments(e.target.value)}
                     placeholder="Describe lo que se realizó o los hallazgos..."
-                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none h-32"
+                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-[#8C3154]/20 focus:border-[#8C3154] transition-all resize-none h-32"
                   />
                 </div>
               </div>
@@ -233,7 +240,7 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                 <button
                   onClick={handleSaveEdit}
                   disabled={savingTask}
-                  className="flex items-center gap-2 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-6 py-2 bg-[#8C3154] hover:bg-[#7a2a49] text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50"
                 >
                   {savingTask ? (
                     <>

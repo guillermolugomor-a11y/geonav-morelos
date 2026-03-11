@@ -11,7 +11,8 @@ export const taskService = {
       const { data, error, status } = await supabase
         .from('tareas')
         .select('*')
-        .eq('user_id', usuarioId);
+        .eq('user_id', usuarioId)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error(`Error Supabase (Status ${status}) al obtener tareas:`, error.message, error);
@@ -61,7 +62,8 @@ export const taskService = {
     try {
       const { data, error, status } = await supabase
         .from('tareas')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error(`Error Supabase (Status ${status}) al obtener todas las tareas:`, error.message, error);

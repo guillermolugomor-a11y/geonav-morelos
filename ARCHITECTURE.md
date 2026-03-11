@@ -33,14 +33,23 @@ El sistema opera principalmente con tres entidades:
 
 3.  **`tareas`**: Relaciona usuarios con polígonos y define el trabajo a realizar.
     *   `id` (UUID): Llave primaria.
-    *   `usuario_id` (UUID): Llave foránea a `usuarios_perfil`.
-    *   `poligono_id` (Integer): Llave foránea a `poligonos_geojson`.
+    *   `user_id` (UUID): Llave foránea a `usuarios_perfil.id`.
+    *   `polygon_id` (Integer): Llave foránea a `poligonos_geojson.id`.
     *   `tipo_capa` (String): Tipo de capa asignada.
     *   `instruccion` (Text): Descripción de la tarea.
     *   `status` (Enum): `pendiente`, `en_progreso`, `completada`.
-    *   `fecha_asignacion` (Timestamp).
-    *   `fecha_vencimiento` (Timestamp, opcional).
+    *   `created_at` (TimestampTZ): Generada automáticamente al crear.
+    *   `updated_at` (TimestampTZ): Actualizada vía trigger en cada UPDATE.
+    *   `fecha_limite` (TimestampTZ, opcional).
     *   `comentarios_usuario` (Text, opcional).
+
+4.  **`notificaciones` [NUEVO]**: Sistema de alertas en tiempo real.
+    *   `id` (UUID): Llave primaria.
+    *   `user_id` (UUID): Destinatario.
+    *   `titulo` / `mensaje` (Text): Contenido legible.
+    *   `tipo` (String): `task_assigned` o `status_changed`.
+    *   `leida` (Boolean): Estado de la notificación.
+    *   `metadata` (JSONB): Referencias a la tarea y estados.
 
 ## 4. Flujo de Autenticación y Permisos
 
@@ -48,10 +57,10 @@ El sistema opera principalmente con tres entidades:
 2.  **Sincronización de Perfil:** Al iniciar sesión, se consulta la tabla `usuarios_perfil` para obtener el `rol` del usuario.
 3.  **Autorización (Frontend):** 
     *   Si el rol es `admin`, se muestra el panel de administración (`AdminPanel`) y se permite ver todas las tareas en el mapa.
-    *   Si el rol es `field_worker`, solo se muestra el mapa y las tareas asignadas a su `usuario_id`.
+    *   Si el rol es `field_worker`, solo se muestra el mapa y las tareas asignadas a su `user_id`.
 4.  **Autorización (Backend - RLS):** 
     *   *Regla de Oro:* El frontend **nunca** es la fuente de verdad para la seguridad.
-    *   Supabase Row Level Security (RLS) debe estar configurado para que la tabla `tareas` solo devuelva registros si `auth.uid() == usuario_id` O si el usuario tiene rol `admin` en `usuarios_perfil`.
+    *   Supabase Row Level Security (RLS) debe estar configurado para que la tabla `tareas` solo devuelva registros si `auth.uid() == user_id` O si el usuario tiene rol `admin` en `usuarios_perfil`.
 
 ## 5. Lógica de Negocio y Reglas del Sistema
 
@@ -62,6 +71,10 @@ El sistema opera principalmente con tres entidades:
     *   Un usuario normal (`field_worker`) **solo** verá resaltados en rojo los polígonos que le han sido asignados a él.
     *   Un administrador verá resaltados en rojo **todos** los polígonos que tengan una asignación activa (sin importar el usuario).
 *   **Búsqueda Espacial:** El sistema permite buscar polígonos por número de sección (ej. `188`) o por sección-manzana (ej. `188-5`). El mapa hará un "fly-to" (acercamiento animado) al polígono encontrado.
+*   **Notificaciones en Tiempo Real [NUEVO]:** 
+    *   Uso de `PostgreSQL Triggers` para insertar en la tabla `notificaciones`.
+    *   Uso de `Supabase Realtime` (CDNs/WebSockets) para propagar cambios al frontend instantáneamente.
+    *   Lógica "NULL-safe" en base de datos para garantizar la entrega aunque falten datos de perfil.
 
 ## 6. Deuda Técnica y Áreas de Mejora (Roadmap a Producción)
 

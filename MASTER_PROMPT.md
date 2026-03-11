@@ -37,10 +37,20 @@ Tabla espacial que almacena la cartografía.
 ### `tareas`
 Tabla transaccional que vincula usuarios con polígonos.
 *   `id` (UUID): Identificador único.
-*   `usuario_id` (UUID): FK a `usuarios_perfil.id`.
-*   `poligono_id` (Integer): FK a `poligonos_geojson.id`.
+*   `user_id` (UUID): FK a `usuarios_perfil.id`.
+*   `polygon_id` (Integer): FK a `poligonos_geojson.id`.
 *   `status` (String): `'pendiente'`, `'en_progreso'`, `'completada'`.
-*   `instruccion` (Text): Descripción del trabajo a realizar.
+*   `instruccion` (Text): Descripción del trabajo.
+*   `created_at` (TimestampTZ): Fecha de asignación (automática).
+*   `updated_at` (TimestampTZ): Fecha de última modificación (vía Trigger).
+
+### `notificaciones` [NUEVO]
+Tabla para alertas en tiempo real.
+*   `user_id` (UUID): Destinatario de la alerta.
+*   `titulo` / `mensaje` (Text): Contenido de la notificación.
+*   `tipo` (String): `'task_assigned'`, `'status_changed'`.
+*   `leida` (Boolean): Estado de lectura.
+*   `metadata` (JSONB): Datos extra (ID de tarea, nuevos estados, etc.).
 
 ---
 
@@ -63,6 +73,12 @@ Tabla transaccional que vincula usuarios con polígonos.
 *   **Regla 8:** El buscador permite buscar por "Sección" (ej. `188`) o por "Sección-Manzana" (ej. `188-5`).
 *   **Regla 9:** Al encontrar un polígono, el mapa realiza un *flyToBounds* (acercamiento animado) y selecciona el polígono automáticamente.
 
+### 4.5. Sistema de Notificaciones (Real-time) [NUEVO]
+*   **Regla 10:** Los administradores reciben una alerta automática cuando un trabajador cambia el estado de una tarea.
+*   **Regla 11:** Los trabajadores reciben una alerta cuando se les asigna una nueva tarea.
+*   **Regla 12 (Robustez):** Los mensajes de notificación se generan vía Triggers en PostgreSQL usando `concat()` para evitar fallos por valores nulos en los perfiles.
+*   **Regla 13:** El frontend usa `NotificationProvider` y `Supabase Realtime` para mostrar alertas instantáneas sin recargar la página.
+
 ---
 
 ## 5. Deuda Técnica Identificada (Roadmap)
@@ -71,8 +87,8 @@ Cualquier desarrollo futuro debe priorizar la resolución de estos puntos antes 
 
 1.  **Carga Espacial Masiva:** `poligonosService.getPoligonos()` descarga toda la tabla. **Solución:** Implementar carga por *Bounding Box* enviando los límites del mapa a Supabase y filtrando con `ST_Intersects`.
 2.  **Estado Global:** El estado de la aplicación (`usuarios`, `poligonos`, `tareas`) se maneja localmente en los componentes, causando *prop drilling* y recargas innecesarias. **Solución:** Implementar `React Query` para caché de servidor o `Zustand` para estado global.
-3.  **Manejo de Errores Silenciosos:** Las políticas RLS pueden devolver arreglos vacíos `[]` en lugar de errores si un usuario no tiene permisos. **Solución:** Asegurar que las consultas RPC o vistas materializadas manejen explícitamente los errores de permisos.
-4.  **Hardcoding de Administradores:** Eliminar el arreglo `adminEmails` del código fuente.
+3.  **Manejo de Errores Silenciosos:** Las políticas RLS pueden devolver arreglos vacíos `[]` en lugar de errores si un usuario no tiene permisos.
+4.  **Hardcoding de Administradores:** Eliminar el arreglo `adminEmails` del código fuente (Prioridad Alta).
 
 ---
 

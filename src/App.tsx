@@ -4,6 +4,7 @@ import { Login } from './components/Login';
 import { Dashboard } from './pages/Dashboard';
 import { UsuarioPerfil } from './types';
 import { motion, AnimatePresence } from 'motion/react';
+import { NotificationProvider } from './components/notifications/NotificationContext';
 
 export default function App() {
   const [session, setSession] = useState<any>(null);
@@ -49,7 +50,7 @@ export default function App() {
     return (
       <div className="h-screen flex items-center justify-center bg-stone-100">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-12 h-12 border-4 border-[#8C3154] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-stone-500 font-medium">Iniciando GeoNav...</p>
         </div>
       </div>
@@ -75,12 +76,14 @@ export default function App() {
           exit={{ opacity: 0 }}
           className="h-screen"
         >
-          <Dashboard 
-            perfil={perfil} 
-            user={session} 
-            onLogout={handleLogout} 
-            onProfileUpdate={setPerfil}
-          />
+          <NotificationProvider userId={session?.id}>
+            <Dashboard
+              perfil={perfil}
+              user={session}
+              onLogout={handleLogout}
+              onProfileUpdate={setPerfil}
+            />
+          </NotificationProvider>
         </motion.div>
       )}
     </AnimatePresence>

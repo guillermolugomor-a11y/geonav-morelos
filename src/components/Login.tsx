@@ -29,17 +29,20 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-stone-100 p-4">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-stone-200"
       >
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-emerald-600 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-emerald-200">
-            <ShieldCheck className="text-white w-8 h-8" />
-          </div>
-          <h1 className="text-3xl font-bold text-stone-900">GeoNav Morelos</h1>
-          <p className="text-stone-500 mt-2">Acceso exclusivo para promotores</p>
+          <img
+            src="https://rawcdn.githack.com/memolugo/DashboardATD/99fa30facd8b10adcd1bf684a1dbf5088248c303/Logoatd.svg"
+            alt="Agencia de Transformación Digital"
+            className="w-48 h-auto mb-6"
+          />
+          <h1 className="text-3xl font-black tracking-tight text-[#8C3154]">GeoNav Morelos</h1>
+          <div className="h-1 w-16 bg-[#BC9B73] mt-2 rounded-full" />
+          <p className="text-stone-500 mt-4 font-medium italic">Acceso exclusivo para promotores</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -48,7 +51,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             <input
               type="email"
               required
-              className="w-full px-4 py-3 rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              className="w-full px-4 py-3 rounded-xl border border-stone-300 focus:ring-2 focus:ring-[#8C3154] focus:border-[#8C3154] outline-none transition-all"
               placeholder="usuario@ejemplo.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -59,7 +62,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             <input
               type="password"
               required
-              className="w-full px-4 py-3 rounded-xl border border-stone-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              className="w-full px-4 py-3 rounded-xl border border-stone-300 focus:ring-2 focus:ring-[#8C3154] focus:border-[#8C3154] outline-none transition-all"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -75,7 +78,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 disabled:opacity-50"
+            className="w-full bg-[#8C3154] hover:bg-[#7a2a49] text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-stone-200 disabled:opacity-50"
           >
             {loading ? 'Iniciando...' : (
               <>

@@ -368,9 +368,47 @@ export const MapView: React.FC<MapViewProps> = ({ onPoligonoSelect, isAdmin, use
     }
   }, [focusPolygonId, poligonos, loading, onPoligonoSelect, onFocusHandled]);
 
-  const secciones = useMemo(() => poligonos.filter(p => p.tipo === 'Sección'), [poligonos]);
-  const manzanas = useMemo(() => poligonos.filter(p => p.tipo === 'Manzana'), [poligonos]);
-  const manzanasCompletas = useMemo(() => poligonos.filter(p => p.tipo === 'Manzana Completa'), [poligonos]);
+  const secciones = useMemo(() => {
+    const rawSecciones = poligonos.filter(p => p.tipo === 'Sección');
+    if (isAdmin) return rawSecciones;
+
+    // Para Field Worker: filtrar solo las secciones que tengan tareas asignadas
+    const seccionesAsignadas = new Set(
+      tareas
+        .filter(t => t.tipo_capa === 'secciones' || t.tipo_capa === 'Sección')
+        .map(t => t.polygon_id)
+    );
+
+    // También incluimos secciones de polígonos tipo Manzana que tengan tareas
+    tareas.forEach(t => {
+      const p = poligonos.find(poly => poly.id === t.polygon_id);
+      if (p && p.metadata?.seccion) {
+        // Encontraremos el ID de la sección correspondiente
+        const secPoly = rawSecciones.find(s => s.metadata?.seccion === p.metadata.seccion);
+        if (secPoly) seccionesAsignadas.add(secPoly.id);
+      }
+    });
+
+    return rawSecciones.filter(s => seccionesAsignadas.has(s.id));
+  }, [poligonos, tareas, isAdmin]);
+
+  const manzanas = useMemo(() => {
+    const rawManzanas = poligonos.filter(p => p.tipo === 'Manzana');
+    if (isAdmin) return rawManzanas;
+
+    // Para Field Worker: Solo mostrar manzanas que pertenezcan a las secciones que el usuario tiene "prendidas" (asignadas)
+    const seccionesAsignadasPermitidas = new Set(secciones.map(s => s.metadata?.seccion));
+    return rawManzanas.filter(m => seccionesAsignadasPermitidas.has(m.metadata?.seccion));
+  }, [poligonos, secciones, isAdmin]);
+
+  const manzanasCompletas = useMemo(() => {
+    const rawManzanasCompletas = poligonos.filter(p => p.tipo === 'Manzana Completa');
+    if (isAdmin) return rawManzanasCompletas;
+
+    // Lógica similar: solo manzanas completas de secciones asignadas
+    const seccionesAsignadasPermitidas = new Set(secciones.map(s => s.metadata?.seccion));
+    return rawManzanasCompletas.filter(m => seccionesAsignadasPermitidas.has(m.metadata?.seccion));
+  }, [poligonos, secciones, isAdmin]);
 
   const seccionesFC = useMemo(() => ({
     type: 'FeatureCollection' as const,

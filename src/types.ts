@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'field_worker';
+export type UserRole = 'admin' | 'field_worker' | 'campo';
 
 export interface UsuarioPerfil {
   id: string;
@@ -33,9 +33,30 @@ export interface Tarea {
   polygon_id: number;
   tipo_capa: string;
   instruccion: string;
-  status: 'pendiente' | 'en_progreso' | 'completada';
+  status: 'pendiente' | 'en_progreso' | 'completada' | 'programada';
   created_at: string;
   fecha_limite?: string;
   comentarios_usuario?: string;
   evidencia_url?: string;
+  seccion?: string | null;
+  manzana?: string | null;
+  clave_seccion?: string | null;
+  clave_manzana?: string | null;
+  usuario_id?: string;
+  // Nuevos campos para scheduler
+  scheduled_at?: string | null;   // Fecha/hora de activación automática
+  auto_activate?: boolean;          // Si se activa automáticamente al llegar la hora
+}
+
+export interface TareaHistorial {
+  id: string;
+  tarea_id: string;
+  user_id: string;
+  mensaje: string;
+  estado_snapshot?: string | null;
+  tipo: 'comentario' | 'avance' | 'cambio_estado' | 'sistema';
+  created_at: string;
+  perfil?: {
+    nombre: string;
+  };
 }

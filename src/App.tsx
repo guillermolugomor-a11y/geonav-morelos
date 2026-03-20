@@ -1,52 +1,54 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { authService } from './services/authService';
 import { Login } from './components/Login';
 import { Dashboard } from './pages/Dashboard';
-import { UsuarioPerfil } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 import { NotificationProvider } from './components/notifications/NotificationContext';
+import { useStore } from './store/useStore';
 
 export default function App() {
-  const [session, setSession] = useState<any>(null);
-  const [perfil, setPerfil] = useState<UsuarioPerfil | null>(null);
-  const [loading, setLoading] = useState(true);
+  const user = useStore(s => s.user);
+  const perfil = useStore(s => s.perfil);
+  const appLoading = useStore(s => s.appLoading);
+  const setUser = useStore(s => s.setUser);
+  const setPerfil = useStore(s => s.setPerfil);
+  const setAppLoading = useStore(s => s.setAppLoading);
+  const logout = useStore(s => s.logout);
 
   useEffect(() => {
-    // Check initial session
     const checkSession = async () => {
       try {
-        const user = await authService.getCurrentUser();
-        if (user) {
-          setSession(user);
-          const profileData = await authService.ensurePerfil(user);
-          console.log('App: Perfil cargado:', profileData);
+        const currentUser = await authService.getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+          const profileData = await authService.ensurePerfil(currentUser);
           setPerfil(profileData);
         }
       } catch (error) {
         console.error('Error checking session:', error);
       } finally {
-        setLoading(false);
+        setAppLoading(false);
       }
     };
 
     checkSession();
-  }, []);
+  }, [setUser, setPerfil, setAppLoading]);
 
   const handleLoginSuccess = async () => {
-    const user = await authService.getCurrentUser();
-    if (user) {
-      setSession(user);
-      const profileData = await authService.ensurePerfil(user);
+    const currentUser = await authService.getCurrentUser();
+    if (currentUser) {
+      setUser(currentUser);
+      const profileData = await authService.ensurePerfil(currentUser);
       setPerfil(profileData);
     }
   };
 
-  const handleLogout = () => {
-    setSession(null);
-    setPerfil(null);
+  const handleLogout = async () => {
+    await authService.logout();
+    logout();
   };
 
-  if (loading) {
+  if (appLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-stone-100">
         <div className="text-center">
@@ -59,7 +61,7 @@ export default function App() {
 
   return (
     <AnimatePresence mode="wait">
-      {!session ? (
+      {!user ? (
         <motion.div
           key="login"
           initial={{ opacity: 0 }}
@@ -76,10 +78,8 @@ export default function App() {
           exit={{ opacity: 0 }}
           className="h-screen"
         >
-          <NotificationProvider userId={session?.id}>
+          <NotificationProvider userId={user?.id}>
             <Dashboard
-              perfil={perfil}
-              user={session}
               onLogout={handleLogout}
               onProfileUpdate={setPerfil}
             />

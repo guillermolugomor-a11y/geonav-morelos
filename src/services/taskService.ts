@@ -1,41 +1,55 @@
 import { supabase } from '../lib/supabaseClient';
-import { Tarea, Poligono } from '../types';
+import { Tarea, TareaHistorial } from '../types';
+import { buildTaskPayload } from '../utils/taskPayload';
+import { debugError, debugLog } from '../utils/debug';
+
+const mapTarea = (tarea: Tarea | null): Tarea | null => {
+  if (!tarea) return null;
+
+  if ('usuario_id' in (tarea as any) && !tarea.user_id) {
+    tarea.user_id = (tarea as any).usuario_id as string;
+  } else if ('user_id' in (tarea as any) && !(tarea as any).usuario_id) {
+    (tarea as any).usuario_id = tarea.user_id;
+  }
+
+  return tarea;
+};
+
+const mapTareas = (data: any[] | null): Tarea[] => {
+  return (data || [])
+    .map((item) => mapTarea(item as Tarea)!)
+    .filter(Boolean);
+};
 
 export const taskService = {
-  /**
-   * Obtiene las tareas asignadas a un usuario
-   */
   async getTareas(usuarioId: string): Promise<Tarea[]> {
-    console.log('Consultando tareas para usuarioId:', usuarioId);
     try {
       const { data, error, status } = await supabase
         .from('tareas')
         .select('*')
         .eq('user_id', usuarioId)
+        .neq('status', 'programada')  // No mostrar tareas pendientes de activación
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error(`Error Supabase (Status ${status}) al obtener tareas:`, error.message, error);
+        debugError(`Error Supabase (Status ${status}) al obtener tareas:`, error.message, error);
         return [];
       }
 
-      console.log('Tareas encontradas para el usuario:', data?.length || 0, data);
-      return data || [];
+      return mapTareas(data);
     } catch (err) {
-      console.error('Error inesperado al obtener tareas:', err);
+      debugError('Error inesperado al obtener tareas:', err);
       return [];
     }
   },
 
-  /**
-   * Obtiene las tareas de un polígono específico, opcionalmente filtradas por usuario
-   */
   async getTareasByPoligono(poligonoId: number, usuarioId?: string): Promise<Tarea[]> {
     try {
       let query = supabase
         .from('tareas')
         .select('*')
-        .eq('polygon_id', poligonoId);
+        .eq('polygon_id', poligonoId)
+        .neq('status', 'programada');  // No mostrar tareas pendientes de activación
 
       if (usuarioId) {
         query = query.eq('user_id', usuarioId);
@@ -44,21 +58,18 @@ export const taskService = {
       const { data, error, status } = await query;
 
       if (error) {
-        console.error(`Error Supabase (Status ${status}) al obtener tareas del polígono:`, error.message, error);
+        debugError(`Error Supabase (Status ${status}) al obtener tareas del polígono:`, error.message, error);
         return [];
       }
 
-      return data || [];
+      return mapTareas(data);
     } catch (err) {
-      console.error('Error inesperado al obtener tareas del polígono:', err);
+      debugError('Error inesperado al obtener tareas del polígono:', err);
       return [];
     }
   },
 
-  /**
-   * Obtiene todas las tareas (Solo Admin).
-   */
-  async getAllTareas(): Promise<{ data: Tarea[], error: any }> {
+  async getAllTareas(): Promise<{ data: Tarea[]; error: any }> {
     try {
       const { data, error, status } = await supabase
         .from('tareas')
@@ -66,103 +77,293 @@ export const taskService = {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error(`Error Supabase (Status ${status}) al obtener todas las tareas:`, error.message, error);
+        debugError(`Error Supabase (Status ${status}) al obtener todas las tareas:`, error.message, error);
         return { data: [], error };
       }
 
-      return { data: data || [], error: null };
+      return {
+        data: mapTareas(data),
+        error: null
+      };
     } catch (err) {
-      console.error('Error inesperado al obtener todas las tareas:', err);
+      debugError('Error inesperado al obtener todas las tareas:', err);
       return { data: [], error: err };
     }
   },
 
-  /**
-   * Asigna una nueva tarea a un usuario (Solo Admin)
-   */
-  async asignarTarea(tarea: any): Promise<{ data: Tarea | null, error: any }> {
-    // Mapeamos los campos para que coincidan exactamente con la base de datos
-    const payload = {
-      polygon_id: tarea.polygon_id,
-      user_id: tarea.user_id,
+  async asignarTarea(tarea: any, adminId?: string): Promise<{ data: Tarea | null; error: any }> {
+    const normalized = buildTaskPayload({
+      userId: tarea.user_id,
+      polygonId: Number(tarea.polygon_id),
       instruccion: tarea.instruccion || tarea.instrucciones || '',
-      status: tarea.status || 'pendiente',
-      tipo_capa: tarea.tipo_capa || 'secciones',
-      fecha_limite: tarea.fecha_limite || null
+      tipoCapa: tarea.tipo_capa || 'padron',
+      fechaLimite: tarea.fecha_limite || null,
+      selectedManzana: tarea.manzana ? { manzana: tarea.manzana, seccion: tarea.seccion } : tarea.selectedManzana,
+      selectedSection: tarea.seccion ? { id: tarea.seccion } : tarea.selectedSection,
+      status: tarea.status || undefined,
+      scheduledAt: tarea.scheduled_at || null,
+      autoActivate: tarea.auto_activate ?? false,
+    });
+
+    const payload = {
+      polygon_id: normalized.polygon_id,
+      user_id: normalized.user_id,
+      instruccion: normalized.instruccion,
+      status: normalized.status,
+      tipo_capa: normalized.tipo_capa,
+      fecha_limite: normalized.fecha_limite,
+      seccion: normalized.seccion,
+      manzana: normalized.manzana,
+      clave_seccion: normalized.clave_seccion,
+      clave_manzana: normalized.clave_manzana,
+      scheduled_at: normalized.scheduled_at ?? null,
+      auto_activate: normalized.auto_activate ?? false,
     };
 
-    // Aseguramos que instruccion no sea null
     if (!payload.instruccion) {
-      console.error('Error: La instrucción no puede ser null');
       return { data: null, error: { message: 'La instrucción es obligatoria' } };
     }
 
-    console.log('Intentando insertar tarea en Supabase:', payload);
+    debugLog('Intentando insertar tarea en Supabase:', payload);
 
     try {
       const { data, error, status } = await supabase
         .from('tareas')
         .insert([payload])
-        .select()
+        .select('*')
         .single();
 
       if (error) {
-        console.error(`Error Supabase (Status ${status}) al insertar tarea:`, error.message, error);
-      } else {
-        console.log('Tarea insertada con éxito:', data);
-        // Map usuario_id to user_id just in case the backend uses 'usuario_id' but our frontend expects 'user_id'
-        if (data && 'usuario_id' in data && !('user_id' in data)) {
-          data.user_id = data.usuario_id;
-        }
+        debugError(`Error Supabase (Status ${status}) al insertar tarea:`, error.message, error);
+        return { data: null, error };
       }
 
-      return { data, error };
+      // Registro automático en el historial tras la asignación
+      if (data) {
+        await this.addTareaHistorial({
+          tarea_id: data.id,
+          user_id: adminId || payload.user_id, // Usamos el ID del administrador si está disponible
+          mensaje: `Tarea asignada con instrucciones: "${payload.instruccion}"`,
+          estado_snapshot: payload.status,
+          tipo: 'sistema'
+        });
+      }
+
+      return { data: mapTarea(data as Tarea | null), error: null };
     } catch (err) {
-      console.error('Error inesperado al insertar tarea:', err);
+      debugError('Error inesperado al insertar tarea:', err);
       return { data: null, error: err };
     }
   },
 
-  /**
-   * Actualiza el estado de una tarea
-   */
-  async updateTareaStatus(tareaId: string, status: Tarea['status'], comentarios?: string): Promise<boolean> {
+  async asignarTareasMasivas(payloads: any[], adminId?: string): Promise<{ data: Tarea[]; error: any }> {
+    if (!payloads.length) {
+      return { data: [], error: null };
+    }
+
+    try {
+      const cleanPayloads = payloads.map((payload) => ({
+        polygon_id: Number(payload.polygon_id),
+        user_id: payload.user_id,
+        instruccion: payload.instruccion,
+        status: payload.status || 'pendiente',
+        tipo_capa: payload.tipo_capa || 'padron',
+        fecha_limite: payload.fecha_limite || null,
+        seccion: payload.seccion || null,
+        manzana: payload.manzana || null,
+        clave_seccion: payload.clave_seccion || payload.seccion || null,
+        clave_manzana: payload.clave_manzana || payload.manzana || null
+      }));
+
+      const { data, error } = await supabase
+        .from('tareas')
+        .insert(cleanPayloads)
+        .select('*');
+
+      if (!error && data) {
+        // Registro masivo inicial en el historial
+        const historyEntries = data.map(tarea => ({
+          tarea_id: tarea.id,
+          user_id: adminId || tarea.user_id,
+          mensaje: `Tarea asignada masivamente`,
+          estado_snapshot: tarea.status,
+          tipo: 'sistema'
+        }));
+        
+        await supabase.from('tarea_historial').insert(historyEntries);
+      }
+
+      return {
+        data: mapTareas(data),
+        error
+      };
+    } catch (err) {
+      debugError('Error inesperado al insertar tareas masivas:', err);
+      return { data: [], error: err };
+    }
+  },
+
+  async getTareaHistorial(tareaId: string): Promise<TareaHistorial[]> {
+    try {
+      const { data, error, status } = await supabase
+        .from('tarea_historial')
+        .select(`
+          *,
+          perfil:usuarios_perfil(nombre)
+        `)
+        .eq('tarea_id', tareaId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        debugError(`Error Supabase (Status ${status}) al obtener historial:`, error.message, error);
+        return [];
+      }
+
+      return data as TareaHistorial[];
+    } catch (err) {
+      debugError('Error inesperado al obtener historial de tarea:', err);
+      return [];
+    }
+  },
+
+  async addTareaHistorial(entry: Omit<TareaHistorial, 'id' | 'created_at'>): Promise<{ data: TareaHistorial | null; error: any }> {
+    try {
+      const { data, error, status } = await supabase
+        .from('tarea_historial')
+        .insert([entry])
+        .select('*')
+        .single();
+
+      if (error) {
+        debugError(`Error Supabase (Status ${status}) al insertar en historial:`, error.message, error);
+      }
+
+      return { data: data as TareaHistorial, error };
+    } catch (err) {
+      debugError('Error inesperado al insertar en historial:', err);
+      return { data: null, error: err };
+    }
+  },
+
+  async updateTareaStatus(tareaId: string, status: Tarea['status'], comentarios?: string, userId?: string): Promise<boolean> {
     const { error } = await supabase
       .from('tareas')
       .update({ status, comentarios_usuario: comentarios })
       .eq('id', tareaId);
 
     if (error) {
-      console.error('Error al actualizar tarea:', error);
+      debugError('Error al actualizar tarea:', error);
       return false;
+    }
+
+    if (comentarios && userId) {
+      await this.addTareaHistorial({
+        tarea_id: tareaId,
+        user_id: userId,
+        mensaje: comentarios,
+        estado_snapshot: status,
+        tipo: 'avance'
+      });
+    } else if (userId) {
+       await this.addTareaHistorial({
+        tarea_id: tareaId,
+        user_id: userId,
+        mensaje: `La tarea cambió de estado a "${status}"`,
+        estado_snapshot: status,
+        tipo: 'cambio_estado'
+      });
     }
 
     return true;
   },
 
-  /**
-   * Elimina una tarea (Solo Admin)
-   */
   async deleteTarea(tareaId: string): Promise<{ error: any }> {
-    const { error } = await supabase
-      .from('tareas')
-      .delete()
-      .eq('id', tareaId);
-
+    const { error } = await supabase.from('tareas').delete().eq('id', tareaId);
     return { error };
   },
 
-  /**
-   * Actualiza una tarea existente (Solo Admin)
-   */
-  async updateTarea(tareaId: string, updates: Partial<Tarea>): Promise<{ data: Tarea | null, error: any }> {
-    const { data, error } = await supabase
-      .from('tareas')
-      .update(updates)
-      .eq('id', tareaId)
-      .select()
-      .single();
+  async updateTarea(tarea_id: string, updates: Partial<Tarea>, adminId?: string): Promise<{ data: Tarea | null; error: any }> {
+    try {
+      // Primero obtenemos el estado actual para comparar
+      const { data: currentTask } = await supabase.from('tareas').select('status, instruccion').eq('id', tarea_id).single();
 
-    return { data, error };
+      const { data, error } = await supabase
+        .from('tareas')
+        .update(updates)
+        .eq('id', tarea_id)
+        .select('*')
+        .single();
+
+      if (!error && data && adminId) {
+        // Si hay cambios relevantes, registrarlos en el historial
+        const changes = [];
+        if (updates.status && updates.status !== currentTask?.status) {
+          changes.push(`Estado cambiado a "${updates.status}"`);
+        }
+        if (updates.instruccion && updates.instruccion !== currentTask?.instruccion) {
+          changes.push(`Instrucciones actualizadas`);
+        }
+
+        if (changes.length > 0) {
+          await this.addTareaHistorial({
+            tarea_id,
+            user_id: adminId,
+            mensaje: `Administrador actualizó la tarea: ${changes.join(', ')}`,
+            estado_snapshot: data.status,
+            tipo: 'sistema'
+          });
+        }
+      }
+
+      return { data: mapTarea(data as Tarea | null), error };
+    } catch (err) {
+      return { data: null, error: err };
+    }
+  },
+
+  /**
+   * Activa las tareas programadas cuya fecha/hora ya llegó.
+   * Usado por el scheduler automático.
+   * NOTA: En modo cliente (anon key) solo activa las accesibles por RLS.
+   * Para bypass completo usar el script scheduler.ts con service_role key.
+   */
+  async activateScheduledTasks(): Promise<{ activadas: number; error: any }> {
+    try {
+      const ahora = new Date().toISOString();
+
+      const { data: tareas, error: fetchError } = await supabase
+        .from('tareas')
+        .select('id, user_id, scheduled_at')
+        .eq('status', 'programada')
+        .eq('auto_activate', true)
+        .lte('scheduled_at', ahora)
+        .limit(50);
+
+      if (fetchError || !tareas?.length) {
+        return { activadas: 0, error: fetchError };
+      }
+
+      const ids = tareas.map((t: any) => t.id);
+
+      const { error: updateError } = await supabase
+        .from('tareas')
+        .update({ status: 'pendiente' })
+        .in('id', ids);
+
+      if (!updateError) {
+        const historial = tareas.map((t: any) => ({
+          tarea_id: t.id,
+          user_id: t.user_id,
+          mensaje: `Tarea activada automáticamente (programada para ${new Date(t.scheduled_at).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })})`,
+          estado_snapshot: 'pendiente',
+          tipo: 'sistema'
+        }));
+        await supabase.from('tarea_historial').insert(historial);
+      }
+
+      return { activadas: ids.length, error: updateError };
+    } catch (err) {
+      return { activadas: 0, error: err };
+    }
   }
 };

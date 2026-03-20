@@ -6,12 +6,30 @@ export interface AppNotification {
     titulo: string;
     mensaje: string;
     leida: boolean;
-    tipo: 'task_assigned' | 'status_changed';
+    tipo: 'task_assigned' | 'status_changed' | 'new_comment';
     metadata: any;
     created_at: string;
 }
 
 export const notificationService = {
+    /**
+     * Marca todas las notificaciones de una tarea específica como leídas
+     */
+    async markTaskNotificationsAsRead(userId: string, tareaId: string): Promise<boolean> {
+        const { error } = await supabase
+            .from('notificaciones')
+            .update({ leida: true })
+            .eq('user_id', userId)
+            .eq('leida', false)
+            .filter('metadata->>tarea_id', 'eq', tareaId);
+
+        if (error) {
+            console.error('Error marking task notifications as read:', error);
+            return false;
+        }
+        return true;
+    },
+
     /**
      * Obtiene las notificaciones no leídas para el usuario actual
      */
@@ -67,8 +85,11 @@ export const notificationService = {
      * Se suscribe a nuevas notificaciones en tiempo real
      */
     subscribeToNotifications(userId: string, onNewNotification: (notification: AppNotification) => void) {
-        return supabase
-            .channel(`public:notificaciones:user_id=eq.${userId}`)
+        console.log(`%c🔔 notificationService: Intentando suscripción para usuario: ${userId}`, 'color: #8C3154; font-weight: bold');
+        
+        const channel = supabase.channel(`notifications-${userId}`);
+        
+        channel
             .on(
                 'postgres_changes',
                 {
@@ -78,9 +99,18 @@ export const notificationService = {
                     filter: `user_id=eq.${userId}`,
                 },
                 (payload) => {
+                    console.log('%c🔔 notificationService: ¡NUEVA FILA DETECTADA!', 'color: #ffffff; background: #22c55e; padding: 2px 5px; border-radius: 3px', payload);
                     onNewNotification(payload.new as AppNotification);
                 }
             )
-            .subscribe();
+            .subscribe((status, err) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('%c🔔 notificationService: ✅ CONECTADO EXITOSAMENTE A REALTIME', 'color: #22c55e; font-weight: bold');
+                } else if (status === 'CHANNEL_ERROR') {
+                    console.error('%c🔔 notificationService: ❌ ERROR DE CANAL:', 'color: #ef4444; font-weight: bold', err);
+                }
+            });
+
+        return channel;
     }
 };

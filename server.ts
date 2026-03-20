@@ -3,11 +3,26 @@ import { createServer as createViteServer } from 'vite';
 import pkg from 'pg';
 const { Pool } = pkg;
 import dotenv from 'dotenv';
+import path from 'path';
+import { createClient } from '@supabase/supabase-js';
 
 dotenv.config();
 
+// Inicializar cliente Supabase para el servidor
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL || '',
+  process.env.VITE_SUPABASE_ANON_KEY || ''
+);
+
 const app = express();
-const PORT = 3000;
+const port = Number(process.env.PORT) || 3001;
+const __dirname = path.resolve();
+
+// Logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
 
 // Configuración de la base de datos
 // Se recomienda usar la variable DATABASE_URL de Supabase
@@ -41,9 +56,6 @@ app.get('/api/tiles/:layer/:z/:x/:y.pbf', async (req, res) => {
     }
 
     // SQL para generar el tile MVT
-    // 1. Convertimos coordenadas z/x/y a un Bounding Box (BBOX)
-    // 2. Filtramos geometrías que intersectan el BBOX
-    // 3. Transformamos a coordenadas de tile y generamos el binario MVT
     const query = `
       WITH mvt_geom AS (
         SELECT 
@@ -76,21 +88,109 @@ app.get('/api/tiles/:layer/:z/:x/:y.pbf', async (req, res) => {
   }
 });
 
-async function startServer() {
-  // Vite middleware para desarrollo
+// Endpoint persistente para estado básico (Health Check)
+app.get('/api/status', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), scheduler: 'active' });
+});
+
+// --- AUTOMATIZACIÓN DE TAREAS PROGRAMADAS (Solución de Raíz via RPC) ---
+// --- Scheduler Diagnostics ---
+let schedulerHistory: any[] = [];
+function addLog(msg: string, details?: any) {
+  schedulerHistory.unshift({ time: new Date().toISOString(), msg, details });
+  if (schedulerHistory.length > 10) schedulerHistory.pop();
+}
+
+async function runTaskActivation() {
+  const now = new Date();
+  try {
+    const { data: count, error } = await supabase.rpc('activate_scheduled_tasks');
+    
+    if (error) {
+      console.error(`[Scheduler] ❌ Error:`, error.message);
+      addLog('Error en RPC', error.message);
+      return;
+    }
+
+    if (count && count > 0) {
+      console.log(`[Scheduler] ✅ ÉXITO: Activadas ${count} tareas.`);
+      addLog('Éxito', { count });
+    } else {
+      addLog('Check: 0 tareas para activar');
+    }
+  } catch (err: any) {
+    console.error('[Scheduler] ❌ Fallo crítico:', err);
+    addLog('Fallo crítico', err.message);
+  }
+}
+
+// Nueva ruta de diagnóstico
+app.get('/api/scheduler-debug', (req, res) => {
+  res.json({
+    active: true,
+    last_runs: schedulerHistory,
+    env: {
+      has_url: !!process.env.VITE_SUPABASE_URL,
+      has_key: !!process.env.VITE_SUPABASE_ANON_KEY
+    }
+  });
+});
+
+
+function initTaskScheduler() {
+  const url = process.env.VITE_SUPABASE_URL;
+  const key = process.env.VITE_SUPABASE_ANON_KEY ? 'Presente' : 'FALTANTE';
+  
+  console.log('--------------------------------------------------');
+  console.log('[Scheduler] ⏰ Iniciando servicio de auto-activación...');
+  console.log(`[Scheduler] 🔗 URL: ${url || 'FALTANTE'}`);
+  console.log(`[Scheduler] 🔑 Key: ${key}`);
+  console.log('--------------------------------------------------');
+  
+  if (!url || key === 'FALTANTE') {
+    console.warn('[Scheduler] ⚠️ Error: No se puede iniciar el scheduler sin variables de entorno.');
+    return;
+  }
+
+  // Ejecutar cada minuto
+  setInterval(runTaskActivation, 60000);
+  // Ejecutar la primera vez después de 1 segundo para prueba inmediata
+  setTimeout(runTaskActivation, 1000);
+}
+
+// 1. Iniciar el servidor Express de inmediato en el puerto 3001 (Top Level)
+app.listen(port, '0.0.0.0', () => {
+  console.log(`--------------------------------------------------`);
+  console.log(`🚀 SERVIDOR BACKEND ACTIVO: http://localhost:${port}`);
+  console.log(`⏰ SISTEMA DE ACTIVACIÓN: Iniciado`);
+  console.log(`--------------------------------------------------`);
+});
+
+// 2. Iniciar el scheduler
+initTaskScheduler();
+
+// 3. Cargar Vite de forma asíncrona pero sin bloquear el proceso principal
+async function startViteMiddleware() {
   if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
+    try {
+      console.log('[Server] 🛠️  Cargando middleware de Vite...');
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+      console.log('[Server] ✅ Vite cargado correctamente.');
+    } catch (err) {
+      console.error('[Server] ❌ Error cargando Vite:', err);
+    }
   } else {
     app.use(express.static('dist'));
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor GIS corriendo en http://localhost:${PORT}`);
+  // Manejar rutas de React (Fase 1) - Movido aquí para ser el final de la cadena
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
   });
 }
 
-startServer();
+startViteMiddleware();

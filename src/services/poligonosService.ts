@@ -61,6 +61,30 @@ export const poligonosService = {
     }
 
     return data && data.length > 0 ? data[0] : null;
+  },
+
+  /**
+   * Obtiene polígonos dentro de un Bounding Box (BBox).
+   */
+  async getPoligonosInBBox(minLat: number, minLon: number, maxLat: number, maxLon: number): Promise<Poligono[]> {
+    try {
+      const { data, error } = await supabase.rpc('get_poligonos_in_bbox', {
+        min_lat: minLat,
+        min_lon: minLon,
+        max_lat: maxLat,
+        max_lon: maxLon
+      });
+
+      if (error) {
+        console.error('Error fetching poligonos in BBox:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (err) {
+      console.error('Unexpected error in getPoligonosInBBox:', err);
+      return [];
+    }
   }
 };
 

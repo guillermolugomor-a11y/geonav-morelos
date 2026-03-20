@@ -93,7 +93,7 @@ export const RouteController: React.FC<RouteControllerProps> = ({
 
         if (origin) {
             const icon = L.divIcon({
-                html: `<div style="background:#8C3154;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4)"></div>`,
+                html: `<div style="background:#2563eb;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>`,
                 className: '',
                 iconSize: [14, 14],
                 iconAnchor: [7, 7],
@@ -120,7 +120,7 @@ export const RouteController: React.FC<RouteControllerProps> = ({
 
         if (destination) {
             const icon = L.divIcon({
-                html: `<div style="background:#7C4A36;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4)"></div>`,
+                html: `<div style="background:#ef4444;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>`,
                 className: '',
                 iconSize: [14, 14],
                 iconAnchor: [7, 7],
@@ -137,7 +137,7 @@ export const RouteController: React.FC<RouteControllerProps> = ({
                     .then(route => {
                         if (route && routeLayerRef.current === null) {
                             // Draw route line
-                            const routeColor = travelMode === 'driving' ? '#8C3154' : '#BC9B73'; // Guinda para auto, Café Dorado para caminata
+                            const routeColor = travelMode === 'driving' ? '#2563eb' : '#059669'; // Azul Real para auto, Verde Esmeralda para caminata
                             const layer = L.geoJSON(route.geometry, {
                                 style: {
                                     color: routeColor,

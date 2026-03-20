@@ -11,6 +11,7 @@ GeoNav Morelos es una aplicación web (Single Page Application) diseñada para l
 *   **Backend as a Service (BaaS):** Supabase (PostgreSQL, Auth, RLS).
 *   **Animaciones:** `motion/react` (Framer Motion).
 *   **Iconos:** `lucide-react`.
+*   **Componentes Compartidos:** `NotificationIndicator` para alertas estandarizadas.
 
 ## 3. Modelo de Datos (Base de Datos)
 
@@ -43,13 +44,21 @@ El sistema opera principalmente con tres entidades:
     *   `fecha_limite` (TimestampTZ, opcional).
     *   `comentarios_usuario` (Text, opcional).
 
-4.  **`notificaciones` [NUEVO]**: Sistema de alertas en tiempo real.
+4.  **`notificaciones` [REFORZADO]**: Sistema de alertas en tiempo real.
     *   `id` (UUID): Llave primaria.
     *   `user_id` (UUID): Destinatario.
     *   `titulo` / `mensaje` (Text): Contenido legible.
-    *   `tipo` (String): `task_assigned` o `status_changed`.
+    *   `tipo` (String): `task_assigned`, `status_changed` o `new_comment`.
     *   `leida` (Boolean): Estado de la notificación.
-    *   `metadata` (JSONB): Referencias a la tarea y estados.
+    *   `metadata` (JSONB): Referencias a la tarea, ID del actor y estados.
+
+5.  **`tarea_historial` [NUEVO]**: Registro detallado de cada acción sobre una tarea.
+    *   `id` (UUID): Llave primaria.
+    *   `tarea_id` (UUID): FK a `tareas.id`.
+    *   `user_id` (UUID): FK a `usuarios_perfil.id`.
+    *   `mensaje` (Text): Descripción del avance o cambio.
+    *   `tipo` (String): `avance`, `cambio_estado` o `sistema`.
+    *   `estado_snapshot` (String): Estado en ese momento.
 
 ## 4. Flujo de Autenticación y Permisos
 
@@ -71,10 +80,13 @@ El sistema opera principalmente con tres entidades:
     *   Un usuario normal (`field_worker`) **solo** verá resaltados en rojo los polígonos que le han sido asignados a él.
     *   Un administrador verá resaltados en rojo **todos** los polígonos que tengan una asignación activa (sin importar el usuario).
 *   **Búsqueda Espacial:** El sistema permite buscar polígonos por número de sección (ej. `188`) o por sección-manzana (ej. `188-5`). El mapa hará un "fly-to" (acercamiento animado) al polígono encontrado.
-*   **Notificaciones en Tiempo Real [NUEVO]:** 
-    *   Uso de `PostgreSQL Triggers` para insertar en la tabla `notificaciones`.
-    *   Uso de `Supabase Realtime` (CDNs/WebSockets) para propagar cambios al frontend instantáneamente.
-    *   Lógica "NULL-safe" en base de datos para garantizar la entrega aunque falten datos de perfil.
+*   **Notificaciones en Tiempo Real [REFORZADO]:** 
+    *   **Centralización:** Los disparadores (Triggers) de notificación para administradores residen en la tabla `tarea_historial`. Esto garantiza que tanto un cambio de estado como un simple comentario ("avance") generen una alerta.
+    *   **Asignación:** Las notificaciones para trabajadores se disparan al insertar una nueva fila en `tareas`.
+    *   **Robustez:** Uso de `lower(trim(rol)) = 'admin'` en SQL para evitar fallos por inconsistencia de datos.
+    *   **Canales:** El frontend usa canales únicos por usuario (`notifications-${userId}`) vía Supabase Realtime.
+    *   **Bidireccional:** El disparador `notify_parties_on_history_entry` (v6) asegura que tanto admins como trabajadores reciban alertas según quién actúe.
+    *   **Limpieza de Datos:** `taskService.ts` centraliza la transformación de datos mediante `mapTareas` para asegurar compatibilidad de campos (`user_id` vs `usuario_id`).
 
 ## 6. Deuda Técnica y Áreas de Mejora (Roadmap a Producción)
 

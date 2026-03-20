@@ -3,7 +3,7 @@ import { Bell, Check, X, Clipboard, Activity, CheckCircle } from 'lucide-react';
 import { useNotifications } from './NotificationContext';
 import { motion, AnimatePresence } from 'motion/react';
 
-export const NotificationBell: React.FC = () => {
+export const NotificationBell: React.FC = React.memo(() => {
     const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
     const [isOpen, setIsOpen] = useState(false);
     const panelRef = useRef<HTMLDivElement>(null);
@@ -117,4 +117,4 @@ export const NotificationBell: React.FC = () => {
             </AnimatePresence>
         </div>
     );
-};
+});

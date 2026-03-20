@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { UsuarioPerfil, Tarea } from '../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { UsuarioPerfil, Tarea, TareaHistorial } from '../types';
 import { taskService } from '../services/taskService';
-import { poligonosService } from '../services/poligonosService';
-import { CheckSquare, Loader2, ArrowRight, Edit3, X, Save } from 'lucide-react';
+import { CheckSquare, Loader2, ArrowRight, Edit3, X, Save, MessageSquare, Clock, User, ChevronRight, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { TaskLocationLabel } from './tasks/TaskLocationLabel';
+import { useNotifications } from './notifications/NotificationContext';
+import { NotificationIndicator } from './notifications/NotificationIndicator';
 
 interface UserTasksProps {
   perfil: UsuarioPerfil;
@@ -14,16 +16,29 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
   const [tareas, setTareas] = useState<Tarea[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
   const [editingTask, setEditingTask] = useState<Tarea | null>(null);
+  const [historial, setHistorial] = useState<TareaHistorial[]>([]);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
   const [editStatus, setEditStatus] = useState<Tarea['status']>('pendiente');
-  const [editComments, setEditComments] = useState('');
+  const [newUpdate, setNewUpdate] = useState('');
   const [savingTask, setSavingTask] = useState(false);
+  
+  const { notifications, markTaskNotificationsAsRead } = useNotifications();
+
+  // OPTIMIZACIÓN: Pre-calcular tareas con notificaciones no leídas (O(n))
+  const tareasConNotificaciones = useMemo(() => {
+    const set = new Set<string>();
+    notifications.forEach(n => {
+      if (!n.leida && n.metadata?.tarea_id) {
+        set.add(n.metadata.tarea_id);
+      }
+    });
+    return set;
+  }, [notifications]);
 
   const fetchTasks = async () => {
-    console.log('UserTasks: Iniciando fetchTasks para perfil:', perfil.id, perfil.nombre);
     setLoadingTasks(true);
     try {
       const userTasks = await taskService.getTareas(perfil.id);
-      console.log('UserTasks: Tareas recibidas:', userTasks.length);
       setTareas(userTasks);
     } catch (error) {
       console.error('Error cargando tareas:', error);
@@ -36,24 +51,50 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
     fetchTasks();
   }, [perfil.id]);
 
-  const handleEditClick = (tarea: Tarea) => {
+  const handleEditClick = async (tarea: Tarea) => {
     setEditingTask(tarea);
     setEditStatus(tarea.status);
-    setEditComments(tarea.comentarios_usuario || '');
+    setNewUpdate('');
+    
+    // Cargar historial
+    setLoadingHistorial(true);
+    try {
+      const history = await taskService.getTareaHistorial(tarea.id);
+      setHistorial(history);
+      
+      // Marcar notificaciones como leídas
+      markTaskNotificationsAsRead(tarea.id);
+    } catch (error) {
+      console.error('Error cargando historial:', error);
+    } finally {
+      setLoadingHistorial(false);
+    }
   };
 
   const handleCancelEdit = () => {
     setEditingTask(null);
     setEditStatus('pendiente');
-    setEditComments('');
+    setNewUpdate('');
+    setHistorial([]);
   };
 
   const handleSaveEdit = async () => {
     if (!editingTask) return;
+    if (!newUpdate.trim() && editStatus === editingTask.status) {
+      handleCancelEdit();
+      return;
+    }
 
     setSavingTask(true);
     try {
-      const success = await taskService.updateTareaStatus(editingTask.id, editStatus, editComments);
+      // Si hay un mensaje nuevo o cambio de estado, actualizar
+      const success = await taskService.updateTareaStatus(
+        editingTask.id, 
+        editStatus, 
+        newUpdate.trim() || undefined, 
+        perfil.id
+      );
+      
       if (success) {
         await fetchTasks();
         handleCancelEdit();
@@ -66,6 +107,17 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
     } finally {
       setSavingTask(false);
     }
+  };
+
+  const formatDateTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString("es-MX", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true
+    });
   };
 
   return (
@@ -121,14 +173,19 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                       </span>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-stone-400 bg-white px-2 py-1 rounded-md border border-stone-100">
-                          Polígono #{tarea.polygon_id}
+                          <TaskLocationLabel task={tarea} compact />
                         </span>
                         <button
                           onClick={() => handleEditClick(tarea)}
-                          className="p-1 text-stone-400 hover:text-[#8C3154] hover:bg-stone-50 rounded-md transition-colors"
+                          className="p-1 text-stone-400 hover:text-[#8C3154] hover:bg-stone-50 rounded-md transition-colors relative"
                           title="Documentar tarea"
                         >
                           <Edit3 className="w-4 h-4" />
+                          <NotificationIndicator 
+                            hasUnread={tareasConNotificaciones.has(tarea.id)}
+                            size="sm"
+                            className="absolute -top-1 -right-1"
+                          />
                         </button>
                       </div>
                     </div>
@@ -138,7 +195,8 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                     </p>
 
                     {tarea.comentarios_usuario && (
-                      <div className="mb-4 p-3 bg-stone-100 rounded-lg text-xs text-stone-600 italic border border-stone-200">
+                      <div className="mb-4 p-3 bg-stone-100 rounded-lg text-[10px] text-stone-500 border border-stone-200 line-clamp-2">
+                        <span className="font-bold text-[#8C3154] uppercase mr-1">Último avance:</span>
                         "{tarea.comentarios_usuario}"
                       </div>
                     )}
@@ -188,7 +246,7 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
             >
               <div className="flex justify-between items-center p-6 border-b border-stone-100">
                 <h3 className="text-lg font-bold text-stone-800">Documentar Tarea</h3>
@@ -200,32 +258,86 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                 </button>
               </div>
 
-              <div className="p-6 space-y-4">
+              <div className="p-6 space-y-6 flex-1 overflow-y-auto custom-scrollbar">
+                {/* Historial Timeline */}
                 <div>
-                  <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">
-                    Estado de la Tarea
+                  <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5" />
+                    Historial de Avances
                   </label>
-                  <select
-                    value={editStatus}
-                    onChange={(e) => setEditStatus(e.target.value as Tarea['status'])}
-                    className="w-full px-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-sm font-medium text-stone-700 focus:outline-none focus:ring-2 focus:ring-[#8C3154]/20 focus:border-[#8C3154] transition-all"
-                  >
-                    <option value="pendiente">Pendiente</option>
-                    <option value="en_progreso">En Progreso</option>
-                    <option value="completada">Completada</option>
-                  </select>
+                  
+                  {loadingHistorial ? (
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="w-5 h-5 animate-spin text-stone-400" />
+                    </div>
+                  ) : historial.length === 0 ? (
+                    <div className="text-center py-6 bg-stone-50 rounded-xl border border-dashed border-stone-200">
+                      <p className="text-xs text-stone-400 italic">No hay registros de historial aún.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 relative before:absolute before:inset-y-0 before:left-3 before:w-px before:bg-stone-200">
+                      {historial
+                        .filter(item => !(perfil.rol !== 'admin' && item.tipo === 'sistema' && (item.mensaje.toLowerCase().includes('scheduler') || item.mensaje.toLowerCase().includes('activada'))))
+                        .map((item) => (
+                        <div key={item.id} className="relative pl-8">
+                          <div className={`absolute left-1 top-1 w-4 h-4 rounded-full border-2 border-white shadow-sm flex items-center justify-center ${
+                            item.tipo === 'cambio_estado' ? 'bg-[#BC9B73]' : 'bg-[#8C3154]'
+                          }`}>
+                            {item.tipo === 'cambio_estado' ? <ChevronRight className="w-2.5 h-2.5 text-white" /> : <div className="w-1 h-1 bg-white rounded-full" />}
+                          </div>
+                          <div className="bg-stone-50 rounded-lg p-3 border border-stone-100">
+                            <div className="flex justify-between items-start mb-1">
+                              <span className="text-[10px] font-bold text-[#8C3154] uppercase flex items-center gap-1">
+                                <User className="w-2.5 h-2.5" />
+                                {item.tipo === 'sistema' ? 'SISTEMA' : (item.user_id === perfil.id ? 'Tú' : (item.perfil?.nombre || 'SISTEMA'))}
+                              </span>
+                              <span className="text-[10px] text-stone-400 font-medium">
+                                {formatDateTime(item.created_at)}
+                              </span>
+                            </div>
+                            <p className="text-xs text-stone-700 leading-relaxed">
+                              {item.mensaje}
+                            </p>
+                            {item.estado_snapshot && (
+                              <div className="mt-2 text-[9px] font-bold text-stone-400 uppercase tracking-tighter">
+                                Estado: <span className="text-[#BC9B73]">{item.estado_snapshot}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">
-                    Comentarios / Documentación
-                  </label>
-                  <textarea
-                    value={editComments}
-                    onChange={(e) => setEditComments(e.target.value)}
-                    placeholder="Describe lo que se realizó o los hallazgos..."
-                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-[#8C3154]/20 focus:border-[#8C3154] transition-all resize-none h-32"
-                  />
+                <div className="pt-4 border-t border-stone-100">
+                  <div className="mb-4">
+                    <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">
+                      Cambiar Estado
+                    </label>
+                    <select
+                      value={editStatus}
+                      onChange={(e) => setEditStatus(e.target.value as Tarea['status'])}
+                      className="w-full px-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-sm font-medium text-stone-700 focus:outline-none focus:ring-2 focus:ring-[#8C3154]/20 focus:border-[#8C3154] transition-all"
+                    >
+                      <option value="pendiente">Pendiente</option>
+                      <option value="en_progreso">En Progreso</option>
+                      <option value="completada">Completada</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      Nuevo Avance
+                    </label>
+                    <textarea
+                      value={newUpdate}
+                      onChange={(e) => setNewUpdate(e.target.value)}
+                      placeholder="Escribe una actualización de esta tarea..."
+                      className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-[#8C3154]/20 focus:border-[#8C3154] transition-all resize-none h-24"
+                    />
+                  </div>
                 </div>
               </div>
 

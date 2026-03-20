@@ -15,14 +15,12 @@ export interface RoutingSidebarProps {
     isRoutingActive: boolean;
     onCancelRouting: () => void;
     visibleLayers: {
-        secciones: boolean;
-        manzanas: boolean;
-        manzanasCompletas: boolean;
+        padron: boolean;
+        nearManzanas: boolean;
     };
     setVisibleLayers: React.Dispatch<React.SetStateAction<{
-        secciones: boolean;
-        manzanas: boolean;
-        manzanasCompletas: boolean;
+        padron: boolean;
+        nearManzanas: boolean;
     }>>;
 }
 
@@ -181,36 +179,27 @@ export const RoutingSidebar: React.FC<RoutingSidebarProps> = ({
                 {/* CAPAS DEL MAPA */}
                 <section className="pt-4 border-t border-stone-100">
                     <h2 className="text-xs uppercase tracking-widest text-slate-500 font-bold mb-4">Capas del Mapa</h2>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-3">
                         <button
-                            onClick={() => setVisibleLayers(p => ({ ...p, secciones: !p.secciones }))}
-                            className={`flex flex-col items-center gap-2 p-3 rounded-xl font-bold transition-all ${visibleLayers.secciones
+                            onClick={() => setVisibleLayers(p => ({ ...p, padron: !p.padron }))}
+                            className={`flex flex-col items-center gap-2 p-3 rounded-xl font-bold transition-all ${visibleLayers.padron
                                 ? 'bg-[#8C3154] text-white shadow-md'
                                 : 'bg-white border border-[#8C3154]/10 text-stone-500 hover:bg-[#8C3154]/5'
                                 }`}
                         >
-                            <Hexagon className="w-4 h-4 opacity-80" />
-                            <span className="text-[10px] uppercase tracking-tight">Polígonos</span>
+                            <Target className="w-4 h-4 opacity-80" />
+                            <span className="text-[10px] uppercase tracking-tight text-center">Secciones</span>
                         </button>
+
                         <button
-                            onClick={() => setVisibleLayers(p => ({ ...p, manzanasCompletas: !p.manzanasCompletas }))}
-                            className={`flex flex-col items-center gap-2 p-3 rounded-xl font-bold transition-all ${visibleLayers.manzanasCompletas
-                                ? 'bg-[#8C3154] text-white shadow-md'
-                                : 'bg-white border border-[#8C3154]/10 text-stone-500 hover:bg-[#8C3154]/5'
+                            onClick={() => setVisibleLayers(p => ({ ...p, nearManzanas: !p.nearManzanas }))}
+                            className={`flex flex-col items-center gap-2 p-3 rounded-xl font-bold transition-all ${visibleLayers.nearManzanas
+                                ? 'bg-[#BC9B73] text-white shadow-md'
+                                : 'bg-white border border-[#BC9B73]/10 text-stone-500 hover:bg-[#BC9B73]/5'
                                 }`}
                         >
                             <LayoutGrid className="w-4 h-4 opacity-80" />
-                            <span className="text-[10px] uppercase tracking-tight text-center">Manzanas completas</span>
-                        </button>
-                        <button
-                            onClick={() => setVisibleLayers(p => ({ ...p, manzanas: !p.manzanas }))}
-                            className={`flex flex-col items-center gap-2 p-3 rounded-xl font-bold transition-all ${visibleLayers.manzanas
-                                ? 'bg-[#8C3154] text-white shadow-md'
-                                : 'bg-white border border-[#8C3154]/10 text-stone-500 hover:bg-[#8C3154]/5'
-                                }`}
-                        >
-                            <Layers className="w-4 h-4 opacity-80" />
-                            <span className="text-[10px] uppercase tracking-tight text-center">Manzanas prioritarias</span>
+                            <span className="text-[10px] uppercase tracking-tight text-center">5 Manzanas Cercanas</span>
                         </button>
                     </div>
                 </section>

@@ -44,13 +44,23 @@ Tabla transaccional que vincula usuarios con polígonos.
 *   `created_at` (TimestampTZ): Fecha de asignación (automática).
 *   `updated_at` (TimestampTZ): Fecha de última modificación (vía Trigger).
 
-### `notificaciones` [NUEVO]
+### `notificaciones` [REFORZADO]
 Tabla para alertas en tiempo real.
 *   `user_id` (UUID): Destinatario de la alerta.
 *   `titulo` / `mensaje` (Text): Contenido de la notificación.
-*   `tipo` (String): `'task_assigned'`, `'status_changed'`.
+*   `tipo` (String): `'task_assigned'`, `'status_changed'`, `'new_comment'`.
 *   `leida` (Boolean): Estado de lectura.
-*   `metadata` (JSONB): Datos extra (ID de tarea, nuevos estados, etc.).
+*   `metadata` (JSONB): Datos extra (ID de tarea, nuevos estados, ID del actor, etc.).
+
+### `tarea_historial` [NUEVO]
+Tabla que registra el rastro de auditoría y avances de cada tarea.
+*   `id` (UUID): Identificador único.
+*   `tarea_id` (UUID): FK a `tareas.id`.
+*   `user_id` (UUID): FK a `usuarios_perfil.id` (quien realiza la acción).
+*   `mensaje` (Text): Contenido del avance o descripción del cambio.
+*   `estado_snapshot` (String): Estado de la tarea al momento del registro.
+*   `tipo` (String): `'avance'`, `'cambio_estado'`, `'sistema'`.
+*   `created_at` (TimestampTZ): Fecha del registro.
 
 ---
 
@@ -64,6 +74,7 @@ Tabla para alertas en tiempo real.
 ### 4.2. Gestión de Tareas (Admin)
 *   **Regla 4:** Solo los usuarios con rol `'admin'` pueden crear, editar, eliminar o listar todas las tareas.
 *   **Regla 5:** Al asignar una tarea, el polígono cambia su estado visual en el mapa para todos los usuarios (se marca en rojo).
+*   **Regla 14 [NUEVA]:** Los administradores pueden agregar seguimientos ("avances") directamente desde la barra lateral del mapa (`PolygonSidebar.tsx`), permitiendo una supervisión activa sin cambiar de vista.
 
 ### 4.3. Visualización de Mapas (Field Worker)
 *   **Regla 6:** Un `field_worker` solo puede ver en el mapa los polígonos que le han sido asignados (resaltados en rojo). Los demás polígonos mantienen su color base (transparente, ámbar o púrpura).
@@ -73,11 +84,12 @@ Tabla para alertas en tiempo real.
 *   **Regla 8:** El buscador permite buscar por "Sección" (ej. `188`) o por "Sección-Manzana" (ej. `188-5`).
 *   **Regla 9:** Al encontrar un polígono, el mapa realiza un *flyToBounds* (acercamiento animado) y selecciona el polígono automáticamente.
 
-### 4.5. Sistema de Notificaciones (Real-time) [NUEVO]
-*   **Regla 10:** Los administradores reciben una alerta automática cuando un trabajador cambia el estado de una tarea.
-*   **Regla 11:** Los trabajadores reciben una alerta cuando se les asigna una nueva tarea.
-*   **Regla 12 (Robustez):** Los mensajes de notificación se generan vía Triggers en PostgreSQL usando `concat()` para evitar fallos por valores nulos en los perfiles.
-*   **Regla 13:** El frontend usa `NotificationProvider` y `Supabase Realtime` para mostrar alertas instantáneas sin recargar la página.
+### 4.5. Sistema de Notificaciones (Real-time) [REFORZADO]
+*   **Regla 10 (Centralización):** Las notificaciones para administradores se disparan vía Triggers en la tabla `tarea_historial`. Esto asegura que tanto un cambio de estado como un simple comentario ("avance") generen una alerta.
+*   **Regla 11:** Los trabajadores reciben una alerta automática cuando se les inserta una nueva tarea en la tabla `tareas` (evento `AFTER INSERT`).
+*   **Regla 12 (Bidireccional):** El sistema usa el disparador `notify_parties_on_history_entry` (v6) para alertar tanto a admins como a trabajadores asignados.
+*   **Regla 13:** El frontend usa `NotificationProvider` con canales únicos por usuario (`notifications-${userId}`) para garantizar que cada usuario reciba solo sus alertas de forma eficiente.
+*   **Regla 15 [NUEVA]:** Los datos de tareas deben transformarse siempre mediante `taskService.mapTareas` para asegurar la paridad entre `user_id` y `usuario_id`, evitando errores de visualización.
 
 ---
 

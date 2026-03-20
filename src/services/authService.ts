@@ -23,7 +23,7 @@ export const authService = {
 
   /**
    * Asegura que exista un perfil en `usuarios_perfil` para el usuario autenticado.
-   * Si no existe, lo crea. Si existe pero le falta el email o necesita ser admin, lo actualiza.
+   * Si no existe, lo crea con rol 'field_worker'.
    */
   async ensurePerfil(user: any): Promise<UsuarioPerfil | null> {
     const { data: existing } = await supabase
@@ -33,19 +33,12 @@ export const authService = {
       .maybeSingle();
 
     if (existing) {
-      const adminEmails = [
-        'guillermo.lugo.mor@gmail.com',
-        'guillermo.lugo@morelos.gob.mx',
-        'daniel.sotelo@morelos.gob.mx'
-      ];
-      const shouldBeAdmin = adminEmails.includes(user.email);
       const needsEmailUpdate = !existing.email && user.email;
 
-      if ((shouldBeAdmin && existing.rol !== 'admin') || needsEmailUpdate) {
+      if (needsEmailUpdate) {
         const { data: updated } = await supabase
           .from('usuarios_perfil')
           .update({
-            rol: shouldBeAdmin ? 'admin' : existing.rol,
             email: user.email // Ensure email is stored
           })
           .eq('id', user.id)
@@ -57,13 +50,6 @@ export const authService = {
     }
 
     // Create default profile if not exists
-    const adminEmails = [
-      'guillermo.lugo.mor@gmail.com',
-      'guillermo.lugo@morelos.gob.mx',
-      'daniel.sotelo@morelos.gob.mx'
-    ];
-    const isAdmin = adminEmails.includes(user.email);
-
     const { data, error } = await supabase
       .from('usuarios_perfil')
       .insert([
@@ -71,7 +57,7 @@ export const authService = {
           id: user.id,
           email: user.email,
           nombre: user.email.split('@')[0],
-          rol: isAdmin ? 'admin' : 'field_worker'
+          rol: 'field_worker' // Default role for new users
         }
       ])
       .select()

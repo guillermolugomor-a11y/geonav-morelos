@@ -159,9 +159,9 @@ function initTaskScheduler() {
 }
 
 // 1. Iniciar el servidor Express de inmediato en el puerto 3002
-app.listen(port, '127.0.0.1', () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`--------------------------------------------------`);
-  console.log(`🚀 SERVIDOR BACKEND ACTIVO: http://127.0.0.1:${port}`);
+  console.log(`🚀 SERVIDOR BACKEND ACTIVO: http://0.0.0.0:${port}`);
   console.log(`⏰ SISTEMA DE ACTIVACIÓN: Iniciado`);
   console.log(`--------------------------------------------------`);
 });

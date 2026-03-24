@@ -6,7 +6,7 @@ export const poligonosService = {
   /**
    * Obtiene todos los polígonos convirtiendo la geometría a GeoJSON directamente en la consulta.
    */
-  async getAllPoligonos(): Promise<Poligono[]> {
+  async getPoligonos(): Promise<Poligono[]> {
     try {
       debugLog('Iniciando descarga completa de polígonos...');
       let allData: Poligono[] = [];

@@ -179,24 +179,24 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
       <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-stone-50/50">
         
         {/* Desktop View: Table */}
-        <div className="hidden md:block bg-white rounded-3xl border border-stone-100 shadow-sm overflow-hidden">
-          <table className="w-full text-left border-collapse">
+        <div className="hidden md:block bg-white/50 backdrop-blur-sm rounded-[2rem] border border-stone-100/50 shadow-inner overflow-hidden">
+          <table className="w-full text-left border-separate border-spacing-y-3 px-6">
             <thead>
-              <tr className="bg-stone-50/50 text-stone-400 uppercase text-[10px] font-black tracking-widest border-b border-stone-100">
-                <th className="px-6 py-5">Personal de Campo</th>
-                <th className="px-6 py-5">Ubicación Institucional</th>
-                <th className="px-6 py-5">Instrucción</th>
-                <th className="px-6 py-5">Estado</th>
-                <th className="px-6 py-5 text-right w-48">Acción</th>
+              <tr className="text-stone-400 uppercase text-[10px] font-black tracking-[0.2em]">
+                <th className="px-6 py-4 font-black">Personal de Campo</th>
+                <th className="px-4 py-4 font-black">Ubicación Institucional</th>
+                <th className="px-4 py-4 font-black">Instrucción</th>
+                <th className="px-4 py-4 font-black text-center">Estado</th>
+                <th className="px-6 py-4 text-right w-48 font-black">Gestión</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-50">
+            <tbody>
               {filteredTareas.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-20 text-center">
-                    <div className="flex flex-col items-center gap-3 opacity-30">
-                      <ClipboardList className="w-12 h-12" />
-                      <p className="text-sm font-bold uppercase tracking-widest">Sin registros que coincidan</p>
+                  <td colSpan={5} className="px-6 py-24 text-center">
+                    <div className="flex flex-col items-center gap-4 opacity-20">
+                      <ClipboardList className="w-16 h-16 text-[#8C3154]" />
+                      <p className="text-xs font-black uppercase tracking-[0.3em]">Sin registros institucionales</p>
                     </div>
                   </td>
                 </tr>
@@ -207,69 +207,74 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
                   const hasUnread = unreadTaskNotifications.has(tarea.id);
 
                   return (
-                    <tr key={tarea.id} className="hover:bg-stone-50/50 transition-colors group">
-                      <td className="px-6 py-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-[10px] font-black text-stone-500">
+                    <tr 
+                      key={tarea.id} 
+                      className="group bg-white hover:bg-[#F2F1E8]/30 transition-all duration-300 shadow-sm hover:shadow-ambient rounded-2xl relative"
+                    >
+                      <td className="px-6 py-5 first:rounded-l-2xl">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-[#F2F1E8] flex items-center justify-center text-[10px] font-black text-[#8C3154] shadow-sm border border-[#8C3154]/5 group-hover:bg-white transition-colors">
                             {usuario?.nombre.substring(0,2).toUpperCase()}
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-sm font-bold text-stone-900">{usuario?.nombre}</span>
-                            <span className="text-[10px] text-stone-400 font-bold tracking-tight">{usuario?.email}</span>
+                            <span className="text-sm font-black text-stone-900 tracking-tight group-hover:text-[#8C3154] transition-colors">{usuario?.nombre}</span>
+                            <span className="text-[10px] text-stone-400 font-bold tracking-tight opacity-70 italic">{usuario?.email}</span>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-6">
+                      <td className="px-4 py-5 font-medium">
                         <button
                           onClick={() => onNavigateToMap?.(tarea.polygon_id)}
-                          className="flex items-center gap-2 px-3 py-1.5 bg-[#f7f3eb] rounded-xl text-xs font-bold text-[#8C3154] hover:bg-[#8C3154] hover:text-white transition-all shadow-sm group/loc"
+                          className="flex items-center gap-2 px-4 py-2 bg-[#F2F1E8] rounded-xl text-[11px] font-black text-[#8C3154] hover:bg-[#8C3154] hover:text-white transition-all shadow-sm border border-[#8C3154]/5"
                         >
                           <MapPin className="w-3.5 h-3.5" />
                           <TaskLocationLabel task={tarea} poligono={poligono} />
                         </button>
                       </td>
-                      <td className="px-6 py-6 max-w-xs">
-                        <p className="text-xs text-stone-600 font-medium leading-relaxed italic border-l-2 border-stone-100 pl-3">
-                          "{tarea.instruccion}"
-                        </p>
+                      <td className="px-4 py-5 max-w-xs">
+                        <div className="relative">
+                          <p className="text-xs text-stone-600 font-medium leading-relaxed italic border-l-2 border-[#8C3154]/10 pl-4 group-hover:border-[#8C3154]/30 transition-colors">
+                            "{tarea.instruccion}"
+                          </p>
+                        </div>
                       </td>
-                      <td className="px-6 py-6">
-                        <div className="flex items-center gap-2">
-                          <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
-                            tarea.status === 'completada' ? 'bg-emerald-50 text-emerald-600' :
-                            tarea.status === 'en_progreso' ? 'bg-blue-50 text-blue-600' :
-                            tarea.status === 'programada' ? 'bg-indigo-50 text-indigo-600' :
-                            'bg-stone-100 text-stone-400'
+                      <td className="px-4 py-5 text-center">
+                        <div className="flex items-center justify-center gap-3">
+                          <span className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-2 shadow-sm border ${
+                            tarea.status === 'completada' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                            tarea.status === 'en_progreso' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                            tarea.status === 'programada' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                            'bg-stone-50 text-stone-400 border-stone-100'
                           }`}>
-                            {tarea.status === 'programada' ? '⏰ Programada' : tarea.status.replace('_', ' ')}
+                            {tarea.status === 'programada' ? <Clock className="w-3 h-3" /> : null}
+                            {tarea.status === 'programada' ? 'Programada' : tarea.status.replace('_', ' ')}
                           </span>
                           <NotificationIndicator hasUnread={hasUnread} size="sm" />
                         </div>
                       </td>
-                      <td className="px-6 py-6 text-right">
-                        <div className="flex justify-end items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <td className="px-6 py-5 text-right last:rounded-r-2xl">
+                        <div className="flex justify-end items-center gap-2 opacity-40 group-hover:opacity-100 transition-all transform group-hover:translate-x-[-4px]">
                           {tarea.status === 'completada' && (
-                            <>
+                            <div className="flex items-center gap-1 pr-2 mr-2 border-r border-stone-100">
                               <button
                                 onClick={() => handleApprove(tarea)}
-                                className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all"
+                                className="p-2.5 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all hover:scale-110 active:scale-90"
                                 title="Aprobar"
                               >
-                                <CheckCircle2 size={16} strokeWidth={2.5} />
+                                <CheckCircle2 size={16} strokeWidth={3} />
                               </button>
                               <button
                                 onClick={() => handleReject(tarea)}
-                                className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                                className="p-2.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-all hover:scale-110 active:scale-90"
                                 title="Rechazar"
                               >
-                                <RotateCcw size={16} strokeWidth={2.5} />
+                                <RotateCcw size={16} strokeWidth={3} />
                               </button>
-                            </>
+                            </div>
                           )}
-                          <div className="w-px h-4 bg-stone-100 mx-1" />
-                          <button onClick={() => onView(tarea)} className="p-2 text-stone-400 hover:text-stone-900 hover:bg-stone-100 rounded-xl transition-all"><Eye size={16} /></button>
-                          <button onClick={() => onEdit(tarea)} className="p-2 text-stone-400 hover:text-[#BC9B73] hover:bg-[#BC9B73]/5 rounded-xl transition-all"><Edit2 size={16} /></button>
-                          <button onClick={() => onDelete(tarea)} className="p-2 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"><Trash2 size={16} /></button>
+                          <button onClick={() => onView(tarea)} className="p-2.5 text-stone-400 hover:text-stone-900 hover:bg-stone-100 rounded-xl transition-all" title="Ver Detalle"><Eye size={16} /></button>
+                          <button onClick={() => onEdit(tarea)} className="p-2.5 text-stone-400 hover:text-[#8C3154] hover:bg-[#8C3154]/5 rounded-xl transition-all" title="Editar"><Edit2 size={16} /></button>
+                          <button onClick={() => onDelete(tarea)} className="p-2.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all" title="Eliminar"><Trash2 size={16} /></button>
                         </div>
                       </td>
                     </tr>

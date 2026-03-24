@@ -1,6 +1,6 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { AlertCircle, Edit2, Eye, Loader2, X, Clock, User, ChevronRight, Send, Map as MapIcon } from 'lucide-react';
+import { AlertCircle, Edit2, Eye, Loader2, X, Clock, User, ChevronRight, Send, Map as MapIcon, MapPin } from 'lucide-react';
 import { Poligono, Tarea, TareaHistorial, UsuarioPerfil } from '../../types';
 import { taskService } from '../../services/taskService';
 import { TaskLocationLabel } from '../tasks/TaskLocationLabel';
@@ -118,207 +118,180 @@ export const TaskModals: React.FC<TaskModalsProps> = ({
   return (
     <AnimatePresence>
       {isViewModalOpen && selectedTarea && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center p-0 md:p-6 bg-on-surface/40 backdrop-blur-md">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]"
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            className="bg-surface rounded-t-[2.5rem] md:rounded-[2rem] shadow-[0_24px_60px_rgb(28,28,23,0.15)] w-full max-w-2xl overflow-hidden flex flex-col max-h-[92vh]"
           >
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                <Eye className="w-5 h-5 text-[#2E3B2B]" />
-                Detalles de la Tarea
-              </h3>
-              <button onClick={onCloseView} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                <X className="w-5 h-5 text-slate-500" />
+            <div className="p-8 border-b border-primary/5 flex items-center justify-between">
+              <div>
+                <h3 className="text-2xl font-display font-bold text-primary flex items-center gap-3 tracking-tight">
+                  <Eye className="w-6 h-6" />
+                  Detalles de la Tarea
+                </h3>
+              </div>
+              <button 
+                onClick={onCloseView} 
+                className="p-3 bg-surface-container-low hover:bg-white rounded-2xl transition-all shadow-sm"
+              >
+                <X className="w-6 h-6 text-stone-400" />
               </button>
             </div>
-            <div className="p-6 space-y-6 overflow-y-auto flex-1 custom-scrollbar min-h-[400px]">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-[#2E3B2B] tracking-wider opacity-60">Usuario</span>
-                  <p className="text-sm font-semibold text-slate-900">{selectedUsuario?.nombre}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-[#2E3B2B] tracking-wider opacity-60">Sección / Manzana</span>
-                  <button
-                    onClick={() => {
-                      if (selectedTarea && onNavigateToMap) {
-                        onNavigateToMap(selectedTarea.polygon_id);
-                        onCloseView();
-                      }
-                    }}
-                    className="flex items-center gap-1.5 text-sm font-semibold text-[#8C3154] hover:text-[#7a2a49] transition-colors group/loc-m"
-                    title="Ver en mapa"
-                  >
-                    <TaskLocationLabel task={selectedTarea} poligono={selectedPoligono} />
-                    <MapIcon className="w-3.5 h-3.5 opacity-0 group-hover/loc-m:opacity-100 transition-opacity" />
-                  </button>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-[#2E3B2B] tracking-wider opacity-60">Estado</span>
-                  <div>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        selectedTarea.status === 'completada'
-                          ? 'bg-[#8C3154]/10 text-[#8C3154]'
-                          : selectedTarea.status === 'en_progreso'
-                            ? 'bg-[#BC9B73]/10 text-[#BC9B73]'
-                            : selectedTarea.status === 'programada'
-                              ? 'bg-indigo-100 text-indigo-600'
-                              : 'bg-slate-100 text-slate-700'
-                      }`}
-                    >
-                      {selectedTarea.status === 'programada' ? '\u23f0 Programada' : selectedTarea.status}
-                    </span>
+            
+            <div className="p-8 space-y-8 overflow-y-auto flex-1 custom-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-black text-stone-400 tracking-[0.2em]">Responsable</span>
+                  <div className="flex items-center gap-3 bg-surface-container-low p-4 rounded-2xl">
+                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
+                      <User className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-on-surface">{selectedUsuario?.nombre}</p>
+                      <p className="text-[10px] text-stone-400 font-medium">{selectedUsuario?.email}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-[#2E3B2B] tracking-wider opacity-60">Asignado el</span>
-                  <p className="text-sm font-semibold text-slate-900">
-                    {selectedTarea.created_at
-                      ? new Date(selectedTarea.created_at).toLocaleString('es-MX', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })
-                      : 'Fecha pendiente'}
-                  </p>
+
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-black text-stone-400 tracking-[0.2em]">Ubicación</span>
+                  <div className="bg-surface-container-low p-4 rounded-2xl h-full flex items-center">
+                    <button
+                      onClick={() => {
+                        if (selectedTarea && onNavigateToMap) {
+                          onNavigateToMap(selectedTarea.polygon_id);
+                          onCloseView();
+                        }
+                      }}
+                      className="flex items-center gap-3 text-sm font-bold text-primary hover:scale-[1.02] transition-transform text-left"
+                    >
+                      <div className="p-2 bg-white rounded-lg shadow-sm">
+                        <MapPin className="w-4 h-4" />
+                      </div>
+                      <TaskLocationLabel task={selectedTarea} poligono={selectedPoligono} />
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div className="space-y-1">
-                <span className="text-[10px] uppercase font-bold text-[#2E3B2B] tracking-wider opacity-60">Instrucciones</span>
-                <p className="text-sm text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-100">{selectedTarea.instruccion}</p>
+
+              <div className="space-y-3">
+                <span className="text-[10px] uppercase font-black text-stone-400 tracking-[0.2em]">Instrucciones</span>
+                <div className="bg-white p-6 rounded-[2rem] border border-stone-100 shadow-sm">
+                  <p className="text-base text-stone-600 font-medium italic leading-relaxed">"{selectedTarea.instruccion}"</p>
+                </div>
               </div>
 
-              {/* BLOQUE ADMIN: Detalles de Programación - solo visible para admins */}
+              {/* BLOQUE ADMIN: Programación */}
               {perfil?.rol === 'admin' && selectedTarea.scheduled_at && (
-                <div className="space-y-3 p-4 rounded-xl border border-indigo-200 bg-indigo-50">
-                  <span className="text-[10px] uppercase font-bold text-indigo-700 tracking-wider flex items-center gap-1.5">
-                    ⏰ Programación Automática
+                <div className="p-6 rounded-[2rem] border-2 border-dashed border-primary/10 bg-primary/5 space-y-4">
+                  <span className="text-[10px] uppercase font-black text-primary tracking-[0.2em] flex items-center gap-2">
+                    <Clock className="w-4 h-4" /> Programación Automática
                   </span>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-indigo-500 font-semibold uppercase">Fecha de Activación</span>
-                      <p className="text-sm font-bold text-indigo-800">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <span className="text-[10px] text-primary/60 font-black uppercase tracking-widest">Activación</span>
+                      <p className="text-sm font-bold text-primary mt-1">
                         {new Date(selectedTarea.scheduled_at).toLocaleString('es-MX', {
-                          timeZone: 'America/Mexico_City',
-                          weekday: 'short',
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
+                          dateStyle: 'medium',
+                          timeStyle: 'short'
                         })}
                       </p>
                     </div>
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-indigo-500 font-semibold uppercase">Activación Auto</span>
-                      <p className={`text-sm font-bold ${selectedTarea.auto_activate ? 'text-green-700' : 'text-slate-500'}`}>
-                        {selectedTarea.auto_activate ? '✅ Activada' : '❌ Manual'}
+                    <div>
+                      <span className="text-[10px] text-primary/60 font-black uppercase tracking-widest">Modo</span>
+                      <p className="text-sm font-bold text-primary mt-1">
+                        {selectedTarea.auto_activate ? '✅ Automático' : '📍 Manual'}
                       </p>
                     </div>
                   </div>
-                  {selectedTarea.status === 'programada' && (() => {
-                    const now = new Date();
-                    const activacion = new Date(selectedTarea.scheduled_at!);
-                    const diffMs = activacion.getTime() - now.getTime();
-                    const diffH = Math.floor(diffMs / 3600000);
-                    const diffM = Math.floor((diffMs % 3600000) / 60000);
-                    const vencio = diffMs < 0;
-                    return (
-                      <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${vencio ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'}`}>
-                        {vencio
-                          ? '⚠️ Esta tarea debería haberse activado ya. Verifica el cron job.'
-                          : `⏳ Se activará en ${diffH > 0 ? `${diffH}h ` : ''}${diffM}min`}
-                      </div>
-                    );
-                  })()}
                 </div>
               )}
-              <div className="space-y-4 pt-4 border-t border-slate-100">
-                <span className="text-[10px] uppercase font-bold text-[#2E3B2B] tracking-wider opacity-60 flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5" />
+
+              <div className="space-y-6">
+                <span className="text-[10px] uppercase font-black text-on-surface tracking-[0.2em] flex items-center gap-3">
+                  <div className="w-8 h-px bg-stone-100" />
                   Historial de Avances
+                  <div className="flex-1 h-px bg-stone-100" />
                 </span>
                 
                 {loadingHistorial ? (
-                  <div className="flex justify-center py-4">
-                    <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                  <div className="flex justify-center py-8">
+                    <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 ) : historial.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic bg-slate-50 p-4 rounded-xl border border-dashed border-slate-200 text-center">
-                    No hay registros de seguimiento para esta tarea.
-                  </p>
+                  <div className="bg-surface-container-low p-8 rounded-3xl border border-dashed border-white text-center">
+                    <p className="text-xs text-stone-400 italic font-medium">No hay registros de seguimiento.</p>
+                  </div>
                 ) : (
-                  <div className="space-y-4 pr-2">
-                    <div className="space-y-4 relative before:absolute before:inset-y-0 before:left-3 before:w-px before:bg-slate-100">
-                      {historial
-                        .filter(item => !(perfil?.rol !== 'admin' && item.tipo === 'sistema' && (item.mensaje.toLowerCase().includes('scheduler') || item.mensaje.toLowerCase().includes('activada'))))
-                        .map((item) => {
-                        const autor = usuarios.find(u => u.id === item.user_id);
-                        return (
-                          <div key={item.id} className="relative pl-8">
-                            <div className={`absolute left-1 top-1 w-4 h-4 rounded-full border-2 border-white shadow-sm flex items-center justify-center ${
-                              item.tipo === 'cambio_estado' ? 'bg-[#BC9B73]' : 'bg-[#8C3154]'
-                            }`}>
-                              {item.tipo === 'cambio_estado' ? <ChevronRight className="w-2.5 h-2.5 text-white" /> : <div className="w-1 h-1 bg-white rounded-full" />}
+                  <div className="space-y-6">
+                    {historial
+                      .filter(item => !(perfil?.rol !== 'admin' && item.tipo === 'sistema' && (item.mensaje.toLowerCase().includes('scheduler') || item.mensaje.toLowerCase().includes('activada'))))
+                      .map((item) => {
+                      const autor = usuarios.find(u => u.id === item.user_id);
+                      return (
+                        <div key={item.id} className="relative pl-10 group">
+                          <div className={`absolute left-0 top-1 w-6 h-6 rounded-full border-4 border-white shadow-md z-10 flex items-center justify-center ${
+                            item.tipo === 'cambio_estado' ? 'bg-[#BC9B73]' : 'bg-primary'
+                          }`}>
+                            <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                          </div>
+                          <div className="absolute left-[11px] top-6 bottom-[-24px] w-0.5 bg-stone-100 group-last:hidden" />
+                          
+                          <div className="bg-white rounded-2xl p-5 shadow-sm border border-stone-100">
+                            <div className="flex justify-between items-start mb-2">
+                              <span className="text-[10px] font-black text-primary uppercase tracking-widest">
+                                {item.tipo === 'sistema' ? 'Sistema' : (item.perfil?.nombre || autor?.nombre || 'Desconocido')}
+                              </span>
+                              <span className="text-[10px] text-stone-300 font-bold">
+                                {formatDateTime(item.created_at)}
+                              </span>
                             </div>
-                            <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
-                              <div className="flex justify-between items-start mb-1">
-                                <span className="text-[9px] font-bold text-slate-700 uppercase flex items-center gap-1">
-                                  <User className="w-2.5 h-2.5" />
-                                  {item.tipo === 'sistema' ? 'SISTEMA' : (item.perfil?.nombre || autor?.nombre || 'USUARIO DESCONOCIDO')}
-                                </span>
-                                <span className="text-[9px] text-slate-400 font-medium">
-                                  {formatDateTime(item.created_at)}
+                            <p className="text-sm text-stone-600 font-medium leading-relaxed">
+                              {item.mensaje}
+                            </p>
+                            {item.estado_snapshot && (
+                              <div className="mt-3">
+                                <span className="inline-block px-2 py-1 bg-surface-container-low rounded-lg text-[9px] font-black text-primary uppercase tracking-widest">
+                                  {item.estado_snapshot}
                                 </span>
                               </div>
-                              <p className="text-xs text-slate-600 leading-relaxed">
-                                {item.mensaje}
-                              </p>
-                              {item.estado_snapshot && (
-                                <div className="mt-2 text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
-                                  Estado: <span className="text-[#BC9B73]">{item.estado_snapshot}</span>
-                                </div>
-                              )}
-                            </div>
+                            )}
                           </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
 
-              {/* Input de Seguimiento para Admin */}
-              <div className="space-y-3 pt-4 border-t border-slate-100 italic bg-stone-50 p-4 rounded-xl">
-                <span className="text-[10px] uppercase font-bold text-[#8C3154] tracking-wider">Responder / Agregar Seguimiento</span>
+              {/* Input seguimiento Premium */}
+              <div className="bg-surface-container-low p-6 rounded-[2rem] space-y-4">
+                <span className="text-[10px] uppercase font-black text-primary tracking-[0.2em] px-2">Nuevo Seguimiento</span>
                 <textarea
                   value={adminUpdate}
                   onChange={(e) => setAdminUpdate(e.target.value)}
-                  placeholder="Escribe una respuesta o instrucción adicional..."
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#8C3154]/20 focus:border-[#8C3154] transition-all resize-none h-20"
+                  placeholder="Instrucciones adicionales o respuesta..."
+                  className="w-full px-5 py-4 bg-white rounded-2xl text-sm font-medium focus:ring-2 focus:ring-primary outline-none transition-all shadow-sm min-h-[100px]"
                 />
                 <div className="flex justify-end">
                   <button
                     onClick={handleAdminUpdate}
                     disabled={savingUpdate || !adminUpdate.trim()}
-                    className="px-4 py-2 bg-[#8C3154] text-white text-xs font-bold rounded-lg hover:bg-[#7a2a49] transition-all disabled:opacity-50 flex items-center gap-2"
+                    className="flex items-center gap-3 px-8 py-3 bg-primary text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
                   >
-                    {savingUpdate ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-                    Enviar Seguimiento
+                    {savingUpdate ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    Registrar
                   </button>
                 </div>
               </div>
             </div>
-            <div className="p-6 bg-slate-50 flex justify-end">
+            
+            <div className="p-8 bg-surface-container-low/30 md:flex md:justify-end">
               <button
                 onClick={onCloseView}
-                className="px-6 py-2 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-all"
+                className="w-full md:w-auto px-10 py-4 bg-white border border-stone-200 text-stone-900 font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-stone-50 transition-all shadow-sm"
               >
                 Cerrar
               </button>
@@ -328,71 +301,72 @@ export const TaskModals: React.FC<TaskModalsProps> = ({
       )}
 
       {isEditModalOpen && selectedTarea && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-on-surface/40 backdrop-blur-md">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]"
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="bg-surface rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col h-auto"
           >
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                <Edit2 className="w-5 h-5 text-[#BC9B73]" />
+            <div className="p-8 border-b border-primary/5 flex items-center justify-between">
+              <h3 className="text-2xl font-display font-bold text-primary flex items-center gap-3 tracking-tight">
+                <Edit2 className="w-6 h-6" />
                 Editar Tarea
               </h3>
-              <button onClick={onCloseEdit} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                <X className="w-5 h-5 text-slate-500" />
+              <button 
+                onClick={onCloseEdit} 
+                className="p-3 hover:bg-stone-100 rounded-2xl transition-all"
+              >
+                <X className="w-6 h-6 text-stone-400" />
               </button>
             </div>
-            <form onSubmit={onSubmitEdit} className="flex flex-col flex-1 overflow-hidden">
-              <div className="p-6 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Instrucciones</label>
+            <form onSubmit={onSubmitEdit} className="p-8 space-y-8">
+                <div className="space-y-3">
+                  <label className="text-xs font-black text-stone-400 uppercase tracking-widest">Instrucciones</label>
                   <textarea
                     value={editForm.instruccion}
                     onChange={(e) => setEditForm((current) => ({ ...current, instruccion: e.target.value }))}
-                    className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-[#8C3154] outline-none transition-all min-h-[100px]"
+                    className="w-full px-6 py-5 bg-surface-container-low rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all min-h-[120px] text-sm font-medium"
                     required
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">Estado</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <label className="text-xs font-black text-stone-400 uppercase tracking-widest">Estado</label>
                     <select
                       value={editForm.status}
                       onChange={(e) => setEditForm((current) => ({ ...current, status: e.target.value as Tarea['status'] }))}
-                      className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-[#8C3154] outline-none transition-all"
+                      className="w-full px-5 py-4 bg-surface-container-low rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-bold"
                     >
                       <option value="pendiente">Pendiente</option>
                       <option value="en_progreso">En Progreso</option>
                       <option value="completada">Completada</option>
                     </select>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">Vencimiento</label>
+                  <div className="space-y-3">
+                    <label className="text-xs font-black text-stone-400 uppercase tracking-widest">Vencimiento</label>
                     <input
                       type="date"
                       value={editForm.fecha_limite?.split('T')[0] || ''}
                       onChange={(e) => setEditForm((current) => ({ ...current, fecha_limite: e.target.value }))}
-                      className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-[#8C3154] outline-none transition-all"
+                      className="w-full px-5 py-4 bg-surface-container-low rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-bold"
                     />
                   </div>
                 </div>
-              </div>
-              <div className="p-6 bg-slate-50 flex justify-end gap-3">
+              <div className="flex gap-4 pt-4">
                 <button
                   type="button"
                   onClick={onCloseEdit}
-                  className="px-6 py-2 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-all"
+                  className="flex-1 py-4 bg-white border border-stone-200 text-stone-500 font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-stone-50 transition-all"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-6 py-2 bg-[#8C3154] text-white font-semibold rounded-xl hover:bg-[#7a2a49] transition-all disabled:opacity-50"
+                  className="flex-1 py-4 bg-primary text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
                 >
-                  {submitting ? 'Guardando...' : 'Guardar Cambios'}
+                  {submitting ? 'Guardando...' : 'Actualizar'}
                 </button>
               </div>
             </form>
@@ -401,37 +375,34 @@ export const TaskModals: React.FC<TaskModalsProps> = ({
       )}
 
       {isDeleteModalOpen && selectedTarea && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-on-surface/50 backdrop-blur-xl">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            className="bg-white rounded-[3rem] shadow-2xl w-full max-w-md overflow-hidden p-10 text-center"
           >
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-[#7C4A36]/10 text-[#7C4A36] rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertCircle className="w-8 h-8" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">¿Eliminar Tarea?</h3>
-              <p className="text-slate-500 mb-6">
-                Esta acción no se puede deshacer. Se eliminará la asignación para el usuario
-                <span className="font-semibold text-slate-700"> {selectedUsuario?.nombre}</span>.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={onCloseDelete}
-                  className="flex-1 px-6 py-3 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-all"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={onConfirmDelete}
-                  disabled={submitting}
-                  className="flex-1 px-6 py-3 bg-[#7C4A36] text-white font-semibold rounded-xl hover:bg-[#633a2a] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Eliminar'}
-                </button>
-              </div>
+            <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+              <AlertCircle className="w-10 h-10" />
+            </div>
+            <h3 className="text-2xl font-display font-bold text-on-surface mb-3 tracking-tight">¿Confirmar eliminación?</h3>
+            <p className="text-stone-500 mb-8 leading-relaxed font-medium">
+              Esta acción es irreversible. Se borrará la tarea de <span className="text-on-surface font-bold font-display">{selectedUsuario?.nombre}</span> de forma permanente.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={onConfirmDelete}
+                disabled={submitting}
+                className="w-full py-4 bg-red-600 text-white font-black uppercase tracking-[0.2em] text-[10px] rounded-2xl shadow-lg shadow-red-200 hover:bg-red-700 transition-all"
+              >
+                {submitting ? 'Eliminando...' : 'Sí, eliminar permanentemente'}
+              </button>
+              <button
+                onClick={onCloseDelete}
+                className="w-full py-4 text-stone-400 font-bold uppercase tracking-widest text-[10px] hover:text-stone-600 transition-colors"
+              >
+                Descartar
+              </button>
             </div>
           </motion.div>
         </div>

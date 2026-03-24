@@ -6,14 +6,18 @@ import { poligonosService } from '../services/poligonosService';
 import { Poligono, Tarea, UsuarioPerfil } from '../types';
 import { buildTaskPayload } from '../utils/taskPayload';
 import { debugError, debugLog, debugWarn } from '../utils/debug';
-import { TaskAssignmentForm } from './admin/TaskAssignmentForm';
-import { TaskMonitorView } from './admin/TaskMonitorView';
-import { TaskModals } from './admin/TaskModals';
+import { 
+  TaskAssignmentForm, 
+  TaskMonitorView, 
+  UserDirectoryView, 
+  UserStatsView, 
+  TaskModals 
+} from './admin';
 
 interface AdminPanelProps {
   perfil: UsuarioPerfil | null;
   onNavigateToMap?: (poligonoId: number) => void;
-  viewMode?: 'gestion' | 'monitor';
+  viewMode?: 'gestion' | 'monitor' | 'usuarios' | 'estadisticas';
 }
 
 interface PadronSection {
@@ -29,6 +33,7 @@ interface PadronManzana {
   manzana: number;
   municipio?: string;
   rank_near?: number;
+  cent_seccion?: number; // La sección objetivo (donde está el centroide)
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap, viewMode = 'gestion' }) => {
@@ -66,10 +71,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   const manzanasPorSeccion = useMemo(() => {
     const map = new Map<number, PadronManzana[]>();
     manzanasPadron.forEach(m => {
-      const seccionId = Number(m.seccion);
-      if (!map.has(seccionId)) map.set(seccionId, []);
-      map.get(seccionId)?.push(m);
+      // Usamos cent_seccion si existe (sección objetivo), fallback a m.seccion
+      const seccionDestino = Number(m.cent_seccion || m.seccion);
+      if (!map.has(seccionDestino)) map.set(seccionDestino, []);
+      map.get(seccionDestino)?.push(m);
     });
+    
+    // Ordenar cada grupo por rank_near para cumplir con la prioridad
+    map.forEach((manzanas) => {
+      manzanas.sort((a, b) => (a.rank_near || 99) - (b.rank_near || 99));
+    });
+
     return map;
   }, [manzanasPadron]);
 
@@ -115,14 +127,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
 
       const mzResponse = await fetch('/manzanas_5_mas_cercanas_full.geojson');
       const mzData = await mzResponse.json();
-      const manzanas = mzData.features.map((feature: any) => ({
+      const manzanasRaw = mzData.features.map((feature: any) => ({
         id: feature.properties.ID,
         seccion: feature.properties.SECCION,
         manzana: feature.properties.MANZANA,
         municipio: feature.properties.MUNICIPIO,
-        rank_near: feature.properties.rank_near
+        rank_near: feature.properties.rank_near,
+        cent_seccion: feature.properties.cent_seccion
       }));
-      setManzanasPadron(manzanas);
+
+      // Unicidad por combinación de Manzana + Sección Objetivo para evitar pérdidas
+      const uniqueManzanas = Array.from(
+        new Map(manzanasRaw.map((m: any) => [`${m.id}_${m.cent_seccion}`, m])).values()
+      );
+      
+      setManzanasPadron(uniqueManzanas as PadronManzana[]);
     } catch (error) {
       debugError('Error cargando datos del padrón:', error);
     }
@@ -289,7 +308,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   }
 
   return (
-    <div className="bg-[#F2F1E8] rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
+    <div className="bg-transparent overflow-hidden">
       {viewMode === 'gestion' ? (
         <TaskAssignmentForm
           usuarios={usuarios}
@@ -322,7 +341,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           message={message}
           onSubmit={handleSubmit}
         />
-      ) : (
+      ) : viewMode === 'monitor' ? (
         <TaskMonitorView
           usuarios={usuarios}
           poligonos={poligonos}
@@ -336,6 +355,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           onEdit={openEditModal}
           onDelete={openDeleteModal}
           onRefresh={refreshTasks}
+        />
+      ) : viewMode === 'estadisticas' ? (
+        <UserStatsView 
+          usuarios={usuarios} 
+          tareas={tareas} 
+        />
+      ) : (
+        <UserDirectoryView 
+          usuarios={usuarios} 
         />
       )}
 

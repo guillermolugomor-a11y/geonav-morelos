@@ -4,16 +4,17 @@ import { authService } from '../services/authService';
 import { userService } from '../services/userService';
 import { taskService } from '../services/taskService';
 import { poligonosService } from '../services/poligonosService';
-import { User, Mail, Shield, Save, CheckCircle, AlertCircle, Loader2, MapPin, CheckSquare, Clock } from 'lucide-react';
+import { User, Mail, Shield, Save, CheckCircle, AlertCircle, Loader2, MapPin, CheckSquare, Clock, LogOut } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface UserProfileProps {
   perfil: UsuarioPerfil;
   onProfileUpdate: (updatedPerfil: UsuarioPerfil) => void;
+  onLogout: () => void;
   onNavigateToMap?: (poligonoId: number) => void;
 }
 
-export const UserProfile: React.FC<UserProfileProps> = ({ perfil, onProfileUpdate, onNavigateToMap }) => {
+export const UserProfile: React.FC<UserProfileProps> = ({ perfil, onProfileUpdate, onLogout, onNavigateToMap }) => {
   const [nombre, setNombre] = useState(perfil.nombre);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -156,7 +157,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ perfil, onProfileUpdat
                 <MapPin className="w-4 h-4 text-[#8C3154]" />
                 Resumen de Trabajo
               </h3>
-
+              
               {loadingStats ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin text-stone-300" />
@@ -200,6 +201,24 @@ export const UserProfile: React.FC<UserProfileProps> = ({ perfil, onProfileUpdat
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Acciones Adicionales */}
+            <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6">
+              <h3 className="text-sm font-bold text-stone-800 mb-4 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-stone-400" />
+                Seguridad y Cuenta
+              </h3>
+              <p className="text-xs text-stone-500 mb-6 leading-relaxed">
+                Asegúrate de haber guardado tus cambios antes de salir del sistema.
+              </p>
+              <button
+                onClick={onLogout}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 rounded-xl text-sm font-bold transition-all active:scale-95"
+              >
+                <LogOut className="w-4 h-4" />
+                Cerrar Sesión
+              </button>
             </div>
           </div>
         </div>

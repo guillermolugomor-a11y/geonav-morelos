@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { GeoJSON, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
+import { debugLog } from '../../utils/debug';
 import { useStore } from '../../store/useStore';
 import { isAdminUser } from '../../constants/roles';
 
@@ -86,7 +87,7 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
     const mapInstance = useMapEvents({});
     useEffect(() => {
         if (!isAdmin && filteredGeoJSON && filteredGeoJSON.features.length > 0) {
-            console.log('PadronLayer: Ejecutando fitBounds autónomo...');
+            debugLog('PadronLayer: Ejecutando fitBounds autónomo...');
             try {
                 const layer = L.geoJSON(filteredGeoJSON);
                 const bounds = layer.getBounds();
@@ -144,14 +145,15 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
             (selectedPoligono.tipo.includes('Manzana') && Number(selectedPoligono.metadata?.seccion) === featureSectionId)
         );
 
+        const hasAnySelection = !!selectedPoligono;
+
         if (isSelected) {
             return {
                 fillColor: isAssigned ? '#ef4444' : '#8C3154',
                 weight: 6,
                 opacity: 1,
-                color: '#06b6d4', // Cyan vibrante para resaltar la búsqueda
-                fillOpacity: isAssigned ? 0.3 : 0.15,
-                zIndex: 2000
+                color: '#06b6d4', // Cyan vibrante
+                fillOpacity: isAssigned ? 0.4 : 0.25,
             };
         }
 
@@ -160,20 +162,22 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
             weight: isAssigned ? 4 : (zoomLevel >= 14 ? 3 : (zoomLevel >= 13 ? 2 : 1)),
             opacity: 1,
             color: isAssigned ? '#b91c1c' : '#7a2a49', 
-            fillOpacity: isAssigned ? 0.25 : (zoomLevel >= 13 ? 0.1 : 0.05),
+            fillOpacity: hasAnySelection 
+                ? 0.02 // Gran reducción de opacidad para el resto cuando hay algo seleccionado
+                : (isAssigned ? 0.25 : (zoomLevel >= 13 ? 0.1 : 0.05)),
             dashArray: isAssigned ? '' : '0'
         };
     };
 
-    // Filtro de visibilidad por Zoom: Solo visible en zoom 12 o superior para ADMIN
-    // Pero SIEMPRE visible para Field Worker si es su área asignada
-    if (isAdmin && zoomLevel < 12) return null;
+    // Mostrar siempre para Field Worker sus áreas asignadas.
+    // Para Admin, permitir ver el padrón completo sin restricciones de zoom (Opción A).
+    if (isAdmin && !geojsonData) return null;
 
     if (!geojsonData || !filteredGeoJSON || filteredGeoJSON.features.length === 0) return null;
 
     return (
         <GeoJSON 
-            key={`padron-layer-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}`}
+            key={`padron-layer-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}`}
             data={filteredGeoJSON} 
             onEachFeature={onEachFeature}
             style={style}

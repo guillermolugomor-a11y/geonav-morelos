@@ -2,12 +2,25 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", sans-serif;
+  
+  --color-primary: #620041;
+  --color-primary-container: #811B5A;
+  --color-secondary-container: #d0e8b5;
+  --color-surface: #fdf9f1;
+  --color-surface-container-low: #f7f3eb;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-surface: #1c1c17;
+  --color-outline-variant: #d9c0c9;
 }
 
 html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  font-family: var(--font-sans);
 }
 
 /* Custom Leaflet overrides */

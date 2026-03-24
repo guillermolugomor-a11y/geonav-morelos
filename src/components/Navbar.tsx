@@ -1,15 +1,15 @@
 import React from 'react';
 import { authService } from '../services/authService';
 import { UsuarioPerfil } from '../types';
-import { LogOut, User, Map as MapIcon, ClipboardList, Bell, LayoutDashboard } from 'lucide-react';
+import { LogOut, User, Map as MapIcon, ClipboardList, Bell, LayoutDashboard, TrendingUp } from 'lucide-react';
 import { NotificationBell } from './notifications/NotificationBell';
 
 interface NavbarProps {
   perfil: UsuarioPerfil | null;
   user: any;
   onLogout: () => void;
-  currentView: 'map' | 'admin_gestion' | 'admin_monitor' | 'profile' | 'tasks';
-  onViewChange: (view: 'map' | 'admin_gestion' | 'admin_monitor' | 'profile' | 'tasks') => void;
+  currentView: 'map' | 'admin_gestion' | 'admin_monitor' | 'admin_users' | 'admin_stats' | 'profile' | 'tasks';
+  onViewChange: (view: 'map' | 'admin_gestion' | 'admin_monitor' | 'admin_users' | 'admin_stats' | 'profile' | 'tasks') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ perfil, user, onLogout, currentView, onViewChange }) => {
@@ -37,10 +37,10 @@ export const Navbar: React.FC<NavbarProps> = ({ perfil, user, onLogout, currentV
       </div>
 
       <div className="flex items-center gap-6">
-        <div className="flex items-center bg-stone-100 p-1 rounded-xl">
+        <div className="hidden md:flex items-center bg-surface-container-low p-1 rounded-xl">
           <button
             onClick={() => onViewChange('map')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentView === 'map' ? 'bg-white text-[#8C3154] shadow-sm' : 'text-stone-500 hover:text-stone-700'
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentView === 'map' ? 'bg-white text-primary shadow-sm' : 'text-stone-500 hover:text-stone-700'
               }`}
           >
             <MapIcon size={14} />
@@ -50,7 +50,7 @@ export const Navbar: React.FC<NavbarProps> = ({ perfil, user, onLogout, currentV
             <>
               <button
                 onClick={() => onViewChange('admin_gestion')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentView === 'admin_gestion' ? 'bg-white text-[#8C3154] shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentView === 'admin_gestion' ? 'bg-white text-primary shadow-sm' : 'text-stone-500 hover:text-stone-700'
                   }`}
               >
                 <ClipboardList size={14} />
@@ -58,11 +58,27 @@ export const Navbar: React.FC<NavbarProps> = ({ perfil, user, onLogout, currentV
               </button>
               <button
                 onClick={() => onViewChange('admin_monitor')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentView === 'admin_monitor' ? 'bg-white text-[#8C3154] shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentView === 'admin_monitor' ? 'bg-white text-primary shadow-sm' : 'text-stone-500 hover:text-stone-700'
                   }`}
               >
                 <LayoutDashboard size={14} />
                 Monitor
+              </button>
+              <button
+                onClick={() => onViewChange('admin_stats')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentView === 'admin_stats' ? 'bg-[#8C3154]/10 text-[#8C3154] shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                  }`}
+              >
+                <TrendingUp size={14} />
+                Rendimiento
+              </button>
+              <button
+                onClick={() => onViewChange('admin_users')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentView === 'admin_users' ? 'bg-white text-primary shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                  }`}
+              >
+                <User size={14} />
+                Usuarios
               </button>
             </>
           ) : (

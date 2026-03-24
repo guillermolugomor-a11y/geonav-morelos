@@ -96,8 +96,13 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
       );
       
       if (success) {
+        // ACTUALIZACIÓN: En lugar de cerrar, refrescamos el historial local
+        const history = await taskService.getTareaHistorial(editingTask.id);
+        setHistorial(history);
+        setNewUpdate('');
+        
+        // Refrescamos la lista de fondo por si acaso
         await fetchTasks();
-        handleCancelEdit();
       } else {
         alert('Error al actualizar la tarea');
       }

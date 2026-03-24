@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { debugLog } from '../utils/debug';
 
 export interface AppNotification {
     id: string;
@@ -85,7 +86,7 @@ export const notificationService = {
      * Se suscribe a nuevas notificaciones en tiempo real
      */
     subscribeToNotifications(userId: string, onNewNotification: (notification: AppNotification) => void) {
-        console.log(`%c🔔 notificationService: Intentando suscripción para usuario: ${userId}`, 'color: #8C3154; font-weight: bold');
+        debugLog(`%c🔔 notificationService: Intentando suscripción para usuario: ${userId}`, 'color: #8C3154; font-weight: bold');
         
         const channel = supabase.channel(`notifications-${userId}`);
         
@@ -99,13 +100,13 @@ export const notificationService = {
                     filter: `user_id=eq.${userId}`,
                 },
                 (payload) => {
-                    console.log('%c🔔 notificationService: ¡NUEVA FILA DETECTADA!', 'color: #ffffff; background: #22c55e; padding: 2px 5px; border-radius: 3px', payload);
+                    debugLog('%c🔔 notificationService: ¡NUEVA FILA DETECTADA!', 'color: #ffffff; background: #22c55e; padding: 2px 5px; border-radius: 3px', payload);
                     onNewNotification(payload.new as AppNotification);
                 }
             )
             .subscribe((status, err) => {
                 if (status === 'SUBSCRIBED') {
-                    console.log('%c🔔 notificationService: ✅ CONECTADO EXITOSAMENTE A REALTIME', 'color: #22c55e; font-weight: bold');
+                    debugLog('%c🔔 notificationService: ✅ CONECTADO EXITOSAMENTE A REALTIME', 'color: #22c55e; font-weight: bold');
                 } else if (status === 'CHANNEL_ERROR') {
                     console.error('%c🔔 notificationService: ❌ ERROR DE CANAL:', 'color: #ef4444; font-weight: bold', err);
                 }

@@ -37,10 +37,10 @@ export const NotificationBell: React.FC = React.memo(() => {
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                        className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl border border-stone-200 overflow-hidden z-[100]"
+                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                        className="fixed inset-x-4 top-20 md:absolute md:inset-x-auto md:right-0 md:top-full md:mt-3 w-auto md:w-80 bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden z-[1001]"
                     >
                         <div className="p-4 bg-stone-50 border-b border-stone-200 flex items-center justify-between">
                             <h3 className="font-bold text-stone-900 flex items-center gap-2">

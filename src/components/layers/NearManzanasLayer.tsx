@@ -3,6 +3,7 @@ import { GeoJSON, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { useStore } from '../../store/useStore';
 import { isAdminUser } from '../../constants/roles';
+import { debugError, debugLog } from '../../utils/debug';
 
 interface NearManzanasLayerProps {
     tareas: any[];
@@ -82,7 +83,7 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
             const hasDirectManzana = tareas.some(t => t.tipo_capa === 'manzana');
             
             if (hasDirectManzana) {
-                console.log('NearManzanasLayer: Ejecutando fitBounds prioritario para manzanas...');
+                debugLog('NearManzanasLayer: Ejecutando fitBounds prioritario para manzanas...');
                 try {
                     const layer = L.geoJSON(filteredGeoJSON);
                     const bounds = layer.getBounds();
@@ -90,7 +91,7 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
                         mapInstance.flyToBounds(bounds, { padding: [100, 100], duration: 1.5 });
                     }
                 } catch (err) {
-                    console.error('Error en fitBounds de NearManzanasLayer:', err);
+                    debugError('Error en fitBounds de NearManzanasLayer:', err);
                 }
             }
         }
@@ -155,36 +156,39 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
 
         const rank = feature.properties.rank_near || 0;
         
-        // Colores basados en cercanía
+        // Paleta optimizada: Rango 1 es el protagonista (Rojo)
         const colors = [
-            '#ef4444', // 1 - Rojo
+            '#dc2626', // 1 - Rojo Vibrante (Protagonista)
             '#f97316', // 2 - Naranja
-            '#f59e0b', // 3 - Ámbar
+            '#eab308', // 3 - Amarillo Post-it
             '#84cc16', // 4 - Lima
             '#10b981'  // 5 - Esmeralda
         ];
         
-        const color = isAssigned ? '#ef4444' : (colors[rank - 1] || '#8C3154');
+        // Si ya tiene tarea, usamos el color de la aplicación (Guinda/Maroon) para diferenciar
+        const color = isAssigned ? '#8C3154' : (colors[rank - 1] || '#a8a29e');
 
         if (isSelected) {
             return {
                 fillColor: color,
                 weight: 6,
                 opacity: 1,
-                color: '#06b6d4', // Cyan vibrante para resaltar la búsqueda
-                fillOpacity: isAssigned ? 0.8 : 0.6,
-                zIndex: 2000
+                color: '#06b6d4', // Cyan para selección
+                fillOpacity: 0.8,
+                zIndex: 3000
             };
         }
 
+        const isRank1 = rank === 1;
+
         return {
             fillColor: color,
-            weight: isAssigned ? 5 : (zoomLevel >= 15 ? 2 : 1),
+            weight: isRank1 ? 4 : (isAssigned ? 3 : 1),
             opacity: 1,
-            color: isAssigned ? '#b91c1c' : 'white', 
-            fillOpacity: isAssigned ? 0.7 : (zoomLevel >= 14 ? 0.6 : 0.4),
-            dashArray: '0',
-            zIndex: isAssigned ? 1000 : 1
+            color: isRank1 ? '#ffffff' : (isAssigned ? '#620041' : 'white'),
+            fillOpacity: isRank1 ? 0.9 : (isAssigned ? 0.7 : 0.5),
+            dashArray: isAssigned ? '5, 5' : '0', // Tareas asignadas con borde punteado si se solapan
+            zIndex: isRank1 ? 2000 : (isAssigned ? 1500 : 1)
         };
     };
 
@@ -195,7 +199,7 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
 
     return (
         <GeoJSON 
-            key={`near-manzanas-layer-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}`}
+            key={`near-manzanas-layer-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}`}
             data={filteredGeoJSON} 
             onEachFeature={onEachFeature}
             style={style}

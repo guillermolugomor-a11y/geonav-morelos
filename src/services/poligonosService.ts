@@ -1,13 +1,14 @@
 import { supabase } from '../lib/supabaseClient';
 import { Poligono } from '../types';
+import { debugLog } from '../utils/debug';
 
 export const poligonosService = {
   /**
    * Obtiene todos los polígonos convirtiendo la geometría a GeoJSON directamente en la consulta.
    */
-  async getPoligonos(): Promise<Poligono[]> {
+  async getAllPoligonos(): Promise<Poligono[]> {
     try {
-      console.log('Iniciando descarga completa de polígonos...');
+      debugLog('Iniciando descarga completa de polígonos...');
       let allData: Poligono[] = [];
       let from = 0;
       let to = 999;
@@ -26,7 +27,7 @@ export const poligonosService = {
 
         if (data && data.length > 0) {
           allData = [...allData, ...data];
-          console.log(`Descargados ${allData.length} polígonos...`);
+          debugLog(`Descargados ${allData.length} polígonos...`);
           
           if (data.length < 1000) {
             hasMore = false;

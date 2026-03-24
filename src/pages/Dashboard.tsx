@@ -12,16 +12,19 @@ import { isAdminUser } from '../constants/roles';
 import { MapToolbar } from '../components/dashboard/MapToolbar';
 import { MapDebugCard } from '../components/dashboard/MapDebugCard';
 import { useStore } from '../store/useStore';
+import { debugError } from '../utils/debug';
 
 interface DashboardProps {
   onLogout: () => void;
   onProfileUpdate: (updatedPerfil: UsuarioPerfil) => void;
 }
 
+import { BottomNav } from '../components/BottomNav';
+
 export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onProfileUpdate }) => {
   const { user, perfil, usuarios, setUsuarios, selectedPoligono, setSelectedPoligono } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
-  const [view, setView] = useState<'map' | 'admin_gestion' | 'admin_monitor' | 'profile' | 'tasks'>('map');
+  const [view, setView] = useState<'map' | 'admin_gestion' | 'admin_monitor' | 'admin_users' | 'admin_stats' | 'profile' | 'tasks'>('map');
   const [pendingFocusPolygonId, setPendingFocusPolygonId] = useState<number | null>(null);
 
   const isAdmin = isAdminUser(perfil);
@@ -37,7 +40,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onProfileUpdate 
 
   useEffect(() => {
     if (isAdmin) {
-      userService.getAssignableUsers().then(setUsuarios).catch(console.error);
+      userService.getAssignableUsers().then(setUsuarios).catch(debugError);
     }
   }, [isAdmin, setUsuarios]);
 
@@ -53,10 +56,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onProfileUpdate 
   }, [searchTerm]);
 
   return (
-    <div className="h-screen flex flex-col bg-stone-50 overflow-hidden">
+    <div className="h-screen flex flex-col bg-[#F9F8F3] overflow-hidden font-jakarta">
       <Navbar perfil={perfil} user={user} onLogout={onLogout} currentView={view} onViewChange={setView} />
 
-      <main className="flex-1 relative flex overflow-hidden">
+      <main className={`flex-1 relative flex overflow-hidden lg:px-8 lg:py-4 ${view !== 'map' ? 'pb-24 md:pb-0' : 'pb-20 md:pb-0'}`}>
         <AnimatePresence mode="wait">
           {view === 'map' ? (
             <motion.div
@@ -87,42 +90,58 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onProfileUpdate 
                 />
               </div>
             </motion.div>
-          ) : (view === 'admin_gestion' || view === 'admin_monitor') && isAdmin ? (
+          ) : (view === 'admin_gestion' || view === 'admin_monitor' || view === 'admin_users' || view === 'admin_stats') && isAdmin ? (
             <motion.div
               key="admin-view"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="flex-1 p-8 overflow-y-auto"
+              exit={{ opacity: 0, y: 10 }}
+              className="flex-1 px-4 py-8 md:p-8 overflow-y-auto"
             >
-              <div className="max-w-4xl mx-auto">
+              <div className="max-w-4xl mx-auto mb-20 md:mb-0">
                 <AdminPanel
                   perfil={perfil}
-                  viewMode={view === 'admin_gestion' ? 'gestion' : 'monitor'}
+                  viewMode={
+                    view === 'admin_gestion' ? 'gestion' : 
+                    view === 'admin_monitor' ? 'monitor' : 
+                    view === 'admin_stats' ? 'estadisticas' :
+                    'usuarios'
+                  }
                   onNavigateToMap={handleNavigateToMap}
                 />
               </div>
             </motion.div>
           ) : view === 'profile' && perfil ? (
-            <UserProfile
-              key="profile-view"
-              perfil={perfil}
-              onProfileUpdate={onProfileUpdate}
-              onNavigateToMap={handleNavigateToMap}
-            />
+            <div className="flex-1 overflow-y-auto mb-20 md:mb-0">
+              <UserProfile
+                key="profile-view"
+                perfil={perfil}
+                onProfileUpdate={onProfileUpdate}
+                onLogout={onLogout}
+                onNavigateToMap={handleNavigateToMap}
+              />
+            </div>
           ) : view === 'tasks' && perfil ? (
-            <UserTasks
-              key="tasks-view"
-              perfil={perfil}
-              onNavigateToMap={handleNavigateToMap}
-            />
+            <div className="flex-1 overflow-y-auto mb-20 md:mb-0">
+              <UserTasks
+                key="tasks-view"
+                perfil={perfil}
+                onNavigateToMap={handleNavigateToMap}
+              />
+            </div>
           ) : (
             <div className="flex-1 flex items-center justify-center">
-              <p className="text-slate-500">No tienes permisos para acceder a esta sección.</p>
+              <p className="text-stone-500 font-display italic">No tienes permisos para acceder a esta sección.</p>
             </div>
           )}
         </AnimatePresence>
       </main>
+
+      <BottomNav
+        currentView={view}
+        onViewChange={setView}
+        isAdmin={isAdmin}
+      />
     </div>
   );
 };

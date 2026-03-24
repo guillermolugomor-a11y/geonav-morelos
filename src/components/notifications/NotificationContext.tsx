@@ -1,17 +1,17 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { AppNotification, notificationService } from '../../services/notificationService';
+import { debugLog } from '../../utils/debug';
 
 interface NotificationContextType {
     notifications: AppNotification[];
     unreadCount: number;
     markAsRead: (id: string) => Promise<void>;
     markAllAsRead: () => Promise<void>;
-    markTaskNotificationsAsRead: (tareaId: string) => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-export const NotificationProvider: React.FC<{ children: ReactNode; userId: string | undefined }> = ({ children, userId }) => {
+export const NotificationProvider: React.FC<{ children: React.ReactNode; userId: string | undefined }> = ({ children, userId }) => {
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
     useEffect(() => {
@@ -22,18 +22,22 @@ export const NotificationProvider: React.FC<{ children: ReactNode; userId: strin
 
         // Carga inicial
         const loadNotifications = async () => {
-            console.log('%c🔔 NotificationProvider: Cargando para ' + userId, 'color: #8C3154; font-weight: bold');
-            const data = await notificationService.getUnreadNotifications(userId);
-            console.log('%c🔔 NotificationProvider: Data inicial:', 'color: #8C3154', data);
-            setNotifications(data || []);
+            debugLog('%c🔔 NotificationProvider: Cargando para ' + userId, 'color: #8C3154; font-weight: bold');
+            try {
+                const data = await notificationService.getUnreadNotifications(userId);
+                setNotifications(data || []);
+                debugLog('%c🔔 NotificationProvider: Data inicial:', 'color: #8C3154', data);
+            } catch (error) {
+                console.error('Error fetching initial notifications:', error);
+            }
         };
 
         loadNotifications();
 
         // Suscripción en tiempo real
-        console.log('%c🔔 NotificationProvider: Suscribiendo a Realtime...', 'color: #8C3154; font-weight: bold');
+        debugLog('%c🔔 NotificationProvider: Suscribiendo a Realtime...', 'color: #8C3154; font-weight: bold');
         const channel = notificationService.subscribeToNotifications(userId, (newNotification) => {
-            console.log('%c🔔 NotificationProvider: ¡NOTIFICACIÓN RECIBIDA EN TIEMPO REAL!', 'color: #ffffff; background: #8C3154; padding: 4px; border-radius: 4px', newNotification);
+            debugLog('%c🔔 NotificationProvider: ¡NOTIFICACIÓN RECIBIDA EN TIEMPO REAL!', 'color: #ffffff; background: #8C3154; padding: 4px; border-radius: 4px', newNotification);
             setNotifications((prev) => [newNotification, ...prev]);
 
             if (window.Notification && window.Notification.permission === 'granted') {
@@ -42,7 +46,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode; userId: strin
         });
 
         return () => {
-            console.log('%c🔔 NotificationProvider: Desuscribiendo', 'color: #8C3154; opacity: 0.5');
+            debugLog('%c🔔 NotificationProvider: Desuscribiendo', 'color: #8C3154; opacity: 0.5');
             channel.unsubscribe();
         };
     }, [userId]);

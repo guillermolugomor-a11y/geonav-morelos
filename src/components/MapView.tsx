@@ -9,6 +9,7 @@ import { RoutingSidebar } from './RoutingSidebar';
 import { PadronLayer } from './layers/PadronLayer';
 import { StateBoundaryLayer } from './layers/StateBoundaryLayer';
 import { NearManzanasLayer } from './layers/NearManzanasLayer';
+import { SelectionHighlightLayer } from './layers/SelectionHighlightLayer';
 import { routeService } from '../services/routeService';
 import { useMapData } from '../hooks/useMapData';
 import { useRoutePlanner } from '../hooks/useRoutePlanner';
@@ -63,12 +64,12 @@ const MapController: React.FC<MapControllerProps> = ({
     
     // Evitamos ejecutar el zoom si ya lo procesamos para este ID
     if (lastProcessedZoomRef.current === Number(focusPolygon.id)) {
-      console.log('DEPURACIÓN ZOOM: Zoom ya procesado para ID:', focusPolygon.id, '. Saltando.');
+      debugLog('DEPURACIÓN ZOOM: Zoom ya procesado para ID:', focusPolygon.id, '. Saltando.');
       return;
     }
 
     try {
-      console.log('DEPURACIÓN ZOOM: Iniciando enfoque contextual para', focusPolygon.nombre);
+      debugLog('DEPURACIÓN ZOOM: Iniciando enfoque contextual para', focusPolygon.nombre);
       lastProcessedZoomRef.current = Number(focusPolygon.id);
       
       let zoomGeom = focusPolygon.geom;
@@ -82,7 +83,7 @@ const MapController: React.FC<MapControllerProps> = ({
         );
         
         if (parentSection?.geom) {
-          console.log('DEPURACIÓN ZOOM: Usando geometría de Sección Padre para contexto:', parentSection.nombre);
+          debugLog('DEPURACIÓN ZOOM: Usando geometría de Sección Padre para contexto:', parentSection.nombre);
           zoomGeom = parentSection.geom;
           zoomPadding = [80, 80]; // Un poco menos de padding para la sección
         }
@@ -98,7 +99,7 @@ const MapController: React.FC<MapControllerProps> = ({
         easeLinearity: 0.25 
       });
       
-      console.log('DEPURACIÓN ZOOM: Animación iniciada.');
+      debugLog('DEPURACIÓN ZOOM: Animación iniciada.');
 
       const timeout = setTimeout(() => {
         onFocusHandled?.();
@@ -118,7 +119,7 @@ const MapController: React.FC<MapControllerProps> = ({
       if (!query) return;
 
       const cleanQuery = query.toString().trim();
-      console.log('🔍 MapView: Iniciando búsqueda para:', cleanQuery);
+      debugLog('🔍 MapView: Iniciando búsqueda para:', cleanQuery);
 
       let foundPolygon: Poligono | undefined;
       let matchedIds: number[] = [];
@@ -185,7 +186,7 @@ const MapController: React.FC<MapControllerProps> = ({
           });
           
           if (sectionManzanas.length > 0) {
-            console.log(`🔍 MapView: No se halló polígono Sección ${cleanQuery}, pero sí ${sectionManzanas.length} manzanas.`);
+            debugLog(`🔍 MapView: No se halló polígono Sección ${cleanQuery}, pero sí ${sectionManzanas.length} manzanas.`);
             foundPolygon = sectionManzanas[0];
             matchedIds = sectionManzanas.map((polygon) => polygon.id);
           }
@@ -197,7 +198,7 @@ const MapController: React.FC<MapControllerProps> = ({
         return;
       }
 
-      console.log('🔍 MapView: Polígono encontrado:', foundPolygon.nombre, foundPolygon.tipo);
+      debugLog('🔍 MapView: Polígono encontrado:', foundPolygon.nombre, foundPolygon.tipo);
       setSelectedPoligono(foundPolygon);
 
       try {
@@ -347,11 +348,11 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
       return;
     }
 
-    console.log('DEPURACIÓN ZOOM: Objetivo de zoom detectado:', target.nombre, '| Tipo:', target.tipo);
+    debugLog('DEPURACIÓN ZOOM: Objetivo de zoom detectado:', target.nombre, '| Tipo:', target.tipo);
     setSelectedPoligono(target);
     setFocusTarget(target);
     
-    console.log('DEPURACIÓN ZOOM: focusTarget establecido para animación.');
+    debugLog('DEPURACIÓN ZOOM: focusTarget establecido para animación.');
   }, [focusPolygonId, poligonos, loading, onFocusHandled, setSelectedPoligono, manzanasPadron]);
 
   if (loading) {
@@ -489,32 +490,39 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
               />
             </LayerGroup>
           )}
+
+          <SelectionHighlightLayer />
         </MapContainer>
 
         {routeResult && googleMapsUrlReal && (
-          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 bg-white/95 backdrop-blur-sm border border-[#7C4A36]/30 shadow-2xl rounded-2xl p-4 flex items-center gap-6 text-sm">
-            <div className="flex flex-col items-center">
-              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Distancia</span>
-              <span className="text-lg font-black text-slate-900">
-                {(routeResult.distance / 1000).toFixed(1)} <span className="text-xs font-normal text-slate-500">km</span>
-              </span>
+          <div className="absolute top-28 md:top-6 left-1/2 -translate-x-1/2 z-20 w-[92%] md:w-auto bg-white/95 backdrop-blur-sm border border-[#7C4A36]/30 shadow-2xl rounded-2xl p-3 md:p-4 flex flex-row items-center justify-between md:justify-start gap-3 md:gap-6 text-sm">
+            <div className="flex items-center gap-3 md:gap-6 flex-1 md:flex-none">
+              <div className="flex flex-col items-center">
+                <span className="text-[9px] md:text-[10px] text-slate-400 uppercase font-bold tracking-wider">Distancia</span>
+                <span className="text-sm md:text-lg font-black text-slate-900 leading-tight">
+                  {(routeResult.distance / 1000).toFixed(1)} <span className="text-[10px] md:text-xs font-normal text-slate-500">km</span>
+                </span>
+              </div>
+              <div className="w-px h-8 md:h-10 bg-slate-200" />
+              <div className="flex flex-col items-center">
+                <span className="text-[9px] md:text-[10px] text-slate-400 uppercase font-bold tracking-wider">Tiempo</span>
+                <span className="text-sm md:text-lg font-black text-slate-900 leading-tight">
+                  {Math.round(routeResult.duration / 60)} <span className="text-[10px] md:text-xs font-normal text-slate-500">min</span>
+                </span>
+              </div>
             </div>
-            <div className="w-px h-10 bg-slate-200" />
-            <div className="flex flex-col items-center">
-              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Tiempo est.</span>
-              <span className="text-lg font-black text-slate-900">
-                {Math.round(routeResult.duration / 60)} <span className="text-xs font-normal text-slate-500">min</span>
-              </span>
-            </div>
-            <div className="w-px h-10 bg-slate-200" />
+            
+            <div className="w-px h-8 md:h-10 bg-slate-200 hidden md:block" />
+            
             <a
               href={googleMapsUrlReal}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-[#8C3154] hover:bg-[#7a2a49] text-white text-xs font-bold rounded-xl transition-all active:scale-95 shadow"
+              className="flex items-center gap-2 px-3 md:px-4 py-2 bg-[#8C3154] hover:bg-[#7a2a49] text-white text-[10px] md:text-xs font-bold rounded-xl transition-all active:scale-95 shadow shrink-0"
             >
-              <ExternalLink className="w-3.5 h-3.5" />
-              Ir con Google Maps
+              <ExternalLink className="w-3 md:w-3.5 h-3 md:h-3.5" />
+              <span className="hidden xs:inline">Ir a Maps</span>
+              <span className="xs:hidden">Google</span>
             </a>
           </div>
         )}

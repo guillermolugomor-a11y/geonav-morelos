@@ -1,5 +1,5 @@
 import React from 'react';
-import { ClipboardList, Map as MapIcon, MapPin, Send, User, ChevronDown, ChevronRight } from 'lucide-react';
+import { ClipboardList, Map as MapIcon, MapPin, Send, User, ChevronDown, ChevronRight, Clock } from 'lucide-react';
 import { UsuarioPerfil } from '../../types';
 import { AdminMessage } from './AdminMessage';
 
@@ -12,6 +12,7 @@ interface ManzanaItem {
   id: number | string;
   seccion: number | string;
   manzana: number | string;
+  rank_near?: number;
 }
 
 interface TaskAssignmentFormProps {
@@ -79,56 +80,60 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
 }) => {
   return (
     <>
-      <div className="p-6 border-b border-[#8C3154]/10 bg-[#F2F1E8]">
-        <h2 className="text-xl font-bold text-[#8C3154] flex items-center gap-2">
-          <ClipboardList className="w-5 h-5" />
+      <div className="p-6 md:p-8 bg-surface border-b border-primary/5">
+        <h2 className="text-3xl md:text-4xl font-display font-bold text-primary flex items-center gap-3 tracking-tight">
+          <ClipboardList className="w-8 h-8" />
           Gestión de Tareas
         </h2>
-        <p className="text-sm text-stone-500 mt-1">Asigna polígonos y tareas específicas al personal de campo.</p>
+        <p className="text-base text-stone-500 mt-2 font-medium">Asigna polígonos y tareas específicas al personal de campo.</p>
       </div>
 
-      <form onSubmit={onSubmit} className="p-6 space-y-6">
+      <form onSubmit={onSubmit} className="p-6 md:p-8 space-y-8 bg-surface">
         <AdminMessage message={message} />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-[#2E3B2B] uppercase tracking-wider flex items-center gap-2">
-              <User className="w-3.5 h-3.5" /> Personal de Campo
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-on-surface uppercase tracking-widest flex items-center gap-2 opacity-60">
+              <User className="w-4 h-4" /> Personal de Campo
             </label>
-            <select
-              value={selectedUser}
-              onChange={(e) => setSelectedUser(e.target.value)}
-              className="w-full px-4 py-2 bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-[#BC9B73] focus:border-transparent outline-none transition-all text-sm"
-              required
-            >
-              <option value="">Seleccionar usuario...</option>
-              {usuarios.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.nombre} ({u.email || 'Sin email'})
-                </option>
-              ))}
-            </select>
+            <div className="relative group">
+              <select
+                value={selectedUser}
+                onChange={(e) => setSelectedUser(e.target.value)}
+                className="w-full px-5 py-4 bg-surface-container-low rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-bold text-on-surface appearance-none"
+                required
+              >
+                <option value="">Seleccionar usuario...</option>
+                {usuarios.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.nombre}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
+                <ChevronDown className="w-5 h-5" />
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-[#2E3B2B] uppercase tracking-wider flex items-center gap-2">
-              <MapPin className="w-3.5 h-3.5" /> Polígono (Sección/Manzana)
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-on-surface uppercase tracking-widest flex items-center gap-2 opacity-60">
+              <MapPin className="w-4 h-4" /> Polígono (Sección/Manzana)
             </label>
 
             {tipoCapa === 'padron' ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <input
                   type="text"
                   placeholder="Buscar sección (ej: 450)..."
                   value={searchTermPadron}
                   onChange={(e) => setSearchTermPadron(e.target.value)}
-                  className="w-full px-4 py-2 bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-[#BC9B73] focus:border-transparent outline-none transition-all text-sm"
+                  className="w-full px-5 py-4 bg-surface-container-low rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-bold"
                 />
-                <div className="max-h-60 overflow-y-auto border border-stone-200 rounded-xl bg-white divide-y">
+                <div className="max-h-80 overflow-y-auto rounded-2xl bg-surface-container-low divide-y divide-white/50 shadow-inner">
                   {seccionesPadron.map((s) => {
                       const sectionId = Number(s.id);
                       const isExpanded = expandedSection === sectionId;
-                      // OPTIMIZACIÓN: Usar Mapa para O(1) o fallback a filtro solo si es necesario
                       const sectionManzanas = isExpanded 
                         ? (manzanasPorSeccion?.get(sectionId) ?? manzanasPadron.filter((m) => Number(m.seccion) === sectionId))
                         : []; 
@@ -137,27 +142,25 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                         <div key={s.id} className="flex flex-col">
                           <div
                             onClick={() => setExpandedSection(isExpanded ? null : sectionId)}
-                            className={`p-3 cursor-pointer transition-colors flex justify-between items-center ${
+                            className={`p-4 cursor-pointer transition-all flex justify-between items-center ${
                               selectedSection?.id === s.id && !selectedManzana
-                                ? 'bg-[#8C3154]/5 border-l-4 border-[#8C3154]'
-                                : 'hover:bg-stone-50'
+                                ? 'bg-white shadow-sm scale-[0.98] mx-2 my-1 rounded-xl'
+                                : 'hover:bg-white/40'
                             }`}
                           >
-                            <div className="flex items-center gap-2">
-                              {isExpanded ? (
-                                <ChevronDown className="w-4 h-4 text-stone-400" />
-                              ) : (
-                                <ChevronRight className="w-4 h-4 text-stone-400" />
-                              )}
+                            <div className="flex items-center gap-3">
+                              <div className={`p-1.5 rounded-lg ${isExpanded ? 'bg-primary text-white' : 'bg-white text-stone-400'}`}>
+                                {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                              </div>
                               <div>
-                                <p className="text-sm font-bold text-slate-700">Sección {s.id}</p>
-                                <p className="text-[10px] text-stone-500 uppercase font-medium">Morelos</p>
+                                <p className="text-sm font-bold text-on-surface">Sección {s.id}</p>
+                                <p className="text-[10px] text-stone-400 uppercase font-black tracking-widest">Morelos</p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-4">
                               <div className="text-right">
-                                <p className="text-xs font-black text-[#8C3154]">{s.total?.toLocaleString() ?? 0}</p>
-                                <p className="text-[9px] text-stone-400 font-bold uppercase tracking-tighter">Personas</p>
+                                <p className="text-sm font-display font-black text-primary">{s.total?.toLocaleString() ?? 0}</p>
+                                <p className="text-[9px] text-stone-400 font-bold uppercase tracking-widest">Pads</p>
                               </div>
                               <button
                                 type="button"
@@ -167,10 +170,10 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                                   setSelectedManzana(null);
                                   setSelectedPoligono(String(s.id));
                                 }}
-                                className={`px-2 py-1 rounded text-[10px] font-bold uppercase transition-all ${
+                                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
                                   selectedSection?.id === s.id && !selectedManzana
-                                    ? 'bg-[#8C3154] text-white'
-                                    : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                                    ? 'bg-primary text-white'
+                                    : 'bg-white text-stone-400 hover:text-primary shadow-sm'
                                 }`}
                               >
                                 Todo
@@ -179,33 +182,41 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                           </div>
 
                           {isExpanded && (
-                            <div className="bg-stone-50/50 pl-8 divide-y divide-stone-100 border-t border-stone-100">
+                            <div className="bg-white/20 pl-4 pr-2 pb-2 space-y-1">
                               {sectionManzanas.length > 0 ? (
-                                sectionManzanas.map((m) => (
-                                  <div
-                                    key={m.id}
-                                    onClick={() => {
-                                      setSelectedManzana(m);
-                                      setSelectedSection(s);
-                                      setSelectedPoligono(String(m.id));
-                                    }}
-                                    className={`p-2.5 cursor-pointer transition-colors flex justify-between items-center ${
-                                      selectedManzana?.id === m.id
-                                        ? 'bg-[#BC9B73]/10 text-[#7C4A36]'
-                                        : 'hover:bg-white text-stone-600'
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <MapIcon className="w-3 h-3 opacity-40" />
-                                      <span className="text-xs font-medium">Manzana {m.manzana}</span>
+                                sectionManzanas
+                                  .map((m) => (
+                                    <div
+                                      key={m.id}
+                                      onClick={() => {
+                                        setSelectedManzana(m);
+                                        setSelectedSection(s);
+                                        setSelectedPoligono(String(m.id));
+                                      }}
+                                      className={`p-3 rounded-xl cursor-pointer transition-all flex justify-between items-center ${
+                                        selectedManzana?.id === m.id
+                                          ? 'bg-white text-primary shadow-sm'
+                                          : 'text-stone-500 hover:bg-white/40'
+                                      }`}
+                                    >
+                                      <div className="flex flex-col">
+                                        <div className="flex items-center gap-3">
+                                          <MapIcon className="w-4 h-4 opacity-40" />
+                                          <span className="text-xs font-bold">Manzana {m.manzana}</span>
+                                        </div>
+                                        {m.rank_near && (
+                                          <span className="text-[10px] text-primary/60 font-black uppercase tracking-widest pl-7 mt-0.5">
+                                            Rango de cercanía #{m.rank_near} {m.rank_near === 1 && '• Más cercana'}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="text-[9px] font-black px-2 py-1 rounded-lg bg-surface-container-low text-stone-400 uppercase tracking-widest">
+                                        MZ
+                                      </span>
                                     </div>
-                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white border border-stone-200 text-stone-400 uppercase">
-                                      MZ
-                                    </span>
-                                  </div>
-                                ))
+                                  ))
                               ) : (
-                                <p className="p-3 text-[10px] text-stone-400 italic">No hay manzanas disponibles</p>
+                                <p className="p-4 text-[10px] text-stone-400 italic font-medium">No hay manzanas disponibles</p>
                               )}
                             </div>
                           )}
@@ -215,83 +226,94 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                 </div>
               </div>
             ) : (
-              <select
-                value={selectedPoligono}
-                onChange={(e) => setSelectedPoligono(e.target.value)}
-                className="w-full px-4 py-2 bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-[#BC9B73] focus:border-transparent outline-none transition-all text-sm"
-                required
-              >
-                <option value="">Seleccionar polígono...</option>
-                {poligonos.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre} - {p.municipio} (S:{p.metadata?.seccion || 'N/A'})
-                  </option>
-                ))}
-              </select>
+              <div className="relative group">
+                <select
+                  value={selectedPoligono}
+                  onChange={(e) => setSelectedPoligono(e.target.value)}
+                  className="w-full px-5 py-4 bg-surface-container-low rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-bold text-on-surface appearance-none"
+                  required
+                >
+                  <option value="">Seleccionar polígono...</option>
+                  {poligonos.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre} - {p.municipio}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
+                  <ChevronDown className="w-5 h-5" />
+                </div>
+              </div>
             )}
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-[#2E3B2B] uppercase tracking-wider">Vencimiento (Opcional)</label>
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-on-surface uppercase tracking-widest opacity-60">Vencimiento (Opcional)</label>
             <input
               type="date"
               value={fechaVencimiento}
               onChange={(e) => setFechaVencimiento(e.target.value)}
-              className="w-full px-4 py-2 bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-[#BC9B73] focus:border-transparent outline-none transition-all text-sm"
+              className="w-full px-5 py-4 bg-surface-container-low rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-bold text-on-surface"
             />
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-[#2E3B2B] uppercase tracking-wider">Instrucciones</label>
+        <div className="space-y-3">
+          <label className="text-xs font-bold text-on-surface uppercase tracking-widest opacity-60">Instrucciones</label>
           <textarea
             value={instruccion}
             onChange={(e) => setInstruccion(e.target.value)}
             placeholder="Describe la actividad a realizar..."
-            className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-[#BC9B73] focus:border-transparent outline-none transition-all text-sm min-h-[120px]"
+            className="w-full px-6 py-5 bg-surface-container-low rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-medium min-h-[140px] text-on-surface"
             required
           />
         </div>
 
         {/* ── SCHEDULER: Programación Automática ── */}
-        <div className="p-4 border border-[#8C3154]/20 rounded-xl bg-[#8C3154]/5 space-y-3">
-          <label className="text-xs font-bold text-[#8C3154] uppercase tracking-wider flex items-center gap-2">
-            ⏰ Programar Activación (Opcional)
+        <div className="p-6 bg-primary/5 rounded-[2rem] border-2 border-dashed border-primary/10 space-y-4">
+          <label className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-3">
+            <Clock className="w-5 h-5" /> Programar Activación (Opcional)
           </label>
-          <input
-            type="datetime-local"
-            value={scheduledAt}
-            onChange={(e) => setScheduledAt(e.target.value)}
-            min={(() => { const d = new Date(Date.now() + 60000); const pad = (n: number) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; })()}
-            className="w-full px-4 py-2 bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-[#8C3154] focus:border-transparent outline-none transition-all text-sm"
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+            <input
+              type="datetime-local"
+              value={scheduledAt}
+              onChange={(e) => setScheduledAt(e.target.value)}
+              min={(() => { const d = new Date(Date.now() + 60000); const pad = (n: number) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; })()}
+              className="w-full px-5 py-4 bg-white rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-bold text-on-surface shadow-sm"
+            />
+            {scheduledAt && (
+              <div className="flex flex-col gap-2">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className={`w-10 h-6 rounded-full transition-all relative ${autoActivate ? 'bg-primary' : 'bg-stone-300'}`}>
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${autoActivate ? 'left-5' : 'left-1'}`} />
+                    <input
+                      type="checkbox"
+                      checked={autoActivate}
+                      onChange={(e) => setAutoActivate(e.target.checked)}
+                      className="hidden"
+                    />
+                  </div>
+                  <span className="text-sm font-bold text-on-surface tracking-tight">Activar automáticamente</span>
+                </label>
+              </div>
+            )}
+          </div>
           {scheduledAt && (
-            <>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={autoActivate}
-                  onChange={(e) => setAutoActivate(e.target.checked)}
-                  className="w-4 h-4 accent-[#8C3154]"
-                />
-                <span className="text-sm text-stone-700">Activar automáticamente al llegar la hora</span>
-              </label>
-              <p className="text-xs text-[#8C3154] font-medium">
-                Estado al asignar: <strong>Programada</strong> → se activará el{' '}
-                {new Date(scheduledAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City', dateStyle: 'medium', timeStyle: 'short' })}
-              </p>
-            </>
+            <p className="text-[10px] text-primary font-black uppercase tracking-widest bg-white/50 p-3 rounded-xl border border-primary/5">
+              Estado: PROGRAMADA → Se activará el {new Date(scheduledAt).toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' })}
+            </p>
           )}
         </div>
 
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end pt-4">
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#8C3154] text-white rounded-xl text-sm font-bold hover:bg-[#7a2a49] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-primary to-primary-container text-white rounded-2xl text-sm font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-[0_8px_30px_rgb(28,28,23,0.1)] disabled:opacity-50"
           >
             <Send className="w-4 h-4" />
-            {submitting ? 'Procesando...' : scheduledAt ? 'Programar tarea' : 'Asignar tarea'}
+            {submitting ? 'Procesando...' : scheduledAt ? 'Programar' : 'Asignar Tarea'}
           </button>
         </div>
       </form>

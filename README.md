@@ -1,20 +1,28 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# GeoNav Morelos: Digital Curator Edition
 
-# Run and deploy your AI Studio app
+GeoNav Morelos es una plataforma de inteligencia territorial y gestión estratégica diseñada para la Agencia de Transformación Digital. Esta edición **"Digital Curator"** eleva la administración pública a un estándar editorial premium, combinando cartografía electoral precisa con una interfaz de alta fidelidad.
 
-This contains everything you need to run your app locally.
+## 🏛️ Visión Institucional
+- **Curaduría de Datos**: Gestión refinada de secciones y manzanas con estética de galería.
+- **Operatividad en Tiempo Real**: Coordinación instantánea con operativos en territorio.
+- **Rendimiento Analítico**: Monitorización de eficiencia con jerarquías visuales claras.
 
-View your app in AI Studio: https://ai.studio/apps/cc5e28c4-954f-4a37-85de-41cbff43fe36
+## 🚀 Tecnologías Core
+- **Frontend**: React 18, Vite, Zustand, Tailwind CSS.
+- **GIS**: Vector Tiles (MVT), Leaflet, PostGIS.
+- **Backend**: Supabase (Auth, Realtime, RLS), Express (MVT Server).
 
-## Run Locally
+## 🛠️ Desarrollo Local
 
-**Prerequisites:**  Node.js
+1. **Instalación**:
+   ```bash
+   npm install
+   ```
+2. **Configuración**:
+   Configura las variables de entorno en `.env` (Supabase URL, Anon Key, Database URL).
+3. **Ejecución**:
+   ```bash
+   npm run dev
+   ```
 
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+El sistema estará disponible en `http://127.0.0.1:3002`.

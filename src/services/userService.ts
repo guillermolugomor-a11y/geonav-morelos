@@ -50,7 +50,7 @@ export const userService = {
     try {
       const { data, error } = await supabase
         .from('usuarios_perfil')
-        .select('id, nombre, email, rol, created_at')
+        .select('id, nombre, email, rol, created_at, last_login')
         .order('nombre');
       
       if (error) {
@@ -66,13 +66,13 @@ export const userService = {
   },
 
   /**
-   * Obtiene la lista de usuarios asignables (Personal de Campo).
+   * Obtiene la lista de usuarios asignables (Operativos).
    */
   async getAssignableUsers(): Promise<UsuarioPerfil[]> {
     try {
       const { data, error } = await supabase
         .from('usuarios_perfil')
-        .select('id, nombre, email, rol, created_at')
+        .select('id, nombre, email, rol, created_at, last_login')
         .in('rol', ['field_worker', 'campo', 'admin'])
         .order('nombre');
       

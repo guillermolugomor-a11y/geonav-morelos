@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { BarChart3, TrendingUp, Clock, CheckCircle2, AlertCircle, User, Award } from 'lucide-react';
+import { BarChart3, TrendingUp, CheckCircle2, AlertCircle, User, Award } from 'lucide-react';
 import { Tarea, UsuarioPerfil } from '../../types';
 
 interface UserStatsViewProps {
@@ -108,61 +108,67 @@ export const UserStatsView: React.FC<UserStatsViewProps> = ({ usuarios, tareas }
         </div>
       </div>
 
+      {/* Ranking Header - Synchronized Columns */}
+      <div className="hidden md:flex items-center px-8 mb-4 text-[11px] font-black uppercase tracking-[0.25em] text-on-surface-variant opacity-80">
+        <div className="w-[35%] pl-4">Operativos</div>
+        <div className="w-[15%] text-center">Pend.</div>
+        <div className="w-[15%] text-center">Prog.</div>
+        <div className="w-[15%] text-center">Hechas</div>
+        <div className="w-[20%] text-right pr-4">Eficiencia</div>
+      </div>
+
       {/* Lista de Usuarios */}
-      <div className="grid grid-cols-1 gap-4">
+      <div className="flex flex-col gap-6">
         {stats.map((s, index) => (
           <div 
             key={s.user.id} 
-            className="group bg-white p-4 md:p-6 rounded-[1.5rem] shadow-sm border border-stone-100 hover:shadow-xl hover:border-[#8C3154]/10 transition-all duration-300"
+            className="group bg-white p-4 md:p-6 rounded-[2rem] shadow-sm border border-stone-100 hover:shadow-ambient transition-all duration-700 relative overflow-hidden"
           >
-            <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
-              {/* Información de Usuario */}
-              <div className="flex items-center gap-4 min-w-[200px]">
+            <div className="flex flex-col md:flex-row md:items-center">
+              
+              {/* Column 1: Identity (35%) */}
+              <div className="w-full md:w-[35%] flex items-center gap-5 pl-4 min-w-0">
                 <div className="relative shrink-0">
-                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-stone-100 flex items-center justify-center text-stone-500 font-display font-black text-base md:text-lg">
+                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-surface-container-low flex items-center justify-center text-primary font-black text-base md:text-lg border border-outline-variant/10 group-hover:bg-white transition-all duration-500">
                     {s.user.nombre.substring(0, 2).toUpperCase()}
                   </div>
-                  <div className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-stone-900 border-2 border-white flex items-center justify-center text-[9px] font-black text-white">
+                  <div className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-on-surface border-4 border-white flex items-center justify-center text-[10px] font-black text-white shadow-sm">
                     {index + 1}
                   </div>
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-bold text-stone-900 leading-tight break-words">{s.user.nombre}</h3>
-                  <p className="text-[10px] md:text-xs text-stone-400 mt-0.5 font-medium break-all">{s.user.email || 'Sin correo'}</p>
+                  <h3 className="text-[17px] font-black text-on-surface tracking-tight leading-tight group-hover:text-primary transition-colors truncate">{s.user.nombre}</h3>
+                  <p className="text-[12px] text-on-surface-variant font-medium tracking-tight opacity-50 italic truncate">{s.user.email || 'Sin correo'}</p>
                 </div>
               </div>
 
-              {/* Métricas */}
-              <div className="flex-1 grid grid-cols-3 gap-2 md:gap-4 md:px-6">
-                <div className="text-center">
-                  <p className="text-[8px] md:text-[9px] font-black text-stone-300 uppercase tracking-widest mb-1 flex items-center justify-center gap-1">
-                    <Clock className="w-2 hs-2 md:w-2.5 md:h-2.5" /> Pend.
-                  </p>
-                  <p className="text-base md:text-lg font-black text-stone-700">{s.pending}</p>
-                </div>
-                <div className="text-center border-x border-stone-50">
-                  <p className="text-[8px] md:text-[9px] font-black text-stone-300 uppercase tracking-widest mb-1 flex items-center justify-center gap-1 text-blue-400">
-                    <TrendingUp className="w-2 h-2 md:w-2.5 md:h-2.5" /> Prog.
-                  </p>
-                  <p className="text-base md:text-lg font-black text-blue-600">{s.inProgress}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-[8px] md:text-[9px] font-black text-stone-300 uppercase tracking-widest mb-1 flex items-center justify-center gap-1 text-emerald-400">
-                    <CheckCircle2 className="w-2 h-2 md:w-2.5 md:h-2.5" /> Hechas
-                  </p>
-                  <p className="text-base md:text-lg font-black text-emerald-600">{s.completed}</p>
-                </div>
+              {/* Column 2: Pendientes (15%) */}
+              <div className="w-full md:w-[15%] text-center py-4 md:py-0">
+                <span className="md:hidden text-[9px] font-black text-on-surface-variant/40 uppercase tracking-widest block mb-1">Pendientes</span>
+                <p className="text-xl font-black text-on-surface opacity-30 group-hover:opacity-100 transition-opacity">{s.pending}</p>
               </div>
 
-              {/* Eficiencia Visual */}
-              <div className="min-w-[140px] md:min-w-[180px] space-y-1 md:space-y-2">
-                <div className="flex justify-between items-end">
-                  <span className="text-[10px] uppercase font-black text-stone-400 tracking-wider">Eficiencia</span>
-                  <span className={`text-xs font-black px-2 py-0.5 rounded-md border ${getEfficiencyColor(s.efficiency)}`}>
+              {/* Column 3: Progreso (15%) */}
+              <div className="w-full md:w-[15%] text-center py-4 md:py-0">
+                <span className="md:hidden text-[9px] font-black text-on-surface-variant/40 uppercase tracking-widest block mb-1">En Progreso</span>
+                <p className="text-xl font-black text-blue-600 transition-all">{s.inProgress}</p>
+              </div>
+
+              {/* Column 4: Hechas (15%) */}
+              <div className="w-full md:w-[15%] text-center py-4 md:py-0">
+                <span className="md:hidden text-[9px] font-black text-on-surface-variant/40 uppercase tracking-widest block mb-1">Completadas</span>
+                <p className="text-xl font-black text-emerald-600 transition-all">{s.completed}</p>
+              </div>
+
+              {/* Column 5: Eficiencia (20%) */}
+              <div className="w-full md:w-[20%] space-y-2 pr-4">
+                <div className="flex justify-between items-end mb-1">
+                  <span className="md:hidden text-[9px] font-black text-on-surface-variant/40 uppercase tracking-widest">Eficiencia</span>
+                  <span className={`text-[11px] font-black px-3 py-1 rounded-lg border shadow-sm ${getEfficiencyColor(s.efficiency)}`}>
                     {s.efficiency}%
                   </span>
                 </div>
-                <div className="w-full h-2 bg-stone-100 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-surface-container-low rounded-full overflow-hidden border border-outline-variant/5">
                   <div 
                     className={`h-full transition-all duration-1000 ${getProgressColor(s.efficiency)}`}
                     style={{ width: `${s.efficiency}%` }}
@@ -171,11 +177,11 @@ export const UserStatsView: React.FC<UserStatsViewProps> = ({ usuarios, tareas }
               </div>
             </div>
 
-            {/* Alerta de Rezago */}
+            {/* Alerta de Rezago (Digital Curator Style) */}
             {s.total > 0 && s.efficiency < 30 && (
-              <div className="mt-4 flex items-center gap-2 text-rose-500 bg-rose-50/50 p-2 rounded-xl border border-rose-100">
+              <div className="mt-6 flex items-center gap-3 text-rose-600 bg-rose-50/50 p-3 rounded-2xl border border-rose-100/50 animate-pulse">
                 <AlertCircle className="w-4 h-4" />
-                <span className="text-[10px] font-bold uppercase tracking-tight">Usuario en riesgo de rezago (Baja eficiencia)</span>
+                <span className="text-[10px] font-black uppercase tracking-wider">Usuario en riesgo de rezago institucional</span>
               </div>
             )}
           </div>

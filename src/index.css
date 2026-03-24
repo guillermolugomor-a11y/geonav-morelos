@@ -2,16 +2,20 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Plus Jakarta Sans", sans-serif;
+  --font-display: "Inter", sans-serif;
   
-  --color-primary: #620041;
-  --color-primary-container: #811B5A;
-  --color-secondary-container: #d0e8b5;
-  --color-surface: #fdf9f1;
-  --color-surface-container-low: #f7f3eb;
+  --color-primary: #620b27;
+  --color-primary-container: #80243d;
+  --color-secondary-container: #fed795;
+  --color-on-secondary-container: #795c26;
+  
+  --color-surface: #fef8f9;
+  --color-surface-container-low: #f8f2f3;
   --color-surface-container-lowest: #ffffff;
-  --color-on-surface: #1c1c17;
-  --color-outline-variant: #d9c0c9;
+  
+  --color-on-surface: #1d1b1c;
+  --color-on-surface-variant: #554245;
+  --color-outline-variant: #dbc0c3;
 }
 
 html, body, #root {

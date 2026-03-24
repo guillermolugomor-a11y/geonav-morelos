@@ -56,7 +56,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onProfileUpdate 
   }, [searchTerm]);
 
   return (
-    <div className="h-screen flex flex-col bg-surface overflow-hidden font-jakarta">
+    <div className="h-screen flex flex-col bg-surface overflow-hidden font-sans">
       <Navbar perfil={perfil} user={user} onLogout={onLogout} currentView={view} onViewChange={setView} />
 
       <main className={`flex-1 relative flex overflow-hidden lg:px-8 lg:py-4 ${view !== 'map' ? 'pb-24 md:pb-0' : 'pb-20 md:pb-0'}`}>

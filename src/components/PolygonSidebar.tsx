@@ -154,7 +154,7 @@ export const PolygonSidebar: React.FC<PolygonSidebarProps> = ({
                 )}
                 
                 <div className="flex justify-between items-center py-2 border-b border-stone-100">
-                  <span className="text-xs text-stone-500">Promotor Asignado</span>
+                  <span className="text-xs text-stone-500">Operativo Asignado</span>
                   <span className="text-xs font-bold text-[#8C3154]">
                     {loadingTask ? (
                       <span className="text-stone-400">Cargando...</span>

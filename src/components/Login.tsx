@@ -42,7 +42,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           />
           <h1 className="text-3xl font-black tracking-tight text-[#8C3154]">GeoNav Morelos</h1>
           <div className="h-1 w-16 bg-[#BC9B73] mt-2 rounded-full" />
-          <p className="text-stone-500 mt-4 font-medium italic">Acceso exclusivo para promotores</p>
+          <p className="text-stone-500 mt-4 font-medium italic">Acceso exclusivo para operativos</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

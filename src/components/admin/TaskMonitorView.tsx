@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertCircle, Bell, ClipboardList, Clock, Edit2, Eye, Map as MapIcon, MapPin, Trash2, User, X, CheckCircle2, RotateCcw, Search, ChevronRight } from 'lucide-react';
+import { AlertCircle, Bell, ClipboardList, Clock, Edit2, Eye, MapPin, Trash2, User, X, CheckCircle2, RotateCcw, Search, ChevronRight } from 'lucide-react';
 import { Poligono, Tarea, UsuarioPerfil } from '../../types';
 import { TaskLocationLabel } from '../tasks/TaskLocationLabel';
 import { useNotifications } from '../notifications/NotificationContext';
@@ -95,16 +95,20 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in duration-500 font-jakarta">
-      {/* Header - Civic Nexus Style */}
-      <div className="p-4 sm:p-8 bg-[#F2F1E8] border-b border-[#8C3154]/5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-2xl font-black text-stone-900 flex items-center gap-3 tracking-tight">
-              <ClipboardList className="w-6 h-6 text-[#8C3154]" />
+    <div className="flex flex-col h-full animate-in fade-in duration-700 font-sans">
+      {/* Header - Digital Curator: Editorial Authority */}
+      <div className="p-8 md:p-12 bg-surface border-b border-outline-variant/10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 max-w-screen-xl mx-auto">
+          <div className="space-y-2">
+            <h3 className="text-3xl font-black text-on-surface flex items-center gap-4 tracking-tighter">
+              <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-ambient">
+                <ClipboardList className="w-6" />
+              </div>
               Monitor de Tareas
             </h3>
-            <p className="text-sm text-stone-500 mt-1 font-medium italic">Seguimiento institucional del personal de campo.</p>
+            <p className="text-[14px] text-on-surface-variant font-medium opacity-60 pl-16">
+              Editorial de seguimiento institucional • <span className="italic">Personal de campo</span>
+            </p>
           </div>
           
           <button
@@ -124,32 +128,32 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
               }
             }}
             id="btn-manual-activate"
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-[#8C3154] text-white text-xs font-black rounded-2xl hover:bg-[#7a2a49] transition-all shadow-ambient uppercase tracking-widest whitespace-nowrap"
+            className="flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-primary to-primary-container text-white text-[11px] font-black rounded-2xl hover:scale-[1.02] shadow-ambient uppercase tracking-[0.2em] transition-all"
           >
             <Clock className="w-4 h-4" />
             Activar Programadas
           </button>
         </div>
 
-        {/* Filters & Search - Tonal Stacking */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-          <div className="bg-white p-4 rounded-2xl border border-stone-100 flex items-center gap-3 shadow-sm group focus-within:ring-2 ring-[#8C3154]/10 transition-all">
-            <Search className="w-4 h-4 text-stone-400 group-focus-within:text-[#8C3154]" />
+        {/* Filters & Search - Functional Elegance */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 max-w-screen-xl mx-auto">
+          <div className="bg-white px-6 py-4 rounded-xl border border-outline-variant/15 flex items-center gap-4 shadow-sm group focus-within:ring-2 ring-primary/10 transition-all">
+            <Search className="w-4 h-4 text-on-surface-variant opacity-40 group-focus-within:opacity-100 transition-opacity" />
             <input
               type="text"
               placeholder="Buscar por nombre o descripción..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-transparent border-none outline-none text-sm font-medium w-full text-stone-700"
+              className="bg-transparent border-none outline-none text-[13px] font-medium w-full text-on-surface placeholder:opacity-30"
             />
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-stone-100 flex items-center gap-3 shadow-sm">
-            <User className="w-4 h-4 text-stone-400" />
+          <div className="bg-white px-6 py-4 rounded-xl border border-outline-variant/15 flex items-center gap-4 shadow-sm group focus-within:ring-2 ring-primary/10 transition-all">
+            <User className="w-4 h-4 text-on-surface-variant opacity-40" />
             <select
               value={filterUser}
               onChange={(e) => setFilterUser(e.target.value)}
-              className="bg-transparent border-none outline-none text-sm font-bold text-stone-700 uppercase tracking-tighter w-full"
+              className="bg-transparent border-none outline-none text-[13px] font-medium w-full text-on-surface cursor-pointer"
             >
               <option value="">Filtro: Todo el Personal</option>
               {usuarios.map((u) => (
@@ -158,134 +162,139 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
             </select>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-stone-100 flex items-center gap-3 shadow-sm">
-            <AlertCircle className="w-4 h-4 text-stone-400" />
+          <div className="bg-white px-6 py-4 rounded-xl border border-outline-variant/15 flex items-center gap-4 shadow-sm group focus-within:ring-2 ring-primary/10 transition-all">
+            <AlertCircle className="w-4 h-4 text-on-surface-variant opacity-40" />
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="bg-transparent border-none outline-none text-sm font-bold text-stone-700 uppercase tracking-tighter w-full"
+              className="bg-transparent border-none outline-none text-[13px] font-medium w-full text-on-surface cursor-pointer"
             >
               <option value="">Filtro: Cualquier Estado</option>
               <option value="pendiente">Pendiente</option>
-              <option value="programada">Programada</option>
-              <option value="en_progreso">En Proceso</option>
+              <option value="en_progreso">En Progreso</option>
               <option value="completada">Completada</option>
+              <option value="programada">Programada</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-stone-50/50">
-        
-        {/* Desktop View: Table */}
-        <div className="hidden md:block bg-[#F2F1E8]/50 backdrop-blur-sm rounded-[2.5rem] p-6 border border-stone-200/50 shadow-inner overflow-hidden">
-          <table className="w-full text-left border-separate border-spacing-y-4">
-            <thead>
-              <tr className="text-stone-400 uppercase text-[10px] font-black tracking-[0.25em]">
-                <th className="px-8 py-2 font-black">Personal de Campo</th>
-                <th className="px-4 py-2 font-black">Ubicación Institucional</th>
-                <th className="px-4 py-2 font-black">Instrucción</th>
-                <th className="px-4 py-2 font-black text-center">Estado</th>
-                <th className="px-8 py-2 text-right w-48 font-black">Gestión</th>
-              </tr>
-            </thead>
-            <tbody className="pt-4">
-              {filteredTareas.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-24 text-center">
-                    <div className="flex flex-col items-center gap-4 opacity-20">
-                      <ClipboardList className="w-16 h-16 text-[#8C3154]" />
-                      <p className="text-xs font-black uppercase tracking-[0.3em]">Sin registros institucionales</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredTareas.map((tarea) => {
-                  const usuario = userMap.get(tarea.user_id);
-                  const poligono = polygonMap.get(tarea.polygon_id);
-                  const hasUnread = unreadTaskNotifications.has(tarea.id);
 
-                  return (
-                    <tr 
-                      key={tarea.id} 
-                      className="group bg-white hover:bg-white transition-all duration-300 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:shadow-ambient rounded-2xl relative border border-transparent hover:border-[#8C3154]/10"
-                    >
-                      <td className="px-8 py-5 first:rounded-l-2xl">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-[#F2F1E8] flex items-center justify-center text-xs font-black text-[#8C3154] shadow-sm border border-[#8C3154]/5 group-hover:bg-white transition-colors">
-                            {usuario?.nombre.substring(0,2).toUpperCase()}
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-base font-black text-stone-900 tracking-tight group-hover:text-[#8C3154] transition-colors">{usuario?.nombre}</span>
-                            <span className="text-[11px] text-stone-400 font-bold tracking-tight opacity-70 italic">{usuario?.email || 'campo.externo@morelos.gob.mx'}</span>
-                          </div>
+      {/* Main Content Area - Digital Curator: Architectural White Space */}
+      <div className="flex-1 overflow-y-auto p-6 md:p-12 lg:p-16 bg-surface-container-low animate-in fade-in slide-in-from-bottom-4 duration-1000">
+        
+        {/* Desktop View: Editorial Spread (Digital Curator) */}
+        <div className="hidden md:block max-w-screen-xl mx-auto">
+          {/* List Header - Synchronized Columns */}
+          <div className="flex items-center px-8 mb-8 text-[11px] font-black uppercase tracking-[0.25em] text-on-surface-variant opacity-90">
+            <div className="w-[25%] pl-4 truncate">Operativo</div>
+            <div className="w-[15%] px-2">Ubicación</div>
+            <div className="w-[20%] px-2">Instrucción</div>
+            <div className="w-[15%] text-center">Estado</div>
+            <div className="w-[10%] text-center">Fecha</div>
+            <div className="w-[15%] text-right pr-4">Gestión</div>
+          </div>
+
+          <div className="flex flex-col gap-6">
+            {filteredTareas.length === 0 ? (
+              <div className="py-32 text-center bg-white rounded-3xl shadow-sm border border-outline-variant/5">
+                <div className="flex flex-col items-center gap-6 opacity-15">
+                  <ClipboardList className="w-20 h-20 text-primary" />
+                  <p className="text-[13px] font-black uppercase tracking-[0.4em] text-on-surface">Archivo Vacío</p>
+                </div>
+              </div>
+            ) : (
+              filteredTareas.map((tarea) => {
+                const usuario = userMap.get(tarea.user_id);
+                const poligono = polygonMap.get(tarea.polygon_id);
+                const hasUnread = unreadTaskNotifications.has(tarea.id);
+
+                return (
+                  <div 
+                    key={tarea.id} 
+                    className="group bg-white rounded-[2rem] p-4 px-8 hover:shadow-ambient transition-all duration-500 relative"
+                  >
+                    <div className="flex items-center">
+                      
+                      {/* Column 1: Personal (25%) */}
+                      <div className="w-[25%] flex items-center gap-5 pl-4 min-w-0">
+                        <div className="w-14 h-14 rounded-2xl bg-surface-container-low flex items-center justify-center text-xs font-black text-primary border border-outline-variant/10 group-hover:bg-white transition-colors duration-500 shrink-0">
+                          {usuario?.nombre.substring(0,2).toUpperCase()}
                         </div>
-                      </td>
-                      <td className="px-4 py-5 font-medium">
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-[17px] font-black text-on-surface tracking-tight leading-tight group-hover:text-primary transition-colors truncate">{usuario?.nombre}</span>
+                          <span className="text-[12px] text-on-surface-variant font-medium tracking-tight opacity-50 italic truncate">{usuario?.email || 'institucional@morelos.gob.mx'}</span>
+                        </div>
+                      </div>
+
+                      {/* Column 2: Ubicación (15%) */}
+                      <div className="w-[15%] min-w-0 px-2">
                         <button
                           onClick={() => onNavigateToMap?.(tarea.polygon_id)}
-                          className="flex items-center gap-2 px-4 py-2 bg-[#F2F1E8]/70 rounded-xl text-[11px] font-black text-[#8C3154] hover:bg-[#8C3154] hover:text-white transition-all shadow-sm border border-[#8C3154]/10"
+                          className="w-fit max-w-full flex items-center gap-2.5 px-4 py-2.5 bg-surface-container-low/50 rounded-2xl text-[11px] font-black text-primary hover:bg-primary-container hover:text-white transition-all shadow-sm group/loc overflow-hidden"
                         >
-                          <MapPin className="w-4 h-4" />
-                          <TaskLocationLabel task={tarea} poligono={poligono} />
+                          <MapPin className="w-4 h-4 shrink-0" />
+                          <span className="truncate"><TaskLocationLabel task={tarea} poligono={poligono} /></span>
                         </button>
-                      </td>
-                      <td className="px-4 py-5 max-w-sm">
-                        <div className="relative">
-                          <p className="text-[13px] text-stone-600 font-medium leading-relaxed italic border-l-2 border-[#8C3154]/10 pl-5 group-hover:border-[#8C3154]/40 transition-colors">
-                            "{tarea.instruccion}"
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-5 text-center">
-                        <div className="flex items-center justify-center gap-3">
-                          <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-sm border ${
-                            tarea.status === 'completada' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                            tarea.status === 'en_progreso' ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                            tarea.status === 'programada' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                            'bg-stone-50 text-stone-400 border-stone-100'
-                          }`}>
-                            {tarea.status === 'programada' ? <Clock className="w-3.5 h-3.5" /> : <div className={`w-1.5 h-1.5 rounded-full ${tarea.status === 'completada' ? 'bg-emerald-500' : tarea.status === 'en_progreso' ? 'bg-blue-500' : 'bg-stone-300'}`} />}
-                            {tarea.status === 'programada' ? 'Programada' : tarea.status.replace('_', ' ')}
-                          </span>
-                          <NotificationIndicator hasUnread={hasUnread} size="sm" />
-                        </div>
-                      </td>
-                      <td className="px-4 py-5 text-center font-bold text-stone-400 text-[11px]">
-                        {tarea.created_at ? new Date(tarea.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '—'}
-                      </td>
-                      <td className="px-8 py-5 text-right last:rounded-r-2xl">
-                        <div className="flex justify-end items-center gap-1 opacity-60 group-hover:opacity-100 transition-all transform group-hover:translate-x-[-4px]">
-                          {tarea.status === 'completada' && (
-                            <div className="flex items-center gap-1 pr-3 mr-3 border-r border-stone-100">
-                              <button
-                                onClick={() => handleApprove(tarea)}
-                                className="p-2.5 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all hover:rotate-12 active:scale-90"
-                                title="Aprobar"
-                              >
-                                <CheckCircle2 size={18} strokeWidth={3} />
-                              </button>
-                              <button
-                                onClick={() => handleReject(tarea)}
-                                className="p-2.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-all hover:-rotate-12 active:scale-90"
-                                title="Rechazar"
-                              >
-                                <RotateCcw size={18} strokeWidth={3} />
-                              </button>
-                            </div>
-                          )}
-                          <button onClick={() => onView(tarea)} className="p-2.5 text-stone-400 hover:text-stone-900 hover:bg-stone-100 rounded-xl transition-all hover:scale-110" title="Ver Detalle"><Eye size={18} /></button>
-                          <button onClick={() => onEdit(tarea)} className="p-2.5 text-stone-400 hover:text-[#8C3154] hover:bg-[#8C3154]/5 rounded-xl transition-all hover:scale-110" title="Editar"><Edit2 size={18} /></button>
-                          <button onClick={() => onDelete(tarea)} className="p-2.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all hover:scale-110" title="Eliminar"><Trash2 size={18} /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                      </div>
+
+                      {/* Column 3: Instrucción (20%) */}
+                      <div className="w-[20%] min-w-0 px-2">
+                        <p className="text-[14px] text-on-surface-variant font-medium leading-relaxed italic border-l-3 border-outline-variant/10 pl-6 group-hover:border-primary/20 transition-all duration-700 truncate">
+                          "{tarea.instruccion}"
+                        </p>
+                      </div>
+
+                      {/* Column 4: Estado (15%) */}
+                      <div className="w-[15%] flex justify-center min-w-0">
+                        <span className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.1em] shadow-sm truncate max-w-full ${
+                          tarea.status === 'completada' ? 'bg-[#e0f2f1] text-[#00695c]' :
+                          tarea.status === 'en_progreso' ? 'bg-secondary-container text-on-secondary-container' :
+                          tarea.status === 'programada' ? 'bg-[#e8eaf6] text-[#283593]' :
+                          'bg-surface-container-low text-on-surface-variant'
+                        }`}>
+                          {tarea.status === 'programada' ? <Clock className="w-3.5 h-3.5 shrink-0" /> : <div className={`w-2 h-2 rounded-full shrink-0 ${tarea.status === 'completada' ? 'bg-[#009688]' : tarea.status === 'en_progreso' ? 'bg-[#ff9800]' : 'bg-stone-300'}`} />}
+                          {tarea.status === 'programada' ? 'Programada' : tarea.status.replace('_', ' ')}
+                        </span>
+                      </div>
+
+                      {/* Column 5: Fecha (10%) */}
+                      <div className="w-[10%] text-center min-w-0">
+                        <span className="text-[12px] font-black text-on-surface-variant opacity-40 uppercase tracking-widest truncate">
+                          {tarea.created_at ? new Date(tarea.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '—'}
+                        </span>
+                      </div>
+
+                      {/* Column 6: Gestión (15%) */}
+                      <div className="w-[15%] flex justify-end items-center gap-1 opacity-30 group-hover:opacity-100 transition-all duration-500 pr-4 min-w-0">
+                        {tarea.status === 'completada' && (
+                          <div className="flex items-center gap-1 mr-2 pr-2 border-r border-outline-variant/10">
+                            <button
+                              onClick={() => handleApprove(tarea)}
+                              className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-2xl transition-all hover:scale-110"
+                              title="Aprobar"
+                            >
+                              <CheckCircle2 size={16} strokeWidth={3} />
+                            </button>
+                            <button
+                              onClick={() => handleReject(tarea)}
+                              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-2xl transition-all hover:scale-110"
+                              title="Rechazar"
+                            >
+                              <RotateCcw size={16} strokeWidth={3} />
+                            </button>
+                          </div>
+                        )}
+                        <button onClick={() => onView(tarea)} className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-surface-container-low rounded-2xl transition-all"><Eye size={16} /></button>
+                        <button onClick={() => onEdit(tarea)} className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-surface-container-low rounded-2xl transition-all"><Edit2 size={16} /></button>
+                        <button onClick={() => onDelete(tarea)} className="p-1.5 text-on-surface-variant hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all"><Trash2 size={16} /></button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
 
         {/* Mobile View: Cards - Civic Nexus Redesign */}

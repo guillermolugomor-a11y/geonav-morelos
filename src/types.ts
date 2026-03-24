@@ -6,6 +6,7 @@ export interface UsuarioPerfil {
   rol: UserRole;
   email?: string;
   created_at: string;
+  last_login?: string;
 }
 
 export interface Poligono {

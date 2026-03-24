@@ -9,14 +9,14 @@ Este documento es el activo intelectual más importante del proyecto. Ha sido di
 *   **Problema que resuelve:** La dificultad de coordinar brigadas de campo, asignar zonas específicas (secciones/manzanas) y medir el avance real con evidencia geográfica y chat en tiempo real.
 *   **Tipo de usuarios:** 
     *   **Administradores:** Coordinan zonas, asignan tareas y auditan el rendimiento.
-    *   **Personal de Campo (Promotores):** Visualizan su ruta de trabajo y reportan avances desde el territorio.
+    *   **Operativos:** Visualizan su ruta de trabajo y reportan avances desde el territorio.
 
 ---
 
 ## 2. 🏗️ Arquitectura del Sistema
 El sistema utiliza una arquitectura **Híbrida de Tiempo Real y Alto Rendimiento Espacial**:
 
-*   **Frontend:** React 18 (Vite) con **Zustand** para el estado global. La interfaz es mobile-first y utiliza **Framer Motion** para transiciones premium.
+*   **Frontend:** React 18 (Vite) con **Zustand** para el estado global. La interfaz sigue el sistema de diseño **"Digital Curator"** (Editorial/Premium) y utiliza **Framer Motion** para transiciones fluidas.
 *   **Backend (Micro-servicios):**
     *   **Supabase (BaaS):** Gestiona la autenticación, base de datos relacional/espacial y el canal de notificaciones en tiempo real (Websockets).
     *   **Express Server (`server.ts`):** Actúa como middleware para servir **Vector Tiles (MVT)** optimizados directamente desde PostGIS y ejecutar el **Scheduler** de tareas programadas.
@@ -28,7 +28,7 @@ El sistema utiliza una arquitectura **Híbrida de Tiempo Real y Alto Rendimiento
 
 ### `usuarios_perfil`
 *   **Propósito:** Almacena la identidad y el rol extendido.
-*   **Campos clave:** `id` (UUID), `nombre` (Text), `rol` (`admin`|`field_worker`), `email` (Text).
+*   **Campos clave:** `id` (UUID), `nombre` (Text), `rol` (`admin`|`field_worker`), `email` (Text), `last_login` (Timestamp).
 *   **Relación:** 1:1 con `auth.users`.
 
 ### `poligonos_geojson` (y tablas GIS auxiliares)

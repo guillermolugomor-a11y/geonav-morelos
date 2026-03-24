@@ -15,7 +15,7 @@ const supabase = createClient(
 );
 
 const app = express();
-const port = Number(process.env.PORT) || 3001;
+const port = Number(process.env.PORT) || 3002;
 const __dirname = path.resolve();
 
 // Logging middleware
@@ -158,10 +158,10 @@ function initTaskScheduler() {
   setTimeout(runTaskActivation, 1000);
 }
 
-// 1. Iniciar el servidor Express de inmediato en el puerto 3001 (Top Level)
-app.listen(port, '0.0.0.0', () => {
+// 1. Iniciar el servidor Express de inmediato en el puerto 3002
+app.listen(port, '127.0.0.1', () => {
   console.log(`--------------------------------------------------`);
-  console.log(`🚀 SERVIDOR BACKEND ACTIVO: http://localhost:${port}`);
+  console.log(`🚀 SERVIDOR BACKEND ACTIVO: http://127.0.0.1:${port}`);
   console.log(`⏰ SISTEMA DE ACTIVACIÓN: Iniciado`);
   console.log(`--------------------------------------------------`);
 });

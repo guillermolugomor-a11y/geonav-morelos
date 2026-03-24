@@ -1,7 +1,7 @@
 # Arquitectura y Lógica del Sistema - GeoNav Morelos
 
 ## 1. Descripción General del Sistema
-GeoNav Morelos es una aplicación web (Single Page Application) diseñada para la gestión, asignación y visualización de tareas en campo basadas en polígonos geográficos (Secciones, Manzanas, Localidades). Permite a los administradores asignar zonas de trabajo a promotores o personal de campo, y a estos últimos visualizar sus áreas asignadas en un mapa interactivo.
+GeoNav Morelos es una aplicación web (Single Page Application) diseñada para la gestión, asignación y visualización de tareas en campo basadas en polígonos geográficos (Secciones, Manzanas, Localidades). Permite a los administradores asignar zonas de trabajo a operativos, y a estos últimos visualizar sus áreas asignadas en un mapa interactivo.
 
 ## 2. Arquitectura Tecnológica
 *   **Frontend:** React 18+ con Vite.
@@ -22,6 +22,7 @@ El sistema opera principalmente con tres entidades:
     *   `nombre` (String): Nombre completo del usuario.
     *   `rol` (Enum): `admin` o `field_worker`.
     *   `email` (String): Correo electrónico.
+    *   `last_login` (Timestamp): Última conexión registrada (Sync vía Auth Trigger).
     *   `created_at` (Timestamp).
 
 2.  **`poligonos_geojson`**: Almacena la cartografía.
@@ -90,7 +91,6 @@ El sistema opera principalmente con tres entidades:
 
 ## 6. Deuda Técnica y Áreas de Mejora (Roadmap a Producción)
 
-1.  **Optimización de Carga Espacial:** Actualmente se descargan todos los polígonos de golpe. Para producción, se debe implementar carga dinámica mediante *Bounding Box* (descargar solo lo que se ve en pantalla) usando PostGIS (`ST_Intersects`).
-2.  **Manejo de Roles:** Migrar la validación de roles de la tabla `usuarios_perfil` a *Custom JWT Claims* en Supabase para evitar consultas adicionales en las políticas RLS.
-3.  **Renderizado de React-Leaflet:** Agrupar múltiples componentes `<GeoJSON>` en un solo `FeatureCollection` para reducir la carga en el DOM y mejorar los FPS (Frames Per Second) al navegar por el mapa.
-4.  **Manejo de Estado Global:** Considerar el uso de Zustand o React Context para evitar el "prop drilling" (pasar props a través de múltiples componentes) del estado del usuario y los polígonos.
+1.  **Optimización de Carga Espacial:** Completada mediante el uso de **Vector Tiles (MVT)** servidos desde Express.
+2.  **Manejo de Roles:** Implementar *Custom JWT Claims* para mayor seguridad.
+3.  **Manejo de Estado Global**: Migrado a **Zustand** para mayor eficiencia y escalabilidad.

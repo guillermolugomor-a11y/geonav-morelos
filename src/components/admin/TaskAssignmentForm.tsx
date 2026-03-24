@@ -85,7 +85,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
           <ClipboardList className="w-8 h-8" />
           Gestión de Tareas
         </h2>
-        <p className="text-base text-stone-500 mt-2 font-medium">Asigna polígonos y tareas específicas al personal de campo.</p>
+        <p className="text-base text-stone-500 mt-2 font-medium">Asigna polígonos y tareas específicas a los operativos.</p>
       </div>
 
       <form onSubmit={onSubmit} className="p-6 md:p-8 space-y-8 bg-surface">
@@ -93,8 +93,8 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-3">
-            <label className="text-xs font-bold text-on-surface uppercase tracking-widest flex items-center gap-2 opacity-60">
-              <User className="w-4 h-4" /> Personal de Campo
+            <label className="text-xs font-bold text-on-surface uppercase tracking-widest flex items-center gap-2 opacity-85">
+              <User className="w-4 h-4" /> Operativos
             </label>
             <div className="relative group">
               <select
@@ -117,7 +117,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
           </div>
 
           <div className="space-y-3">
-            <label className="text-xs font-bold text-on-surface uppercase tracking-widest flex items-center gap-2 opacity-60">
+            <label className="text-xs font-bold text-on-surface uppercase tracking-widest flex items-center gap-2 opacity-85">
               <MapPin className="w-4 h-4" /> Polígono (Sección/Manzana)
             </label>
 

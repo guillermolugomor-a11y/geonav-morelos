@@ -33,14 +33,14 @@ export const Navbar: React.FC<NavbarProps> = ({ perfil, user, onLogout, currentV
           className="h-10 w-auto"
         />
         <div className="h-6 w-px bg-stone-200 mx-1 hidden sm:block" />
-        <span className="font-bold text-xl text-stone-900 tracking-tight">GeoNav <span className="text-[#8C3154]">Morelos</span></span>
+        <span className="font-black text-xl text-on-surface tracking-tighter">GeoNav <span className="text-primary">Morelos</span></span>
       </div>
 
       <div className="flex items-center gap-6">
-        <div className="hidden md:flex items-center bg-surface-container-low p-1 rounded-xl">
+        <div className="hidden md:flex items-center bg-surface-container-low p-1.5 rounded-2xl">
           <button
             onClick={() => onViewChange('map')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentView === 'map' ? 'bg-white text-primary shadow-sm' : 'text-stone-500 hover:text-stone-700'
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${currentView === 'map' ? 'bg-white text-primary shadow-sm' : 'text-on-surface-variant/40 hover:text-on-surface'
               }`}
           >
             <MapIcon size={14} />
@@ -50,7 +50,7 @@ export const Navbar: React.FC<NavbarProps> = ({ perfil, user, onLogout, currentV
             <>
               <button
                 onClick={() => onViewChange('admin_gestion')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentView === 'admin_gestion' ? 'bg-white text-primary shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${currentView === 'admin_gestion' ? 'bg-white text-primary shadow-sm' : 'text-on-surface-variant/40 hover:text-on-surface'
                   }`}
               >
                 <ClipboardList size={14} />
@@ -58,7 +58,7 @@ export const Navbar: React.FC<NavbarProps> = ({ perfil, user, onLogout, currentV
               </button>
               <button
                 onClick={() => onViewChange('admin_monitor')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentView === 'admin_monitor' ? 'bg-white text-primary shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${currentView === 'admin_monitor' ? 'bg-white text-primary shadow-sm' : 'text-on-surface-variant/40 hover:text-on-surface'
                   }`}
               >
                 <LayoutDashboard size={14} />
@@ -66,7 +66,7 @@ export const Navbar: React.FC<NavbarProps> = ({ perfil, user, onLogout, currentV
               </button>
               <button
                 onClick={() => onViewChange('admin_stats')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentView === 'admin_stats' ? 'bg-[#8C3154]/10 text-[#8C3154] shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${currentView === 'admin_stats' ? 'bg-primary-container/10 text-primary shadow-sm' : 'text-on-surface-variant/40 hover:text-on-surface'
                   }`}
               >
                 <TrendingUp size={14} />
@@ -74,7 +74,7 @@ export const Navbar: React.FC<NavbarProps> = ({ perfil, user, onLogout, currentV
               </button>
               <button
                 onClick={() => onViewChange('admin_users')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentView === 'admin_users' ? 'bg-white text-primary shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${currentView === 'admin_users' ? 'bg-white text-primary shadow-sm' : 'text-on-surface-variant/40 hover:text-on-surface'
                   }`}
               >
                 <User size={14} />
@@ -84,7 +84,7 @@ export const Navbar: React.FC<NavbarProps> = ({ perfil, user, onLogout, currentV
           ) : (
             <button
               onClick={() => onViewChange('tasks')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentView === 'tasks' ? 'bg-white text-[#BC9B73] shadow-sm' : 'text-stone-500 hover:text-stone-700'
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${currentView === 'tasks' ? 'bg-white text-primary shadow-sm' : 'text-on-surface-variant/40 hover:text-on-surface'
                 }`}
             >
               <ClipboardList size={14} />
@@ -98,20 +98,20 @@ export const Navbar: React.FC<NavbarProps> = ({ perfil, user, onLogout, currentV
         {perfil && (
           <button
             onClick={() => onViewChange('profile')}
-            className={`flex items-center gap-3 px-3 py-1.5 rounded-full border transition-all ${currentView === 'profile'
-              ? 'bg-[#8C3154]/5 border-[#8C3154]/20 shadow-sm'
-              : 'bg-stone-50 border-stone-100 hover:bg-stone-100'
+            className={`flex items-center gap-4 px-4 py-2 rounded-2xl border-none transition-all ${currentView === 'profile'
+              ? 'bg-primary/5 shadow-sm'
+              : 'bg-surface-container-low/50 hover:bg-surface-container-low'
               }`}
           >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentView === 'profile' ? 'bg-[#8C3154]/10 text-[#8C3154]' : 'bg-stone-200 text-stone-500'
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${currentView === 'profile' ? 'bg-primary text-white' : 'bg-white text-on-surface-variant/40 border border-outline-variant/10'
               }`}>
-              <User size={18} />
+              <User size={20} strokeWidth={2.5} />
             </div>
             <div className="hidden sm:block text-left">
-              <p className={`text-sm font-semibold leading-none ${currentView === 'profile' ? 'text-[#8C3154]' : 'text-stone-800'}`}>
+              <p className={`text-[13px] font-black leading-none tracking-tight ${currentView === 'profile' ? 'text-primary' : 'text-on-surface'}`}>
                 {perfil.nombre}
               </p>
-              <p className={`text-[10px] uppercase tracking-wider font-bold mt-0.5 ${currentView === 'profile' ? 'text-[#8C3154]' : 'text-stone-500'}`}>
+              <p className={`text-[9px] uppercase tracking-[0.2em] font-black mt-1.5 ${currentView === 'profile' ? 'text-primary/60' : 'text-on-surface-variant/40'}`}>
                 {perfil.rol}
               </p>
             </div>

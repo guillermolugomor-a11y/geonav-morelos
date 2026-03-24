@@ -98,7 +98,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onProfileUpdate 
               exit={{ opacity: 0, y: 10 }}
               className="flex-1 px-4 py-8 md:p-8 overflow-y-auto"
             >
-              <div className="max-w-4xl mx-auto mb-20 md:mb-0">
+              <div className="max-w-7xl mx-auto mb-20 md:mb-0">
                 <AdminPanel
                   perfil={perfil}
                   viewMode={

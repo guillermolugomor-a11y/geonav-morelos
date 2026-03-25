@@ -65,7 +65,7 @@ export const RoutingSidebar: React.FC<RoutingSidebarProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="w-80 h-full md:w-[320px] bg-[#F2F1E8] border-r border-[#8C3154]/10 flex flex-col shadow-2xl relative z-[1000] overflow-y-auto">
+        <div className="w-[260px] h-full md:w-[320px] bg-[#F2F1E8] border-r border-[#8C3154]/10 flex flex-col shadow-2xl relative z-[1000] overflow-y-auto">
             {/* HEADER INSTITUCIONAL 2024-2030 */}
             <div className="p-8 border-b border-[#8C3154]/10 flex flex-col items-center justify-center bg-[#F2F1E8] shadow-sm">
                 <div className="bg-white/50 p-2 rounded-2xl w-full">

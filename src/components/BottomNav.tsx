@@ -9,7 +9,7 @@ interface BottomNavProps {
 
 export const BottomNav: React.FC<BottomNavProps> = ({ currentView, onViewChange, isAdmin }) => {
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#F2F1E8]/95 backdrop-blur-xl border-t border-[#8C3154]/10 flex items-center justify-around px-2 py-3 z-[100] shadow-ambient">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#F2F1E8]/95 backdrop-blur-xl border-t border-[#8C3154]/10 flex items-center justify-around px-2 py-3 z-[5000] shadow-ambient">
       <button
         onClick={() => onViewChange('map')}
         className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${

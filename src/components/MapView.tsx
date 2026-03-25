@@ -506,7 +506,7 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
         {/* Toggle Vista Satelital */}
         <button
           onClick={() => setMapStyle(mapStyle === 'streets' ? 'satellite' : 'streets')}
-          className="absolute bottom-6 right-6 z-[1000] bg-white p-3 rounded-2xl shadow-xl border border-stone-200 hover:bg-stone-50 transition-all active:scale-95 group flex items-center gap-2"
+          className="absolute bottom-24 md:bottom-6 right-6 z-[1000] bg-white p-3 rounded-2xl shadow-xl border border-stone-200 hover:bg-stone-50 transition-all active:scale-95 group flex items-center gap-2"
           title="Cambiar vista de mapa"
         >
           <div className={`p-1.5 rounded-lg ${mapStyle === 'satellite' ? 'bg-[#8C3154] text-white' : 'bg-stone-100 text-stone-600'}`}>

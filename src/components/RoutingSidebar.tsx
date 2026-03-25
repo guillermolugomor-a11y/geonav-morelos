@@ -70,7 +70,7 @@ export const RoutingSidebar: React.FC<RoutingSidebarProps> = ({
             <div className="p-8 border-b border-[#8C3154]/10 flex flex-col items-center justify-center bg-[#F2F1E8] shadow-sm">
                 <div className="bg-white/50 p-2 rounded-2xl w-full">
                     <img
-                        src="/logo.png"
+                        src="/iesm-logo.png"
                         alt="Instituto de Estudios Sociales de Morelos"
                         className="w-full h-auto mix-blend-multiply"
                     />

@@ -25,15 +25,15 @@ export const Navbar: React.FC<NavbarProps> = ({ perfil, user, onLogout, currentV
   };
 
   return (
-    <nav className="bg-white border-b border-stone-200 px-6 py-3 flex items-center justify-between sticky top-0 z-50 shadow-sm">
-      <div className="flex items-center gap-3">
+    <nav className="bg-white/80 backdrop-blur-md border-b border-stone-200 px-3 md:px-6 py-2 md:py-3 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+      <div className="flex items-center gap-2 md:gap-3">
         <img
           src="/logo.png"
           alt="I.E.S.M."
-          className="h-10 w-auto mix-blend-multiply"
+          className="h-8 md:h-10 w-auto mix-blend-multiply"
         />
         <div className="h-6 w-px bg-stone-200 mx-1 hidden sm:block" />
-        <span className="font-black text-lg text-[#8C3154] tracking-tighter hidden xs:block">
+        <span className="font-black text-sm md:text-lg text-[#8C3154] tracking-tighter hidden xs:block">
           Inst. de Estudios <span className="text-[#BC9B73]">Sociales</span>
         </span>
       </div>

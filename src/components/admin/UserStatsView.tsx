@@ -62,12 +62,12 @@ export const UserStatsView: React.FC<UserStatsViewProps> = ({ usuarios, tareas }
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12 px-1">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12 px-4 md:px-6">
       {/* Resumen Global */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-stone-100 flex items-center gap-5">
-          <div className="w-14 h-14 rounded-2xl bg-[#8C3154]/10 flex items-center justify-center text-[#8C3154]">
-            <BarChart3 className="w-7 h-7" />
+        <div className="bg-white/50 p-4 md:p-6 rounded-[2rem] shadow-sm border border-stone-100 flex items-center gap-4 md:gap-5">
+          <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-[#8C3154]/10 flex items-center justify-center text-[#8C3154] shrink-0">
+            <BarChart3 className="w-6 h-6 md:w-7 md:h-7" />
           </div>
           <div>
             <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">Total Tareas</p>
@@ -75,9 +75,9 @@ export const UserStatsView: React.FC<UserStatsViewProps> = ({ usuarios, tareas }
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-stone-100 flex items-center gap-5">
-          <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-500">
-            <CheckCircle2 className="w-7 h-7" />
+        <div className="bg-white/50 p-4 md:p-6 rounded-[2rem] shadow-sm border border-stone-100 flex items-center gap-4 md:gap-5">
+          <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-500 shrink-0">
+            <CheckCircle2 className="w-6 h-6 md:w-7 md:h-7" />
           </div>
           <div>
             <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">Completadas</p>
@@ -85,9 +85,9 @@ export const UserStatsView: React.FC<UserStatsViewProps> = ({ usuarios, tareas }
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-stone-100 flex items-center gap-5">
-          <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-500">
-            <TrendingUp className="w-7 h-7" />
+        <div className="bg-white/50 p-4 md:p-6 rounded-[2rem] shadow-sm border border-stone-100 flex items-center gap-4 md:gap-5">
+          <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
+            <TrendingUp className="w-6 h-6 md:w-7 md:h-7" />
           </div>
           <div>
             <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">Eficiencia Promedio</p>
@@ -122,7 +122,7 @@ export const UserStatsView: React.FC<UserStatsViewProps> = ({ usuarios, tareas }
         {stats.map((s, index) => (
           <div 
             key={s.user.id} 
-            className="group bg-white p-4 md:p-6 rounded-[2rem] shadow-sm border border-stone-100 hover:shadow-ambient transition-all duration-700 relative overflow-hidden"
+            className="group bg-white/70 backdrop-blur-md p-5 rounded-[2.5rem] shadow-sm border border-stone-100 hover:shadow-ambient transition-all duration-700 relative overflow-hidden"
           >
             <div className="flex flex-col md:flex-row md:items-center">
               
@@ -142,22 +142,25 @@ export const UserStatsView: React.FC<UserStatsViewProps> = ({ usuarios, tareas }
                 </div>
               </div>
 
-              {/* Column 2: Pendientes (15%) */}
-              <div className="w-full md:w-[15%] text-center py-4 md:py-0">
-                <span className="md:hidden text-[9px] font-black text-on-surface-variant/40 uppercase tracking-widest block mb-1">Pendientes</span>
-                <p className="text-xl font-black text-on-surface opacity-30 group-hover:opacity-100 transition-opacity">{s.pending}</p>
-              </div>
+              {/* Mobile Stats Grid / Desktop Columns */}
+              <div className="flex-1 grid grid-cols-3 md:flex md:items-center mt-6 md:mt-0 border-t md:border-t-0 border-stone-100 pt-5 md:pt-0">
+                {/* Column 2: Pendientes */}
+                <div className="text-center px-1 border-r border-stone-100/50 md:border-r-0 md:w-[15%]">
+                  <span className="text-[9px] font-black text-stone-400 uppercase tracking-[0.15em] block mb-1">Pend.</span>
+                  <p className="text-lg font-black text-stone-900 opacity-30 group-hover:opacity-100 transition-opacity">{s.pending}</p>
+                </div>
 
-              {/* Column 3: Progreso (15%) */}
-              <div className="w-full md:w-[15%] text-center py-4 md:py-0">
-                <span className="md:hidden text-[9px] font-black text-on-surface-variant/40 uppercase tracking-widest block mb-1">En Progreso</span>
-                <p className="text-xl font-black text-blue-600 transition-all">{s.inProgress}</p>
-              </div>
+                {/* Column 3: Progreso */}
+                <div className="text-center px-1 border-r border-stone-100/50 md:border-r-0 md:w-[15%]">
+                  <span className="text-[9px] font-black text-stone-400 uppercase tracking-[0.15em] block mb-1">Prog.</span>
+                  <p className="text-lg font-black text-blue-600 transition-all">{s.inProgress}</p>
+                </div>
 
-              {/* Column 4: Hechas (15%) */}
-              <div className="w-full md:w-[15%] text-center py-4 md:py-0">
-                <span className="md:hidden text-[9px] font-black text-on-surface-variant/40 uppercase tracking-widest block mb-1">Completadas</span>
-                <p className="text-xl font-black text-emerald-600 transition-all">{s.completed}</p>
+                {/* Column 4: Hechas */}
+                <div className="text-center px-1 md:w-[15%]">
+                  <span className="text-[9px] font-black text-stone-400 uppercase tracking-[0.15em] block mb-1">Hechas</span>
+                  <p className="text-lg font-black text-emerald-600 transition-all">{s.completed}</p>
+                </div>
               </div>
 
               {/* Column 5: Eficiencia (20%) */}

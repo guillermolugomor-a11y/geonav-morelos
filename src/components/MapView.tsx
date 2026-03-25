@@ -401,7 +401,7 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
 
       <div
         className={`md:hidden fixed inset-0 bg-black/50 z-[999] transition-opacity ${
-          isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          isSidebarOpen && !routeMode ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setIsSidebarOpen(false)}
       />

@@ -177,10 +177,10 @@ export const RoutingSidebar: React.FC<RoutingSidebarProps> = ({
                 {/* CAPAS DEL MAPA */}
                 <section className="pt-4 border-t border-stone-100">
                     <h2 className="text-xs uppercase tracking-widest text-slate-500 font-bold mb-4">Capas del Mapa</h2>
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-row gap-3">
                         <button
                             onClick={() => setVisibleLayers(p => ({ ...p, padron: !p.padron }))}
-                            className={`flex flex-col items-center gap-2 p-3 rounded-xl font-bold transition-all ${visibleLayers.padron
+                            className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-xl font-bold transition-all ${visibleLayers.padron
                                 ? 'bg-[#8C3154] text-white shadow-md'
                                 : 'bg-white border border-[#8C3154]/10 text-stone-500 hover:bg-[#8C3154]/5'
                                 }`}
@@ -191,13 +191,13 @@ export const RoutingSidebar: React.FC<RoutingSidebarProps> = ({
 
                         <button
                             onClick={() => setVisibleLayers(p => ({ ...p, nearManzanas: !p.nearManzanas }))}
-                            className={`flex flex-col items-center gap-2 p-3 rounded-xl font-bold transition-all ${visibleLayers.nearManzanas
+                            className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-xl font-bold transition-all ${visibleLayers.nearManzanas
                                 ? 'bg-[#BC9B73] text-white shadow-md'
                                 : 'bg-white border border-[#BC9B73]/10 text-stone-500 hover:bg-[#BC9B73]/5'
                                 }`}
                         >
                             <LayoutGrid className="w-4 h-4 opacity-80" />
-                            <span className="text-[10px] uppercase tracking-tight text-center">5 Manzanas Cercanas</span>
+                            <span className="text-[10px] uppercase tracking-tight text-center">Manzanas</span>
                         </button>
                     </div>
                 </section>

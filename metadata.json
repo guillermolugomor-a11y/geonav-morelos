@@ -1,5 +1,5 @@
 {
-  "name": "GeoNav Morelos",
+  "name": "Instituto de Estudios Sociales de Morelos",
   "description": "Aplicación geoespacial para la visualización y consulta de zonas geográficas en Morelos, utilizando Supabase y Leaflet.",
   "requestFramePermissions": ["geolocation"]
 }

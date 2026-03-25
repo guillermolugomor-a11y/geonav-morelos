@@ -17,7 +17,7 @@ export const geocodeService = {
                 headers: {
                     'Accept-Language': 'es-MX,es;q=0.9',
                     // Nominatim requiere un User-Agent identificativo
-                    'User-Agent': 'GeoNavMorelos/1.0 (info@geonav.com)'
+                    'User-Agent': 'IESMMorelos/1.0 (info@iesm.org.mx)'
                 }
             });
 

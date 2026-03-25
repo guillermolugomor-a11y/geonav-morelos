@@ -36,7 +36,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       >
         <div className="flex flex-col items-center mb-8">
           <img
-            src="/logo.png"
+            src="/iesm-logo.png"
             alt="Instituto de Estudios Sociales de Morelos"
             className="w-72 h-auto mb-2 mix-blend-multiply"
           />

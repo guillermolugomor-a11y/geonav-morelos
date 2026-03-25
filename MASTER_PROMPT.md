@@ -1,6 +1,6 @@
-# GeoNav Morelos - Documentación Maestra del Sistema (v2.0)
+# I.E.S.M. - Documentación Maestra del Sistema (v2.0)
 
-Este documento es el activo intelectual más importante del proyecto. Ha sido diseñado para permitir la reconstrucción, auditoría y escalabilidad del sistema **GeoNav Morelos** mediante ingeniería inversa de su arquitectura actual.
+Este documento es el activo intelectual más importante del proyecto. Ha sido diseñado para permitir la reconstrucción, auditoría y escalabilidad del sistema **I.E.S.M.** mediante ingeniería inversa de su arquitectura actual.
 
 ---
 
@@ -115,4 +115,4 @@ El sistema utiliza una arquitectura **Híbrida de Tiempo Real y Alto Rendimiento
 
 ## 💥 Prompt Reducido Inteligente
 
-"Arquitecto: Reconstruye GeoNav Morelos. Stack: React (Vite/Zustand) + Supabase (PostGIS/Realtime) + Express (MVT Tiles/Scheduler). DB: tablas usuarios_perfil, tareas (con scheduled_at), tarea_historial (chat/audit) y notificaciones (triggers). GIS: Capas de Secciones/Manzanas en Postgres; servir via ST_AsMVT. UI: Dashboard Admin (Monitor/Estadísticas KPIs) y Mapa Campo (RLS filter). Notificaciones Websocket. Mobile-first premium design."
+"Arquitecto: Reconstruye I.E.S.M.. Stack: React (Vite/Zustand) + Supabase (PostGIS/Realtime) + Express (MVT Tiles/Scheduler). DB: tablas usuarios_perfil, tareas (con scheduled_at), tarea_historial (chat/audit) y notificaciones (triggers). GIS: Capas de Secciones/Manzanas en Postgres; servir via ST_AsMVT. UI: Dashboard Admin (Monitor/Estadísticas KPIs) y Mapa Campo (RLS filter). Notificaciones Websocket. Mobile-first premium design."

@@ -53,7 +53,7 @@ export default function App() {
       <div className="h-screen flex items-center justify-center bg-stone-100">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#8C3154] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-stone-500 font-medium">Iniciando GeoNav...</p>
+          <p className="text-stone-500 font-medium">Iniciando I.E.S.M....</p>
         </div>
       </div>
     );

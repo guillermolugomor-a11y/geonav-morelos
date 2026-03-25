@@ -1,6 +1,6 @@
-# GeoNav Morelos: Digital Curator Edition
+# Instituto de Estudios Sociales de Morelos: I.E.S.M.
 
-GeoNav Morelos es una plataforma de inteligencia territorial y gestión estratégica diseñada para la Agencia de Transformación Digital. Esta edición **"Digital Curator"** eleva la administración pública a un estándar editorial premium, combinando cartografía electoral precisa con una interfaz de alta fidelidad.
+I.E.S.M. es una plataforma de inteligencia territorial y gestión estratégica diseñada para el Instituto de Estudios Sociales de Morelos. Esta edición **"Digital Curator"** eleva la administración pública a un estándar editorial premium, combinando cartografía electoral precisa con una interfaz de alta fidelidad.
 
 ## 🏛️ Visión Institucional
 - **Curaduría de Datos**: Gestión refinada de secciones y manzanas con estética de galería.

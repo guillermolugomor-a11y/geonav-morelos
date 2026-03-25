@@ -1,7 +1,7 @@
-# Arquitectura y Lógica del Sistema - GeoNav Morelos
+# Arquitectura y Lógica del Sistema - I.E.S.M.
 
 ## 1. Descripción General del Sistema
-GeoNav Morelos es una aplicación web (Single Page Application) diseñada para la gestión, asignación y visualización de tareas en campo basadas en polígonos geográficos (Secciones, Manzanas, Localidades). Permite a los administradores asignar zonas de trabajo a operativos, y a estos últimos visualizar sus áreas asignadas en un mapa interactivo.
+I.E.S.M. es una aplicación web (Single Page Application) diseñada para la gestión, asignación y visualización de tareas en campo basadas en polígonos geográficos (Secciones, Manzanas, Localidades). Permite a los administradores asignar zonas de trabajo a operativos, y a estos últimos visualizar sus áreas asignadas en un mapa interactivo.
 
 ## 2. Arquitectura Tecnológica
 *   **Frontend:** React 18+ con Vite.

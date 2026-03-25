@@ -36,12 +36,10 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       >
         <div className="flex flex-col items-center mb-8">
           <img
-            src="https://rawcdn.githack.com/memolugo/DashboardATD/99fa30facd8b10adcd1bf684a1dbf5088248c303/Logoatd.svg"
-            alt="Agencia de Transformación Digital"
-            className="w-48 h-auto mb-6"
+            src="/logo.png"
+            alt="Instituto de Estudios Sociales de Morelos"
+            className="w-72 h-auto mb-2 mix-blend-multiply"
           />
-          <h1 className="text-3xl font-black tracking-tight text-[#8C3154]">GeoNav Morelos</h1>
-          <div className="h-1 w-16 bg-[#BC9B73] mt-2 rounded-full" />
           <p className="text-stone-500 mt-4 font-medium italic">Acceso exclusivo para operativos</p>
         </div>
 

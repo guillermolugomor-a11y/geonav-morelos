@@ -68,14 +68,12 @@ export const RoutingSidebar: React.FC<RoutingSidebarProps> = ({
         <div className="w-full h-full md:w-[320px] bg-[#F2F1E8] border-r border-[#8C3154]/10 flex flex-col shadow-2xl relative z-[1000] overflow-y-auto">
             {/* HEADER INSTITUCIONAL 2024-2030 */}
             <div className="p-8 border-b border-[#8C3154]/10 flex flex-col items-center justify-center bg-[#F2F1E8] shadow-sm">
-                <img
-                    src="https://rawcdn.githack.com/memolugo/DashboardATD/99fa30facd8b10adcd1bf684a1dbf5088248c303/Logoatd.svg"
-                    alt="Agencia de Transformación Digital"
-                    className="w-40 h-auto"
-                />
-                <div className="mt-4 text-center">
-                    <h1 className="text-lg font-black tracking-tight text-[#8C3154]">GeoNav Morelos</h1>
-                    <div className="h-0.5 w-12 bg-[#BC9B73] mx-auto mt-1 rounded-full" />
+                <div className="bg-white/50 p-2 rounded-2xl w-full">
+                    <img
+                        src="/logo.png"
+                        alt="Instituto de Estudios Sociales de Morelos"
+                        className="w-full h-auto mix-blend-multiply"
+                    />
                 </div>
             </div>
 

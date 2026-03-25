@@ -134,7 +134,7 @@ export const PolygonSidebar: React.FC<PolygonSidebarProps> = ({
                 {poligono.metadata.padron && (
                   <>
                     <div className="flex justify-between items-center py-2 border-b border-stone-100">
-                      <span className="text-xs text-stone-500 font-bold uppercase tracking-tighter">Habitantes Totales</span>
+                      <span className="text-xs text-stone-500 font-bold uppercase tracking-tighter">Padrón Electoral</span>
                       <span className="text-sm font-black text-slate-900">{poligono.metadata.total?.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-stone-100">
@@ -195,12 +195,6 @@ export const PolygonSidebar: React.FC<PolygonSidebarProps> = ({
                 <div className="flex justify-between items-center py-2 border-b border-stone-100">
                   <span className="text-xs text-stone-500">Localidad</span>
                   <span className="text-xs font-bold text-stone-800">{poligono.metadata.localidad}</span>
-                </div>
-              )}
-              {poligono.metadata.control && (
-                <div className="flex justify-between items-center py-2 border-b border-stone-100">
-                  <span className="text-xs text-stone-500">Control Padrón</span>
-                  <span className="text-xs font-mono font-bold text-stone-700">{poligono.metadata.control}</span>
                 </div>
               )}
               {poligono.metadata.status !== undefined && (

@@ -10,6 +10,7 @@ interface AppState {
   tareas: Tarea[];
   selectedPoligono: Poligono | null;
   appLoading: boolean;
+  mapStyle: 'streets' | 'satellite';
   error: string | null;
 
   // Acciones
@@ -20,6 +21,7 @@ interface AppState {
   setTareas: (tareas: Tarea[]) => void;
   setSelectedPoligono: (poligono: Poligono | null) => void;
   setAppLoading: (loading: boolean) => void;
+  setMapStyle: (style: 'streets' | 'satellite') => void;
   setError: (error: string | null) => void;
   
   // Limpieza
@@ -34,6 +36,7 @@ export const useStore = create<AppState>((set) => ({
   tareas: [],
   selectedPoligono: null,
   appLoading: true,
+  mapStyle: 'streets',
   error: null,
 
   setUser: (user) => set({ user }),
@@ -43,6 +46,7 @@ export const useStore = create<AppState>((set) => ({
   setTareas: (tareas) => set({ tareas }),
   setSelectedPoligono: (selectedPoligono) => set({ selectedPoligono }),
   setAppLoading: (appLoading) => set({ appLoading }),
+  setMapStyle: (mapStyle) => set({ mapStyle }),
   setError: (error) => set({ error }),
 
   logout: () => set({ 

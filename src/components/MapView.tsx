@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react'
 import { LayerGroup, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Info, ExternalLink, Menu, MapPin, X } from 'lucide-react';
+import { Info, ExternalLink, Menu, MapPin, X, Globe } from 'lucide-react';
 import { Poligono } from '../types';
 import { RouteController } from './RouteController';
 import { RoutingSidebar } from './RoutingSidebar';
@@ -298,6 +298,8 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
     tasksUpdateKey, manzanasPadron, loadTasks 
   } = useMapData({ isAdmin, userId });
 
+  const mapStyle = useStore(s => s.mapStyle);
+  const setMapStyle = useStore(s => s.setMapStyle);
   const storeError = useStore(s => s.error);
   const {
     routeMode,
@@ -439,10 +441,17 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
           style={{ cursor: routeMode ? 'crosshair' : 'grab' }}
           preferCanvas={true}
         >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+          {mapStyle === 'streets' ? (
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+          ) : (
+            <TileLayer
+              attribution='&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            />
+          )}
 
           <StateBoundaryLayer isRoutingActive={routeMode} isAdmin={!!isAdmin} userId={userId} />
 
@@ -493,6 +502,20 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
 
           <SelectionHighlightLayer />
         </MapContainer>
+
+        {/* Toggle Vista Satelital */}
+        <button
+          onClick={() => setMapStyle(mapStyle === 'streets' ? 'satellite' : 'streets')}
+          className="absolute bottom-6 right-6 z-[1000] bg-white p-3 rounded-2xl shadow-xl border border-stone-200 hover:bg-stone-50 transition-all active:scale-95 group flex items-center gap-2"
+          title="Cambiar vista de mapa"
+        >
+          <div className={`p-1.5 rounded-lg ${mapStyle === 'satellite' ? 'bg-[#8C3154] text-white' : 'bg-stone-100 text-stone-600'}`}>
+            <Globe size={18} />
+          </div>
+          <span className="text-xs font-bold text-stone-700 pr-1">
+            {mapStyle === 'streets' ? 'Vista Satelital' : 'Vista Mapa'}
+          </span>
+        </button>
 
         {routeResult && googleMapsUrlReal && (
           <div className="absolute top-28 md:top-6 left-1/2 -translate-x-1/2 z-20 w-[92%] md:w-auto bg-white/95 backdrop-blur-sm border border-[#7C4A36]/30 shadow-2xl rounded-2xl p-3 md:p-4 flex flex-row items-center justify-between md:justify-start gap-3 md:gap-6 text-sm">

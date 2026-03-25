@@ -28,12 +28,14 @@ export const Navbar: React.FC<NavbarProps> = ({ perfil, user, onLogout, currentV
     <nav className="bg-white border-b border-stone-200 px-6 py-3 flex items-center justify-between sticky top-0 z-50 shadow-sm">
       <div className="flex items-center gap-3">
         <img
-          src="https://rawcdn.githack.com/memolugo/DashboardATD/99fa30facd8b10adcd1bf684a1dbf5088248c303/Logoatd.svg"
-          alt="ATD"
-          className="h-10 w-auto"
+          src="/logo.png"
+          alt="I.E.S.M."
+          className="h-10 w-auto mix-blend-multiply"
         />
         <div className="h-6 w-px bg-stone-200 mx-1 hidden sm:block" />
-        <span className="font-black text-xl text-on-surface tracking-tighter">GeoNav <span className="text-primary">Morelos</span></span>
+        <span className="font-black text-lg text-[#8C3154] tracking-tighter hidden xs:block">
+          Inst. de Estudios <span className="text-[#BC9B73]">Sociales</span>
+        </span>
       </div>
 
       <div className="flex items-center gap-6">

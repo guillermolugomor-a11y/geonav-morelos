@@ -145,27 +145,27 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
             (selectedPoligono.tipo.includes('Manzana') && Number(selectedPoligono.metadata?.seccion) === featureSectionId)
         );
 
-        const hasAnySelection = !!selectedPoligono;
+        const baseColor = isAssigned ? '#ef4444' : '#8C3154';
+        const borderColor = isAssigned ? '#b91c1c' : '#7a2a49';
 
         if (isSelected) {
             return {
-                fillColor: isAssigned ? '#ef4444' : '#8C3154',
+                fillColor: baseColor,
                 weight: 6,
                 opacity: 1,
-                color: '#06b6d4', // Cyan vibrante
+                color: '#06b6d4',
                 fillOpacity: isAssigned ? 0.4 : 0.25,
             };
         }
 
         return {
-            fillColor: isAssigned ? '#ef4444' : '#8C3154',
+            fillColor: baseColor,
             weight: isAssigned ? 4 : (zoomLevel >= 14 ? 3 : (zoomLevel >= 13 ? 2 : 1)),
             opacity: 1,
-            color: isAssigned ? '#b91c1c' : '#7a2a49', 
-            fillOpacity: hasAnySelection 
-                ? 0.02 // Gran reducción de opacidad para el resto cuando hay algo seleccionado
+            color: borderColor, 
+            fillOpacity: selectedPoligono 
+                ? 0.02 
                 : (isAssigned ? 0.25 : (zoomLevel >= 13 ? 0.1 : 0.05)),
-            dashArray: isAssigned ? '' : '0'
         };
     };
 

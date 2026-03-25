@@ -3,22 +3,20 @@ import { Tarea, TareaHistorial } from '../types';
 import { buildTaskPayload } from '../utils/taskPayload';
 import { debugError, debugLog } from '../utils/debug';
 
-const mapTarea = (tarea: Tarea | null): Tarea | null => {
+const mapTarea = (tarea: any): Tarea | null => {
   if (!tarea) return null;
-
-  if ('usuario_id' in (tarea as any) && !tarea.user_id) {
-    tarea.user_id = (tarea as any).usuario_id as string;
-  } else if ('user_id' in (tarea as any) && !(tarea as any).usuario_id) {
-    (tarea as any).usuario_id = tarea.user_id;
+  // Asegurar consistencia entre usuario_id y user_id
+  const userId = tarea.user_id || tarea.usuario_id;
+  if (userId) {
+    tarea.user_id = userId;
+    tarea.usuario_id = userId;
   }
-
-  return tarea;
+  return tarea as Tarea;
 };
 
 const mapTareas = (data: any[] | null): Tarea[] => {
-  return (data || [])
-    .map((item) => mapTarea(item as Tarea)!)
-    .filter(Boolean);
+  if (!data) return [];
+  return data.map(mapTarea).filter((t): t is Tarea => t !== null);
 };
 
 export const taskService = {

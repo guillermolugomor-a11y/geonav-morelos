@@ -288,13 +288,13 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-4 bg-stone-900/60 backdrop-blur-sm shadow-2xl overflow-hidden"
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh] border border-stone-100"
+              className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col h-[80vh] sm:h-auto sm:max-h-[92vh] border border-stone-100"
             >
               <div className="flex justify-between items-center p-5 md:p-8 border-b border-stone-50">
                 <div className="flex flex-col">
@@ -309,7 +309,7 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-5 md:p-8 space-y-8 min-h-0 custom-scrollbar bg-white">
+              <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 min-h-0 custom-scrollbar bg-white">
                 {/* Visual Header in Body */}
                 <div className="bg-[#f7f3eb] rounded-2xl p-4 flex items-center gap-4 border border-stone-100">
                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-[#8C3154] shadow-sm">
@@ -484,10 +484,10 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                 </div>
               </div>
 
-              <div className="flex items-center justify-between gap-4 p-5 md:p-8 border-t border-stone-50 bg-stone-50/50 backdrop-blur-sm">
+              <div className="flex items-center justify-between gap-4 p-5 md:p-8 border-t border-stone-50 bg-stone-50/50 backdrop-blur-sm shrink-0">
                 <button
                   onClick={handleCancelEdit}
-                  className="px-4 py-2 text-xs md:text-sm font-black text-stone-400 uppercase tracking-widest hover:text-stone-600 transition-colors"
+                  className="flex-1 px-4 py-3 text-sm font-black text-stone-500 uppercase tracking-widest bg-stone-100/50 hover:bg-stone-100 rounded-xl transition-all"
                   disabled={savingTask}
                 >
                   Regresar

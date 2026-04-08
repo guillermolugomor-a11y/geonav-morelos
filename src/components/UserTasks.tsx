@@ -294,10 +294,13 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
+              className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh] border border-stone-100"
             >
-              <div className="flex justify-between items-center p-6 border-b border-stone-100">
-                <h3 className="text-lg font-bold text-stone-800">Documentar Tarea</h3>
+              <div className="flex justify-between items-center p-5 md:p-8 border-b border-stone-50">
+                <div className="flex flex-col">
+                  <h3 className="text-xl md:text-2xl font-black text-stone-900 tracking-tight">Reportar Avance</h3>
+                  <p className="text-[10px] text-stone-400 font-black uppercase tracking-widest mt-0.5">Gestión de Tarea Técnica</p>
+                </div>
                 <button
                   onClick={handleCancelEdit}
                   className="text-stone-400 hover:text-stone-600 transition-colors"
@@ -306,7 +309,17 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                 </button>
               </div>
 
-              <div className="p-6 space-y-6 flex-1 overflow-y-auto custom-scrollbar">
+              <div className="flex-1 overflow-y-auto p-5 md:p-8 space-y-8 min-h-0 custom-scrollbar bg-white">
+                {/* Visual Header in Body */}
+                <div className="bg-[#f7f3eb] rounded-2xl p-4 flex items-center gap-4 border border-stone-100">
+                   <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-[#8C3154] shadow-sm">
+                      <CheckSquare className="w-5 h-5" />
+                   </div>
+                   <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-black uppercase text-[#8C3154]/60 tracking-tighter mb-0.5">Instrucción actual</p>
+                      <p className="text-sm font-bold text-stone-800 truncate">"{editingTask.instruccion}"</p>
+                   </div>
+                </div>
                 {/* Equipo Colaborador - Solo si es tarea colaborativa */}
                 {editingTask.is_collaborative && (
                   <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 animate-in fade-in zoom-in-95">
@@ -471,13 +484,13 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 p-6 border-t border-stone-100 bg-stone-50">
+              <div className="flex items-center justify-between gap-4 p-5 md:p-8 border-t border-stone-50 bg-stone-50/50 backdrop-blur-sm">
                 <button
                   onClick={handleCancelEdit}
-                  className="px-4 py-2 text-sm font-bold text-stone-600 hover:text-stone-800 transition-colors"
+                  className="px-4 py-2 text-xs md:text-sm font-black text-stone-400 uppercase tracking-widest hover:text-stone-600 transition-colors"
                   disabled={savingTask}
                 >
-                  Cancelar
+                  Regresar
                 </button>
                 <button
                   onClick={handleSaveEdit}

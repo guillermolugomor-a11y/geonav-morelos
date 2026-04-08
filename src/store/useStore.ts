@@ -8,6 +8,8 @@ interface AppState {
   usuarios: UsuarioPerfil[];
   poligonos: Poligono[];
   tareas: Tarea[];
+  seccionesPadron: any[];
+  manzanasPadron: any[];
   selectedPoligono: Poligono | null;
   appLoading: boolean;
   mapStyle: 'streets' | 'satellite';
@@ -19,6 +21,8 @@ interface AppState {
   setUsuarios: (usuarios: UsuarioPerfil[]) => void;
   setPoligonos: (poligonos: Poligono[]) => void;
   setTareas: (tareas: Tarea[]) => void;
+  setSeccionesPadron: (secciones: any[]) => void;
+  setManzanasPadron: (manzanas: any[]) => void;
   setSelectedPoligono: (poligono: Poligono | null) => void;
   setAppLoading: (loading: boolean) => void;
   setMapStyle: (style: 'streets' | 'satellite') => void;
@@ -34,6 +38,8 @@ export const useStore = create<AppState>((set) => ({
   usuarios: [],
   poligonos: [],
   tareas: [],
+  seccionesPadron: [],
+  manzanasPadron: [],
   selectedPoligono: null,
   appLoading: true,
   mapStyle: 'streets',
@@ -44,6 +50,8 @@ export const useStore = create<AppState>((set) => ({
   setUsuarios: (usuarios) => set({ usuarios }),
   setPoligonos: (poligonos) => set({ poligonos }),
   setTareas: (tareas) => set({ tareas }),
+  setSeccionesPadron: (seccionesPadron) => set({ seccionesPadron }),
+  setManzanasPadron: (manzanasPadron) => set({ manzanasPadron }),
   setSelectedPoligono: (selectedPoligono) => set({ selectedPoligono }),
   setAppLoading: (appLoading) => set({ appLoading }),
   setMapStyle: (mapStyle) => set({ mapStyle }),

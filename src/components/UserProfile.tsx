@@ -73,13 +73,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ perfil, onProfileUpdat
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
-      className="flex-1 p-8 overflow-y-auto bg-stone-50"
+      className="flex-1 p-4 md:p-8 overflow-y-auto bg-stone-50"
     >
       <div className="max-w-3xl mx-auto space-y-8">
 
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-stone-900 tracking-tight">Mi Perfil</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-stone-900 tracking-tight">Mi Perfil</h1>
           <p className="text-stone-500 mt-1">Gestiona tu información personal y revisa tus estadísticas.</p>
         </div>
 

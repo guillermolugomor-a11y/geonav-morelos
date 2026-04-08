@@ -3,6 +3,11 @@ import { Tarea, TareaHistorial } from '../types';
 import { buildTaskPayload } from '../utils/taskPayload';
 import { debugError, debugLog } from '../utils/debug';
 
+const TASK_SELECTOR = `
+  *,
+  tarea_colaboradores!left(user_id)
+`;
+
 const mapTarea = (tarea: any): Tarea | null => {
   if (!tarea) return null;
   // Asegurar consistencia entre usuario_id y user_id
@@ -10,6 +15,9 @@ const mapTarea = (tarea: any): Tarea | null => {
   if (userId) {
     tarea.user_id = userId;
     tarea.usuario_id = userId;
+  }
+  if (tarea.tarea_colaboradores && Array.isArray(tarea.tarea_colaboradores)) {
+    tarea.collaborator_ids = tarea.tarea_colaboradores.map((c: any) => c.user_id);
   }
   return tarea as Tarea;
 };
@@ -22,11 +30,13 @@ const mapTareas = (data: any[] | null): Tarea[] => {
 export const taskService = {
   async getTareas(usuarioId: string): Promise<Tarea[]> {
     try {
+      // Obtenemos tareas donde el usuario sea el creador O colaborador
+      // Usamos un join con tarea_colaboradores para filtrar
       const { data, error, status } = await supabase
         .from('tareas')
-        .select('*')
-        .eq('user_id', usuarioId)
-        .neq('status', 'programada')  // No mostrar tareas pendientes de activación
+        .select(TASK_SELECTOR)
+        .or(`user_id.eq.${usuarioId},tarea_colaboradores.user_id.eq.${usuarioId}`)
+        .neq('status', 'programada')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -45,9 +55,9 @@ export const taskService = {
     try {
       let query = supabase
         .from('tareas')
-        .select('*')
+        .select(TASK_SELECTOR)
         .eq('polygon_id', poligonoId)
-        .neq('status', 'programada');  // No mostrar tareas pendientes de activación
+        .neq('status', 'programada');
 
       if (usuarioId) {
         query = query.eq('user_id', usuarioId);
@@ -71,7 +81,7 @@ export const taskService = {
     try {
       const { data, error, status } = await supabase
         .from('tareas')
-        .select('*')
+        .select(TASK_SELECTOR)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -198,6 +208,63 @@ export const taskService = {
     } catch (err) {
       debugError('Error inesperado al insertar tareas masivas:', err);
       return { data: [], error: err };
+    }
+  },
+
+  async asignarTareaColaborativa(tarea: any, userIds: string[], adminId?: string): Promise<{ data: Tarea | null; error: any }> {
+    if (!userIds.length) return { data: null, error: { message: 'Se requiere al menos un usuario' } };
+
+    try {
+      // 1. Crear la tarea principal vinculada al primer usuario (o el admin como "lead")
+      const normalized = buildTaskPayload({
+        userId: userIds[0],
+        polygonId: Number(tarea.polygon_id),
+        instruccion: tarea.instruccion || '',
+        tipoCapa: tarea.tipo_capa || 'padron',
+        fechaLimite: tarea.fecha_limite || null,
+        status: tarea.status || undefined,
+        scheduledAt: tarea.scheduled_at || null,
+        autoActivate: tarea.auto_activate ?? false,
+      });
+
+      const payload = {
+        ...normalized,
+        is_collaborative: true
+      };
+
+      const { data: newTask, error: taskError } = await supabase
+        .from('tareas')
+        .insert([payload])
+        .select('*')
+        .single();
+
+      if (taskError || !newTask) throw taskError;
+
+      // 2. Insertar colaboradores (todos los seleccionados)
+      const colaboradores = userIds.map(uid => ({
+        tarea_id: newTask.id,
+        user_id: uid
+      }));
+
+      const { error: colabError } = await supabase
+        .from('tarea_colaboradores')
+        .insert(colaboradores);
+
+      if (colabError) debugError('Error al insertar colaboradores:', colabError);
+
+      // 3. Registrar en historial
+      await this.addTareaHistorial({
+        tarea_id: newTask.id,
+        user_id: adminId || userIds[0],
+        mensaje: `Tarea COLABORATIVA asignada a ${userIds.length} personas: "${payload.instruccion}"`,
+        estado_snapshot: newTask.status,
+        tipo: 'sistema'
+      });
+
+      return { data: mapTarea(newTask), error: null };
+    } catch (err) {
+      debugError('Error inesperado en asignarTareaColaborativa:', err);
+      return { data: null, error: err };
     }
   },
 

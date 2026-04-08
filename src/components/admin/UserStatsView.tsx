@@ -22,7 +22,9 @@ export const UserStatsView: React.FC<UserStatsViewProps> = ({ usuarios, tareas }
     return usuarios
       .filter(u => u.rol !== 'admin') // Enfocarnos en personal de campo
       .map(u => {
-        const userTasks = tareas.filter(t => t.user_id === u.id);
+        const userTasks = tareas.filter(t => 
+          t.user_id === u.id || (t.is_collaborative && t.collaborator_ids?.includes(u.id))
+        );
         const completed = userTasks.filter(t => t.status === 'completada').length;
         const inProgress = userTasks.filter(t => t.status === 'en_progreso').length;
         const pending = userTasks.filter(t => t.status === 'pendiente').length;
@@ -42,8 +44,9 @@ export const UserStatsView: React.FC<UserStatsViewProps> = ({ usuarios, tareas }
   }, [usuarios, tareas]);
 
   const globalStats = useMemo(() => {
-    const total = stats.reduce((acc, curr) => acc + curr.total, 0);
-    const completed = stats.reduce((acc, curr) => acc + curr.completed, 0);
+    // Total de tareas únicas (sin duplicar colaboraciones en el conteo global)
+    const total = tareas.length;
+    const completed = tareas.filter(t => t.status === 'completada').length;
     const avgEfficiency = stats.length > 0 ? Math.round(stats.reduce((acc, curr) => acc + curr.efficiency, 0) / stats.length) : 0;
     
     return { total, completed, avgEfficiency };

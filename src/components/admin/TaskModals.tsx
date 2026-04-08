@@ -1,6 +1,6 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { AlertCircle, Edit2, Eye, Loader2, X, Clock, User, ChevronRight, Send, Map as MapIcon, MapPin } from 'lucide-react';
+import { AlertCircle, Edit2, Eye, Loader2, X, Clock, User, ChevronRight, Send, Map as MapIcon, MapPin, Users } from 'lucide-react';
 import { Poligono, Tarea, TareaHistorial, UsuarioPerfil } from '../../types';
 import { taskService } from '../../services/taskService';
 import { TaskLocationLabel } from '../tasks/TaskLocationLabel';
@@ -103,6 +103,15 @@ export const TaskModals: React.FC<TaskModalsProps> = ({
 
   const selectedPoligono = selectedTarea ? poligonos.find((p) => p.id === selectedTarea.polygon_id) : null;
   const selectedUsuario = selectedTarea ? usuarios.find((u) => u.id === selectedTarea.user_id) : null;
+  
+  const colaboradores = React.useMemo(() => {
+    if (!selectedTarea?.collaborator_ids || !selectedTarea.is_collaborative) return [];
+    // Filtrar para no repetir al responsable principal si está en la lista de colaboradores
+    return usuarios.filter(u => 
+      selectedTarea.collaborator_ids?.includes(u.id) && 
+      u.id !== selectedTarea.user_id
+    );
+  }, [selectedTarea, usuarios]);
 
   const formatDateTime = (dateStr: string) => {
     return new Date(dateStr).toLocaleString("es-MX", {
@@ -143,17 +152,41 @@ export const TaskModals: React.FC<TaskModalsProps> = ({
             <div className="p-8 space-y-8 overflow-y-auto flex-1 custom-scrollbar">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-2">
-                  <span className="text-[10px] uppercase font-black text-stone-400 tracking-[0.2em]">Responsable</span>
-                  <div className="flex items-center gap-3 bg-surface-container-low p-4 rounded-2xl">
-                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
+                  <div className="flex items-center gap-3 bg-surface-container-low p-4 rounded-2xl relative overflow-hidden group">
+                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm z-10">
                       <User className="w-5 h-5 text-primary" />
                     </div>
-                    <div>
+                    <div className="z-10">
                       <p className="text-sm font-bold text-on-surface">{selectedUsuario?.nombre}</p>
-                      <p className="text-[10px] text-stone-400 font-medium">{selectedUsuario?.email}</p>
+                      <p className="text-[10px] text-stone-400 font-medium">Responsable Final</p>
                     </div>
+                    {selectedTarea?.is_collaborative && (
+                      <div className="absolute right-0 top-0 bottom-0 w-1 bg-primary/20" />
+                    )}
                   </div>
                 </div>
+
+                {selectedTarea?.is_collaborative && (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-right-4">
+                    <span className="text-[10px] uppercase font-black text-primary tracking-[0.2em] flex items-center gap-2">
+                       <Users className="w-3 h-3" /> Equipo Colaborador
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {colaboradores.length > 0 ? (
+                        colaboradores.map(colab => (
+                          <div key={colab.id} className="flex items-center gap-2 bg-primary/5 border border-primary/10 px-3 py-2 rounded-xl">
+                            <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-[10px] font-black text-primary shadow-sm">
+                              {colab.nombre.charAt(0)}
+                            </div>
+                            <span className="text-[11px] font-bold text-primary/80">{colab.nombre.split(' ')[0]}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-[10px] text-stone-400 italic py-2">Cargando equipo...</p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <span className="text-[10px] uppercase font-black text-stone-400 tracking-[0.2em]">Ubicación</span>

@@ -47,6 +47,15 @@ export interface Tarea {
   // Nuevos campos para scheduler
   scheduled_at?: string | null;   // Fecha/hora de activación automática
   auto_activate?: boolean;          // Si se activa automáticamente al llegar la hora
+  is_collaborative?: boolean;       // Si la tarea es compartida por varios usuarios
+  collaborator_ids?: string[];      // IDs de los usuarios que colaboran (para la UI)
+}
+
+export interface TareaColaborador {
+  id: string;
+  tarea_id: string;
+  user_id: string;
+  created_at: string;
 }
 
 export interface TareaHistorial {

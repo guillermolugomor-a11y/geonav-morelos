@@ -13,6 +13,8 @@ import {
   UserStatsView, 
   TaskModals 
 } from './admin';
+import { useStore } from '../store/useStore';
+import { fetchWithCache } from '../utils/cache';
 
 interface AdminPanelProps {
   perfil: UsuarioPerfil | null;
@@ -25,6 +27,7 @@ interface PadronSection {
   total?: number;
   hombres?: number;
   mujeres?: number;
+  geometry?: any;
 }
 
 interface PadronManzana {
@@ -34,6 +37,7 @@ interface PadronManzana {
   municipio?: string;
   rank_near?: number;
   cent_seccion?: number; // La sección objetivo (donde está el centroide)
+  geometry?: any;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap, viewMode = 'gestion' }) => {
@@ -50,19 +54,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Tarea>>({});
 
-  const [selectedUser, setSelectedUser] = useState('');
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [selectedPoligono, setSelectedPoligono] = useState('');
   const [tipoCapa] = useState('padron');
   const [instruccion, setInstruccion] = useState('');
   const [fechaVencimiento, setFechaVencimiento] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
   const [autoActivate, setAutoActivate] = useState(false);
-  const [seccionesPadron, setSeccionesPadron] = useState<PadronSection[]>([]);
+  
+  // Usar Store global para datos de padrón
+  const seccionesPadron = useStore(s => s.seccionesPadron);
+  const setSeccionesPadron = useStore(s => s.setSeccionesPadron);
+  const manzanasPadron = useStore(s => s.manzanasPadron);
+  const setManzanasPadron = useStore(s => s.setManzanasPadron);
+
   const [searchTermPadron, setSearchTermPadron] = useState('');
-  const [manzanasPadron, setManzanasPadron] = useState<PadronManzana[]>([]);
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
   const [selectedManzana, setSelectedManzana] = useState<PadronManzana | null>(null);
   const [selectedSection, setSelectedSection] = useState<PadronSection | null>(null);
+  const [isCollaborative, setIsCollaborative] = useState(false);
 
   const [filterUser, setFilterUser] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -94,11 +104,98 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
 
   const filteredTareas = useMemo(() => {
     return tareas.filter((task) => {
-      const matchUser = !filterUser || task.user_id === filterUser;
+      const matchUser = !filterUser || (task.user_id === filterUser || (task.is_collaborative && task.collaborator_ids?.includes(filterUser)));
       const matchStatus = !filterStatus || task.status === filterStatus;
       return matchUser && matchStatus;
     });
   }, [filterStatus, filterUser, tareas]);
+
+  const userWorkload = useMemo(() => {
+    const map = new Map<string, number>();
+    tareas.forEach(t => {
+      if (t.status !== 'completada' && t.status !== 'programada') {
+        map.set(t.user_id, (map.get(t.user_id) || 0) + 1);
+        if (t.is_collaborative && t.collaborator_ids) {
+          t.collaborator_ids.forEach(cid => {
+            if (cid !== t.user_id) map.set(cid, (map.get(cid) || 0) + 1);
+          });
+        }
+      }
+    });
+    return map;
+  }, [tareas]);
+
+  // Detector de duplicidad inteligente
+  const duplicateTask = useMemo(() => {
+    if (!selectedPoligono) return null;
+
+    return tareas.find(t => {
+      // Solo nos importan tareas activas
+      if (t.status === 'completada') return false;
+
+      // Si es padrón, somos más flexibles con la ubicación humana
+      if (tipoCapa === 'padron' || t.tipo_capa === 'padron') {
+        const tareaSeccion = String(t.seccion || t.clave_seccion || '');
+        const currentSeccion = String(selectedSection?.id || '');
+        
+        const isSameSeccion = tareaSeccion === currentSeccion;
+        if (!isSameSeccion) return false;
+
+        // Si tenemos manzana seleccionada...
+        if (selectedManzana) {
+          const tareaManzana = String(t.manzana || t.clave_manzana || '');
+          const currentManzana = String(selectedManzana.manzana || '');
+          // Coincide si es la misma manzana O si la tarea existente es para TODA la sección (sin manzana)
+          return tareaManzana === currentManzana || !tareaManzana;
+        }
+
+        // Si solo tenemos sección seleccionada (Todo)...
+        // Coincide si la tarea existente es también para la sección (sin manzana) 
+        // o si queremos alertar que ya hay gente en manzanas de esta sección (opcional, pero sugerido)
+        return !t.manzana; 
+      }
+
+      // Para capas geométricas puras, usamos el polygon_id
+      return t.polygon_id === Number(selectedPoligono);
+    });
+  }, [tareas, selectedPoligono, selectedSection, selectedManzana, tipoCapa]);
+
+  // Mapa de experiencia: cuántas tareas ha tenido cada usuario en la zona seleccionada
+  const userExperienceMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!selectedPoligono) return map;
+
+    tareas.forEach(t => {
+      // Para experiencia contamos todo (incluso completadas)
+      let matches = false;
+      if (tipoCapa === 'padron' || t.tipo_capa === 'padron') {
+        const tareaSeccion = String(t.seccion || t.clave_seccion || '');
+        const currentSeccion = String(selectedSection?.id || '');
+        if (tareaSeccion === currentSeccion) {
+          if (selectedManzana) {
+            const tareaManzana = String(t.manzana || t.clave_manzana || '');
+            matches = tareaManzana === String(selectedManzana.manzana);
+          } else {
+            matches = !t.manzana; // Solo sección
+          }
+        }
+      } else {
+        matches = t.polygon_id === Number(selectedPoligono);
+      }
+
+      if (matches) {
+        map.set(t.user_id, (map.get(t.user_id) || 0) + 1);
+        // Si es colaborativa, sumamos experiencia a todos
+        if (t.is_collaborative && t.collaborator_ids) {
+          t.collaborator_ids.forEach(cid => {
+            if (cid !== t.user_id) map.set(cid, (map.get(cid) || 0) + 1);
+          });
+        }
+      }
+    });
+
+    return map;
+  }, [tareas, selectedPoligono, selectedSection, selectedManzana, tipoCapa]);
 
   const refreshTasks = async () => {
     const tasksResponse = await taskService.getAllTareas();
@@ -112,36 +209,52 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   };
 
   const fetchPadronSecciones = async () => {
+    // Si ya tenemos datos en el store global, no hacer nada
+    if (seccionesPadron.length > 0 && manzanasPadron.length > 0) {
+      debugLog('AdminPanel: Datos del padrón ya están en memoria.');
+      return;
+    }
+
     try {
-      const secResponse = await fetch('/secciones_padron_optimizado.geojson');
-      const secData = await secResponse.json();
+      debugLog('AdminPanel: Cargando datos del padrón (Cache-First)...');
+      
+      const [secData, mzData] = await Promise.all([
+        fetchWithCache<any>('/secciones_padron_optimizado.geojson'),
+        fetchWithCache<any>('/manzanas_5_mas_cercanas_full.geojson')
+      ]);
+
       const sections = secData.features.map((feature: any) => ({
         id: feature.properties.SECCION,
         total: feature.properties.total,
         hombres: feature.properties.hombres,
-        mujeres: feature.properties.mujeres
+        mujeres: feature.properties.mujeres,
+        geometry: feature.geometry
       }));
 
       const uniqueSections = Array.from(new Map(sections.map((item: PadronSection) => [item.id, item])).values());
-      setSeccionesPadron(uniqueSections.sort((a: any, b: any) => a.id - b.id));
+      const sortedSections = uniqueSections.sort((a: any, b: any) => a.id - b.id);
 
-      const mzResponse = await fetch('/manzanas_5_mas_cercanas_full.geojson');
-      const mzData = await mzResponse.json();
       const manzanasRaw = mzData.features.map((feature: any) => ({
         id: feature.properties.ID,
         seccion: feature.properties.SECCION,
         manzana: feature.properties.MANZANA,
         municipio: feature.properties.MUNICIPIO,
         rank_near: feature.properties.rank_near,
-        cent_seccion: feature.properties.cent_seccion
+        cent_seccion: feature.properties.cent_seccion,
+        geometry: feature.geometry
       }));
 
-      // Unicidad por combinación de Manzana + Sección Objetivo para evitar pérdidas
       const uniqueManzanas = Array.from(
         new Map(manzanasRaw.map((m: any) => [`${m.id}_${m.cent_seccion}`, m])).values()
       );
       
+      setSeccionesPadron(sortedSections);
       setManzanasPadron(uniqueManzanas as PadronManzana[]);
+      debugLog('AdminPanel: Padrón cargado con geometrías:', { 
+        sec: sortedSections.length, 
+        mz: uniqueManzanas.length,
+        hasGeom: !!sortedSections[0]?.geometry 
+      });
     } catch (error) {
       debugError('Error cargando datos del padrón:', error);
     }
@@ -200,17 +313,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   const resetForm = () => {
     setInstruccion('');
     setSelectedPoligono('');
+    setSelectedUsers([]);
     setSelectedManzana(null);
     setSelectedSection(null);
     setExpandedSection(null);
     setScheduledAt('');
     setAutoActivate(false);
+    setIsCollaborative(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedUser || !selectedPoligono || !instruccion) {
-      setMessage({ type: 'error', text: 'Por favor completa los campos obligatorios.' });
+    if (selectedUsers.length === 0 || !selectedPoligono || !instruccion) {
+      setMessage({ type: 'error', text: 'Por favor selecciona al menos un operativo y completa los campos obligatorios.' });
       return;
     }
 
@@ -218,23 +333,59 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     setMessage(null);
 
     try {
-      const nuevaTarea = buildTaskPayload({
-        userId: selectedUser,
-        polygonId: Number(selectedPoligono),
-        instruccion,
-        tipoCapa: selectedManzana ? 'manzana' : 'padron',
-        fechaLimite: fechaVencimiento || null,
-        selectedManzana,
-        selectedSection,
-        scheduledAt: scheduledAt || null,
-        autoActivate
-      });
+      if (isCollaborative) {
+        // Asignación Colaborativa (Inteligente)
+        debugLog('Enviando tarea colaborativa:', selectedUsers);
+        const { error } = await taskService.asignarTareaColaborativa({
+          polygon_id: Number(selectedPoligono),
+          instruccion,
+          tipo_capa: selectedManzana ? 'manzana' : 'padron',
+          fecha_limite: fechaVencimiento || null,
+          manzana: selectedManzana?.manzana,
+          seccion: selectedManzana?.seccion || selectedSection?.id,
+          scheduled_at: scheduledAt || null,
+          auto_activate: autoActivate
+        }, selectedUsers, perfil?.id);
+        
+        if (error) throw error;
+        setMessage({ type: 'success', text: `Tarea colaborativa asignada a ${selectedUsers.length} operativos.` });
+      } else if (selectedUsers.length === 1) {
+        // Asignación simple
+        const nuevaTarea = buildTaskPayload({
+          userId: selectedUsers[0],
+          polygonId: Number(selectedPoligono),
+          instruccion,
+          tipoCapa: selectedManzana ? 'manzana' : 'padron',
+          fechaLimite: fechaVencimiento || null,
+          selectedManzana,
+          selectedSection,
+          scheduledAt: scheduledAt || null,
+          autoActivate
+        });
 
-      debugLog('Enviando tarea:', nuevaTarea);
-      const { error } = await taskService.asignarTarea(nuevaTarea, perfil?.id);
-      if (error) throw error;
+        debugLog('Enviando tarea única:', nuevaTarea);
+        const { error } = await taskService.asignarTarea(nuevaTarea, perfil?.id);
+        if (error) throw error;
+      } else {
+        // Asignación masiva (Inteligente)
+        const payloads = selectedUsers.map(userId => buildTaskPayload({
+          userId,
+          polygonId: Number(selectedPoligono),
+          instruccion,
+          tipoCapa: selectedManzana ? 'manzana' : 'padron',
+          fechaLimite: fechaVencimiento || null,
+          selectedManzana,
+          selectedSection,
+          scheduledAt: scheduledAt || null,
+          autoActivate
+        }));
 
-      setMessage({ type: 'success', text: 'Tarea asignada correctamente.' });
+        debugLog(`Enviando ${payloads.length} tareas masivas:`, payloads);
+        const { error } = await taskService.asignarTareasMasivas(payloads, perfil?.id);
+        if (error) throw error;
+      }
+
+      setMessage({ type: 'success', text: `Tarea asignada correctamente a ${selectedUsers.length} operativos.` });
       resetForm();
       refreshTasks();
     } catch (error: any) {
@@ -313,8 +464,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
         <TaskAssignmentForm
           usuarios={usuarios}
           poligonos={poligonos}
-          selectedUser={selectedUser}
-          setSelectedUser={setSelectedUser}
+          selectedUsers={selectedUsers}
+          setSelectedUsers={setSelectedUsers}
           selectedPoligono={selectedPoligono}
           setSelectedPoligono={setSelectedPoligono}
           fechaVencimiento={fechaVencimiento}
@@ -337,6 +488,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           selectedSection={selectedSection}
           setSelectedSection={setSelectedSection}
           tipoCapa={tipoCapa}
+          isCollaborative={isCollaborative}
+          setIsCollaborative={setIsCollaborative}
+          userWorkload={userWorkload}
+          userExperienceMap={userExperienceMap}
+          duplicateTask={duplicateTask}
+          selectedGeometry={(() => {
+            const geom = tipoCapa === 'padron' 
+              ? (selectedManzana?.geometry || selectedSection?.geometry)
+              : poligonos.find(p => p.id === Number(selectedPoligono))?.geom;
+            if (geom) debugLog('AdminPanel: Pasando geometría al formulario:', geom.type);
+            return geom;
+          })()}
           submitting={submitting}
           message={message}
           onSubmit={handleSubmit}

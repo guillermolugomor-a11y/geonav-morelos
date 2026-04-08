@@ -359,10 +359,17 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
 
   if (loading) {
     return (
-      <div className="h-full w-full flex items-center justify-center bg-stone-50">
+      <div className="h-full w-full flex items-center justify-center bg-surface">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8C3154] mx-auto mb-4" />
-          <p className="text-stone-500 font-medium">Cargando cartografía...</p>
+          <div className="relative w-20 h-20 mx-auto mb-8">
+            <div className="absolute inset-0 border-4 border-primary/10 rounded-full" />
+            <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <img src="/iesm-logo.png" className="w-8 h-8 opacity-20 mix-blend-multiply" alt="" />
+            </div>
+          </div>
+          <p className="text-primary font-display font-extrabold text-sm tracking-widest uppercase animate-pulse">Cargando Cartografía</p>
+          <p className="text-on-surface-variant/40 text-[10px] mt-2 font-bold uppercase tracking-tighter">Preparando Datos de Morelos</p>
         </div>
       </div>
     );
@@ -370,19 +377,24 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
 
   if (storeError && poligonos.length === 0) {
     return (
-      <div className="h-full w-full flex items-center justify-center bg-stone-50 p-8">
-        <div className="text-center max-w-md">
-          <div className="bg-amber-100 text-amber-700 p-4 rounded-2xl mb-4 border border-amber-200">
-            <Info size={24} className="mx-auto mb-2" />
-            <p className="font-bold">Error de conexión</p>
-            <p className="text-sm mt-1 text-red-600 font-mono bg-white/50 p-2 rounded mt-2">Error: {storeError}</p>
+      <div className="h-full w-full flex items-center justify-center bg-surface p-8">
+        <div className="text-center max-w-sm">
+          <div className="bg-surface-container-lowest p-8 rounded-3xl civic-shadow mb-6">
+            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Info size={32} />
+            </div>
+            <h3 className="font-display font-extrabold text-xl text-on-surface mb-2">Error de Conexión</h3>
+            <p className="text-on-surface-variant/60 text-sm leading-relaxed mb-6">Ha ocurrido un problema al intentar sincronizar con la base de datos de Supabase.</p>
+            <div className="text-[10px] bg-red-50 text-red-700 p-3 rounded-xl font-mono mb-6 overflow-hidden text-ellipsis whitespace-nowrap">
+              {storeError}
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full premium-gradient text-white px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest hover:opacity-90 transition-all active:scale-95 civic-shadow"
+            >
+              Reintentar Carga
+            </button>
           </div>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-stone-900 text-white px-6 py-2 rounded-xl text-sm font-bold hover:bg-stone-800 transition-colors"
-          >
-            Reintentar Carga
-          </button>
         </div>
       </div>
     );
@@ -391,29 +403,29 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
   const googleMapsUrlReal = routeService.getGoogleMapsUrl(routeOrigin, routeDest, travelMode);
 
   return (
-    <div className="flex flex-col md:flex-row h-full w-full relative overflow-hidden bg-white">
+    <div className="flex flex-col md:flex-row h-full w-full relative overflow-hidden bg-surface">
       <button
         onClick={() => setIsSidebarOpen(true)}
-        className="md:hidden absolute top-4 left-4 z-50 bg-white p-3 rounded-xl shadow-lg border border-stone-200"
+        className="md:hidden absolute top-24 left-4 z-[1000] bg-surface/95 backdrop-blur-md p-4 rounded-2xl civic-shadow text-on-surface-variant"
       >
-        <Menu className="w-6 h-6 text-slate-700" />
+        <Menu className="w-6 h-6" />
       </button>
 
       <div
-        className={`md:hidden fixed inset-0 bg-black/50 z-[999] transition-opacity ${
+        className={`md:hidden fixed inset-0 bg-on-surface/20 backdrop-blur-sm z-[2000] transition-opacity duration-500 ${
           isSidebarOpen && !routeMode ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setIsSidebarOpen(false)}
       />
 
       <div
-        className={`fixed inset-y-0 left-0 z-[1000] transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-[2001] transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) md:relative md:translate-x-0 ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <button
           onClick={() => setIsSidebarOpen(false)}
-          className="md:hidden absolute top-4 right-4 z-50 bg-stone-100 p-2 rounded-lg text-slate-500 hover:bg-stone-200"
+          className="md:hidden absolute top-6 right-6 z-50 bg-surface-container-high p-2 rounded-xl text-on-surface-variant hover:bg-surface-container-highest"
         >
           <X className="w-5 h-5" />
         </button>
@@ -506,65 +518,65 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
         {/* Toggle Vista Satelital */}
         <button
           onClick={() => setMapStyle(mapStyle === 'streets' ? 'satellite' : 'streets')}
-          className="absolute bottom-24 md:bottom-6 right-6 z-[1000] bg-white p-3 rounded-2xl shadow-xl border border-stone-200 hover:bg-stone-50 transition-all active:scale-95 group flex items-center gap-2"
+          className="absolute bottom-24 md:bottom-8 right-4 md:right-10 z-[1000] bg-surface/95 backdrop-blur-xl p-3 md:p-4 rounded-3xl civic-shadow hover:bg-surface transition-all active:scale-95 group flex items-center gap-3"
           title="Cambiar vista de mapa"
         >
-          <div className={`p-1.5 rounded-lg ${mapStyle === 'satellite' ? 'bg-[#8C3154] text-white' : 'bg-stone-100 text-stone-600'}`}>
-            <Globe size={18} />
+          <div className={`p-2 rounded-xl transition-all ${mapStyle === 'satellite' ? 'premium-gradient text-white shadow-lg shadow-primary/20' : 'bg-surface-container-high text-on-surface-variant/40'}`}>
+            <Globe size={20} />
           </div>
-          <span className="text-xs font-bold text-stone-700 pr-1">
+          <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-on-surface transition-colors group-hover:text-primary">
             {mapStyle === 'streets' ? 'Vista Satelital' : 'Vista Mapa'}
           </span>
         </button>
 
         {routeResult && googleMapsUrlReal && (
-          <div className="absolute top-28 md:top-6 left-1/2 -translate-x-1/2 z-20 w-[92%] md:w-auto bg-white/95 backdrop-blur-sm border border-[#7C4A36]/30 shadow-2xl rounded-2xl p-3 md:p-4 flex flex-row items-center justify-between md:justify-start gap-3 md:gap-6 text-sm">
-            <div className="flex items-center gap-3 md:gap-6 flex-1 md:flex-none">
-              <div className="flex flex-col items-center">
-                <span className="text-[9px] md:text-[10px] text-slate-400 uppercase font-bold tracking-wider">Distancia</span>
-                <span className="text-sm md:text-lg font-black text-slate-900 leading-tight">
-                  {(routeResult.distance / 1000).toFixed(1)} <span className="text-[10px] md:text-xs font-normal text-slate-500">km</span>
+          <div className="absolute top-28 md:top-8 left-4 right-4 md:left-1/2 md:-translate-x-1/2 z-[1001] md:w-auto bg-surface/95 backdrop-blur-xl border border-primary/5 civic-shadow rounded-3xl p-4 md:p-5 flex flex-row items-center justify-between md:justify-start gap-4 md:gap-8 transition-all animate-in slide-in-from-top duration-500">
+            <div className="flex items-center gap-4 md:gap-8 flex-1 md:flex-none">
+              <div className="flex flex-col">
+                <span className="text-[9px] text-on-surface-variant/40 uppercase font-black tracking-widest mb-1">Distancia</span>
+                <span className="text-base md:text-xl font-display font-black text-on-surface leading-none">
+                  {(routeResult.distance / 1000).toFixed(1)} <span className="text-xs font-medium text-on-surface-variant/40 uppercase ml-1">km</span>
                 </span>
               </div>
-              <div className="w-px h-8 md:h-10 bg-slate-200" />
-              <div className="flex flex-col items-center">
-                <span className="text-[9px] md:text-[10px] text-slate-400 uppercase font-bold tracking-wider">Tiempo</span>
-                <span className="text-sm md:text-lg font-black text-slate-900 leading-tight">
-                  {Math.round(routeResult.duration / 60)} <span className="text-[10px] md:text-xs font-normal text-slate-500">min</span>
+              <div className="w-px h-10 bg-on-surface-variant/5" />
+              <div className="flex flex-col">
+                <span className="text-[9px] text-on-surface-variant/40 uppercase font-black tracking-widest mb-1">Tiempo Est.</span>
+                <span className="text-base md:text-xl font-display font-black text-on-surface leading-none">
+                  {Math.round(routeResult.duration / 60)} <span className="text-xs font-medium text-on-surface-variant/40 uppercase ml-1">min</span>
                 </span>
               </div>
             </div>
             
-            <div className="w-px h-8 md:h-10 bg-slate-200 hidden md:block" />
+            <div className="w-px h-10 bg-on-surface-variant/5 hidden md:block" />
             
             <a
               href={googleMapsUrlReal}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 md:px-4 py-2 bg-[#8C3154] hover:bg-[#7a2a49] text-white text-[10px] md:text-xs font-bold rounded-xl transition-all active:scale-95 shadow shrink-0"
+              className="flex items-center gap-2 px-5 md:px-6 py-3.5 premium-gradient hover:opacity-90 text-white text-[10px] md:text-xs font-black uppercase tracking-widest rounded-2xl transition-all active:scale-95 civic-shadow shrink-0"
             >
-              <ExternalLink className="w-3 md:w-3.5 h-3 md:h-3.5" />
-              <span className="hidden xs:inline">Ir a Maps</span>
-              <span className="xs:hidden">Google</span>
+              <ExternalLink className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" strokeWidth={3} />
+              <span className="hidden xs:inline">Iniciar Navegación</span>
+              <span className="xs:hidden">Navegar</span>
             </a>
           </div>
         )}
 
         {!isAdmin && !loading && tareas.length === 0 && (
-          <div className="absolute inset-0 z-[1100] bg-white/80 backdrop-blur-sm flex items-center justify-center p-6 transition-all animate-in fade-in">
-            <div className="bg-white border border-stone-200 shadow-2xl rounded-3xl p-8 max-w-sm text-center">
-              <div className="w-16 h-16 bg-stone-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <MapPin className="w-8 h-8 text-stone-400" />
+          <div className="absolute inset-0 z-[1100] bg-on-surface/5 backdrop-blur-md flex items-center justify-center p-6 transition-all animate-in fade-in duration-700">
+            <div className="bg-surface-container-lowest civic-shadow rounded-[40px] p-10 md:p-14 max-w-md text-center">
+              <div className="w-24 h-24 bg-surface-container-low rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
+                <MapPin className="w-10 h-10 text-on-surface-variant/20" />
               </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">Sin asignación</h3>
-              <p className="text-stone-500 text-sm leading-relaxed mb-6">
-                No tienes una sección o manzana asignada actualmente. Contacta al administrador para recibir tareas.
+              <h3 className="text-2xl font-display font-extrabold text-on-surface mb-3 tracking-tight">Sin Asignación</h3>
+              <p className="text-on-surface-variant/60 text-sm leading-relaxed mb-10 font-medium">
+                Actualmente no tienes un área operativa asignada. Por favor, solicita una asignación al administrador.
               </p>
               <button
                 onClick={() => loadTasks()}
-                className="w-full py-3 bg-[#8C3154] text-white rounded-xl font-bold text-sm hover:bg-[#7a2a49] transition-all active:scale-95 shadow-lg shadow-pink-900/10"
+                className="w-full py-5 premium-gradient text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:opacity-90 transition-all active:scale-[0.98] civic-shadow shadow-primary/20"
               >
-                Actualizar Tareas
+                Sincronizar Tareas
               </button>
             </div>
           </div>

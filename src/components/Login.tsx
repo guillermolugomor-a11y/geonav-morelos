@@ -28,39 +28,42 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-stone-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-surface p-4 font-sans">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-stone-200"
+        className="max-w-md w-full bg-surface-container-lowest rounded-3xl civic-shadow p-8 md:p-12"
       >
-        <div className="flex flex-col items-center mb-8">
+        <div className="flex flex-col items-center mb-10">
           <img
             src="/iesm-logo.png"
             alt="Instituto de Estudios Sociales de Morelos"
-            className="w-72 h-auto mb-2 mix-blend-multiply"
+            className="w-64 h-auto mb-6 mix-blend-multiply opacity-90"
           />
-          <p className="text-stone-500 mt-4 font-medium italic">Acceso exclusivo para operativos</p>
+          <h1 className="font-display text-2xl font-extrabold text-primary tracking-tight text-center leading-tight">
+            Geonavegación <span className="text-primary-container">Morelos</span>
+          </h1>
+          <p className="text-on-surface-variant/60 mt-3 font-medium text-sm tracking-wide uppercase">Acceso Operativo</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Correo Electrónico</label>
+            <label className="block text-[11px] font-bold text-on-surface-variant uppercase tracking-widest mb-2 ml-1">Correo Electrónico</label>
             <input
               type="email"
               required
-              className="w-full px-4 py-3 rounded-xl border border-stone-300 focus:ring-2 focus:ring-[#8C3154] focus:border-[#8C3154] outline-none transition-all"
-              placeholder="usuario@ejemplo.com"
+              className="w-full px-5 py-4 rounded-2xl bg-surface-container-low border-none focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-on-surface-variant/30 text-on-surface"
+              placeholder="usuario@morelos.gob.mx"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Contraseña</label>
+            <label className="block text-[11px] font-bold text-on-surface-variant uppercase tracking-widest mb-2 ml-1">Contraseña</label>
             <input
               type="password"
               required
-              className="w-full px-4 py-3 rounded-xl border border-stone-300 focus:ring-2 focus:ring-[#8C3154] focus:border-[#8C3154] outline-none transition-all"
+              className="w-full px-5 py-4 rounded-2xl bg-surface-container-low border-none focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-on-surface-variant/30 text-on-surface"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -68,28 +71,38 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">
+            <motion.div 
+              initial={{ opacity: 0, x: -10 }} 
+              animate={{ opacity: 1, x: 0 }}
+              className="p-4 bg-red-50 text-red-700 text-xs font-bold rounded-2xl border border-red-100 flex items-center gap-2"
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
               {error}
-            </div>
+            </motion.div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-[#8C3154] hover:bg-[#7a2a49] text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-stone-200 disabled:opacity-50"
-          >
-            {loading ? 'Iniciando...' : (
-              <>
-                <LogIn size={20} />
-                Entrar al Sistema
-              </>
-            )}
-          </button>
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full premium-gradient hover:opacity-90 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-3 civic-shadow disabled:opacity-50 active:scale-[0.98]"
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <LogIn size={18} strokeWidth={2.5} />
+                  <span className="tracking-wide">Entrar al Sistema</span>
+                </>
+              )}
+            </button>
+          </div>
         </form>
 
-        <div className="mt-8 pt-6 border-top border-stone-100 text-center">
-          <p className="text-xs text-stone-400">
-            Si no tienes acceso, contacta al administrador de Supabase.
+        <div className="mt-10 pt-8 border-t border-on-surface-variant/5 text-center">
+          <p className="text-[10px] text-on-surface-variant/40 font-medium leading-relaxed">
+            Este es un sistema de uso restringido.<br />
+            Si no tiene acceso, contacte al administrador.
           </p>
         </div>
       </motion.div>

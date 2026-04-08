@@ -56,18 +56,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onProfileUpdate 
   }, [searchTerm]);
 
   return (
-    <div className="h-screen flex flex-col bg-surface overflow-hidden font-sans">
+    <div className="h-screen flex flex-col bg-surface overflow-hidden font-sans selection:bg-primary/10 selection:text-primary">
       <Navbar perfil={perfil} user={user} onLogout={onLogout} currentView={view} onViewChange={setView} />
 
-      <main className={`flex-1 relative flex overflow-hidden lg:px-8 lg:py-4 ${view !== 'map' ? 'pb-24 md:pb-0' : 'pb-20 md:pb-0'}`}>
+      <main className={`flex-1 relative flex overflow-hidden lg:px-12 lg:py-6 ${view !== 'map' ? 'pb-24 md:pb-0' : 'pb-20 md:pb-0'}`}>
         <AnimatePresence mode="wait">
           {view === 'map' ? (
             <motion.div
               key="map-view"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex-1 relative flex h-full"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.02 }}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              className="flex-1 relative flex h-full rounded-[40px] overflow-hidden civic-shadow"
             >
               <MapToolbar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
               <MapDebugCard user={user} perfil={perfil} />
@@ -93,10 +94,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onProfileUpdate 
           ) : (view === 'admin_gestion' || view === 'admin_monitor' || view === 'admin_users' || view === 'admin_stats') && isAdmin ? (
             <motion.div
               key="admin-view"
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="flex-1 px-4 py-8 md:p-8 overflow-y-auto"
+              exit={{ opacity: 0, y: -30 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="flex-1 px-4 py-6 md:p-12 overflow-y-auto"
             >
               <div className="max-w-7xl mx-auto mb-20 md:mb-0">
                 <AdminPanel
@@ -112,26 +114,41 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onProfileUpdate 
               </div>
             </motion.div>
           ) : view === 'profile' && perfil ? (
-            <div className="flex-1 overflow-y-auto mb-20 md:mb-0">
+            <motion.div 
+              key="profile-view"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -50 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="flex-1 overflow-y-auto mb-20 md:mb-0 px-4 py-10 md:p-12"
+            >
               <UserProfile
-                key="profile-view"
                 perfil={perfil}
                 onProfileUpdate={onProfileUpdate}
                 onLogout={onLogout}
                 onNavigateToMap={handleNavigateToMap}
               />
-            </div>
+            </motion.div>
           ) : view === 'tasks' && perfil ? (
-            <div className="flex-1 overflow-y-auto mb-20 md:mb-0">
+            <motion.div 
+              key="tasks-view"
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -30 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="flex-1 overflow-y-auto mb-20 md:mb-0 px-4 py-10 md:p-12"
+            >
               <UserTasks
-                key="tasks-view"
                 perfil={perfil}
                 onNavigateToMap={handleNavigateToMap}
               />
-            </div>
+            </motion.div>
           ) : (
             <div className="flex-1 flex items-center justify-center">
-              <p className="text-stone-500 font-display italic">No tienes permisos para acceder a esta sección.</p>
+              <div className="text-center bg-surface-container-lowest p-12 rounded-[40px] civic-shadow border border-primary/5">
+                <p className="text-primary font-display font-black italic text-xl">Acceso Restringido</p>
+                <p className="text-on-surface-variant/40 text-sm mt-2 font-medium">No cuentas con los permisos institucionales necesarios.</p>
+              </div>
             </div>
           )}
         </AnimatePresence>

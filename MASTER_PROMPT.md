@@ -1,118 +1,82 @@
-# I.E.S.M. - Documentación Maestra del Sistema (v2.0)
+# I.E.S.M. - Documentación Maestra del Sistema (v3.0 - I.E.S.M. Era)
 
 Este documento es el activo intelectual más importante del proyecto. Ha sido diseñado para permitir la reconstrucción, auditoría y escalabilidad del sistema **I.E.S.M.** mediante ingeniería inversa de su arquitectura actual.
 
 ---
 
 ## 1. 📌 Visión General del Sistema
-*   **Propósito:** Gestionar y supervisar el despliegue de personal en territorio mediante cartografía electoral precisa.
-*   **Problema que resuelve:** La dificultad de coordinar brigadas de campo, asignar zonas específicas (secciones/manzanas) y medir el avance real con evidencia geográfica y chat en tiempo real.
+*   **Propósito:** Gestión estratégica y monitoreo de despliegue territorial para el **Instituto de Estudios Sociales de Morelos (I.E.S.M.)**.
+*   **Institucionalidad:** Brandbook 2024-2030 integrado (`--color-primary: #620041`).
 *   **Tipo de usuarios:** 
-    *   **Administradores:** Coordinan zonas, asignan tareas y auditan el rendimiento.
-    *   **Operativos:** Visualizan su ruta de trabajo y reportan avances desde el territorio.
+    *   **Administradores:** Coordinan zonas, asignan tareas (Individuales/Colaborativas) e interactúan con el personal (Monitor Editorial).
+    *   **Operativos:** Visualizan su ruta de trabajo y documentan avances con historial sincronizado.
 
 ---
 
 ## 2. 🏗️ Arquitectura del Sistema
-El sistema utiliza una arquitectura **Híbrida de Tiempo Real y Alto Rendimiento Espacial**:
+Arquitectura **Híbrida de Tiempo Real, Alto Rendimiento Espacial y Cache-First**:
 
-*   **Frontend:** React 18 (Vite) con **Zustand** para el estado global. La interfaz sigue el sistema de diseño **"Digital Curator"** (Editorial/Premium) y utiliza **Framer Motion** para transiciones fluidas.
-*   **Backend (Micro-servicios):**
-    *   **Supabase (BaaS):** Gestiona la autenticación, base de datos relacional/espacial y el canal de notificaciones en tiempo real (Websockets).
-    *   **Express Server (`server.ts`):** Actúa como middleware para servir **Vector Tiles (MVT)** optimizados directamente desde PostGIS y ejecutar el **Scheduler** de tareas programadas.
-*   **Base de Datos:** PostgreSQL con **PostGIS**. Las geometrías se almacenan en formato binario (`wkb_geometry`) para máxima eficiencia.
+*   **Frontend:** React 18 (Vite) + **Zustand**. Interfaz **"Digital Curator Premium"**: Glassmorphism, desenfoques de fondo (`backdrop-blur`) y tipografía institucional.
+*   **Performance (Caching):** Implementación de `fetchWithCache` (utilizando el **Cache API** nativo) para activos críticos como GeoJSON masivos, reduciendo tiempos de carga inicial de segundos a milisegundos.
+*   **Responsividad:** Estrategia **Mobile-First Refined**: Padding dinámico (`p-4` vs `p-8`), escalamiento de fuentes y `BottomNav` flotante civic-shadow.
+*   **Backend:**
+    *   **Supabase:** Auth, PostgreSQL/PostGIS y Webhooks de tiempo real.
+    *   **Express Server:** Middleware para **Vector Tiles (MVT)** y CRON Scheduler.
 
 ---
 
 ## 3. 🗄️ Modelo de Datos (CRÍTICO)
 
 ### `usuarios_perfil`
-*   **Propósito:** Almacena la identidad y el rol extendido.
-*   **Campos clave:** `id` (UUID), `nombre` (Text), `rol` (`admin`|`field_worker`), `email` (Text), `last_login` (Timestamp).
-*   **Relación:** 1:1 con `auth.users`.
-
-### `poligonos_geojson` (y tablas GIS auxiliares)
-*   **Propósito:** Almacena la cartografía (Secciones, Manzanas).
-*   **Campos clave:** `geom` (Geometry), `tipo` (Sección/Manzana/Padron), `metadata` (JSONB con datos electorales).
+*   **Propósito:** Identidad y rol extendido.
+*   **Campos clave:** `id`, `nombre`, `rol` (`admin`|`field_worker`), `last_login`.
 
 ### `tareas`
-*   **Propósito:** La unidad de trabajo asignada.
-*   **Campos clave:** `status` (pendiente/en_progreso/completada), `scheduled_at` (activación futura), `user_id` (asignado).
+*   **Novedad v3.0:** Conexión estricta con `tarea_colaboradores` y prop-sync entre `AdminPanel` y `TaskAssignmentForm`.
+*   **Campos clave:** `status`, `user_id` (Dueño/Lead), `is_collaborative`, `polygon_id`.
 
 ### `tarea_historial`
-*   **Propósito:** Chat y auditoría de cambios.
-*   **Campos clave:** `mensaje` (Avance), `tipo` (avance/cambio_estado/sistema).
-*   **Relación:** N:1 con `tareas`.
+*   **Propósito:** Auditoría y Chat. Alimenta las notificaciones push institucionales.
 
 ---
 
 ## 4. 🔄 Flujos del Sistema
 
-1.  **Login:** Basado en Supabase Auth. El sistema detecta el email y redirige según el rol (Admin -> Monitor, Campo -> Mapa Personal).
-2.  **Asignación de Tareas:** El admin selecciona un polígono en el mapa -> Abre Sidebar -> Selecciona Usuario -> Define Instrucción. Esto dispara una notificación instantánea.
-3.  **Monitoreo (Monitor View):** Lista tabulada de todas las tareas activas con filtros por estado del personal.
-4.  **Estadísticas de Éxito:** Cálculo dinámico de eficiencia por usuario (`completadas` / `totales`).
+1.  **Asignación Inteligente:** Selección de operativos con visualización de **Carga de Trabajo (Workload)** en tiempo real (Badges Verde/Amarillo/Rojo).
+2.  **Detección de Duplicidad:** Alerta proactiva al intentar asignar zonas ya ocupadas.
+3.  **Gestión Responsive:** Edición de tareas optimizada para móviles con modales de baja fricción y timelines de historial.
+4.  **Validación Administrativa:** Flujo de Aprobación/Rechazo de tareas completadas con retroalimentación instantánea al trabajador.
 
 ---
 
-## 5. 🗺️ Lógica GIS (MUY IMPORTANTE)
+## 5. 🗺️ Lógica GIS y MVT
 
-*   **Importación:** El sistema está diseñado para recibir datos de **QGIS** mediante `shp2pgsql` o carga masiva de GeoJSON a tablas PostgreSQL.
-*   **Jerarquía Espacial:** 
-    *   **Secciones (Polígonos Padre):** Nivel macro.
-    *   **Manzanas (Polígonos Hijos):** Nivel micro donde se realiza el trabajo.
-*   **Visualización Optimizada:** Para capas densas (Manzanas), el frontend no carga GeoJSON pesado; en su lugar, solicita **Vector Tiles** al servidor Express, que responde con fragmentos binarios PBF (`ST_AsMVT`), permitiendo zoom infinito y fluidez.
-*   **Geofencing Implícito:** Las capturas de avance registran el `estado_snapshot` de la tarea para auditoría.
+*   **Vector Tiles:** Para capas masivas (Manzanas), servidas vía PBF (`ST_AsMVT`).
+*   **GeoJSON Cache:** Las capas de secciones se sirven con cabeceras de cache-control e hidratación vía `fetchWithCache.ts`.
 
 ---
 
-## 6. 🔐 Roles y Permisos
+## 6. 🔐 Seguridad y RLS
 
-*   **Administrador:** Acceso total. Puede ver todo el estado físico del estado. Gestiona el "Rendimiento".
-*   **Campo (Field Worker):** Visión restringida. El mapa solo muestra sus manzanas asignadas en color resaltado. No tiene acceso al panel de gestión de otros usuarios.
-*   **Seguridad:** Implementada vía **Row Level Security (RLS)** en Supabase, donde las políticas filtran por `auth.uid()`.
-
----
-
-## 7. ⚙️ Lógica de Negocio
-*   **KPI de Eficiencia:** `(Completado * 100) / Total`. Color rojo si < 30%, amarillo < 70%, verde >= 70%.
-*   **Scheduler:** El servidor Express verifica cada 60 segundos tareas con `scheduled_at <= NOW()` y las activa (cambia status a `pendiente`).
-*   **Notificaciones Bidireccionales:** Cualquier inserción en `tarea_historial` notifica tanto al creador como al responsable.
+*   **RLS (Supabase):** Políticas granulares para que los trabajadores solo accedan a sus tareas (asociadas por `user_id` o `collaborator_ids`) y los admins tengan visibilidad total.
+*   **Regla de Oro:** La seguridad reside en la base de datos, el cliente solo refleja el estado autorizado.
 
 ---
 
-## 8. 🧨 Problemas Detectados
-1.  **Hardcoding de Roles:** Algunos roles se detectan por email en el frontend. Riesgo de bypass si no se migra a Custom Claims.
-2.  **Carga Inicial:** `poligonosService` carga muchos datos al inicio; se debe migrar el 100% a MVT.
-3.  **Dependencia de Servidor:** Si el `server.ts` cae, los Vector Tiles y el Scheduler fallan (aunque el resto del sistema Supabase siga vivo).
+## 7. 🚀 Reconstrucción Dinámica
+
+1.  **Esquema:** Correr migraciones SQL en Supabase (Inc. Colaboración e Historial).
+2.  **Server:** Levantar `server.ts` para habilitar MVT en puerto especificado.
+3.  **Frontend:** `npm run dev` configurando credenciales de Supabase.
 
 ---
 
-## 9. 🚀 Reconstrucción del Sistema (Paso a Paso)
-
-1.  **Base de Datos:**
-    *   Activar extensión `postgis`.
-    *   Crear tablas `usuarios_perfil`, `tareas`, `tarea_historial` y `notificaciones`.
-    *   Aplicar SQL de Triggers para notificaciones y actualización de timestamps.
-2.  **GIS:**
-    *   Cargar capas de manzanas y secciones desde QGIS a Postgres.
-    *   Crear índices espaciales `GIST` en la columna `geom`.
-3.  **Backend:**
-    *   Configurar Supabase con políticas RLS (ver `supabase/migrations`).
-    *   Desplegar `server.ts` con acceso a `DATABASE_URL` para MVT.
-4.  **Frontend:**
-    *   Configurar variables `.env` (URL y Anon Key).
-    *   Ejecutar `npm install` y `npm run dev`.
+## 10. 💡 Roadmap de Innovación
+*   **Offline First:** Sincronización robusta sin conexión.
+*   **IA Analítica:** Predicción de rezago basada en tendencias históricas.
 
 ---
 
-## 10. 💡 Mejoras Propuestas
-*   **Custom JWT Claims:** Seguridad de nivel bancario para roles.
-*   **Modo Offline:** Cachear manzanas en IndexedDB para zonas sin señal.
-*   **Integración Mapbox:** Para capas base satelitales más rápidas.
+## 💥 Prompt Reducido Maestro v3.0
 
----
-
-## 💥 Prompt Reducido Inteligente
-
-"Arquitecto: Reconstruye I.E.S.M.. Stack: React (Vite/Zustand) + Supabase (PostGIS/Realtime) + Express (MVT Tiles/Scheduler). DB: tablas usuarios_perfil, tareas (con scheduled_at), tarea_historial (chat/audit) y notificaciones (triggers). GIS: Capas de Secciones/Manzanas en Postgres; servir via ST_AsMVT. UI: Dashboard Admin (Monitor/Estadísticas KPIs) y Mapa Campo (RLS filter). Notificaciones Websocket. Mobile-first premium design."
+"Arquitecto: I.E.S.M. v3.0 Digital Curator. Stack: React/Zustand + Supabase/PostGIS + Express MVT + Cache API. Tech: fetchWithCache (GeoJSON optimize), Mobile-First (Dynamic Pading p4/p8, scaling text). Business: Asignación Colaborativa, Workload Viz, Duplicity Alert, Historial Timeline. UI: Editorial Premium, Glassmorphism. DB: usuarios_perfil, tareas (is_collaborative), tarea_historial (shared stats/audit)."

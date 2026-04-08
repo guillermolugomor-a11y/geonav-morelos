@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { UsuarioPerfil, Tarea, TareaHistorial } from '../types';
 import { taskService } from '../services/taskService';
-import { CheckSquare, Loader2, ArrowRight, Edit3, X, Save, MessageSquare, Clock, User, ChevronRight, Bell } from 'lucide-react';
+import { CheckSquare, Loader2, ArrowRight, Edit3, X, Save, MessageSquare, Clock, User, ChevronRight, Bell, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { TaskLocationLabel } from './tasks/TaskLocationLabel';
 import { useNotifications } from './notifications/NotificationContext';
@@ -130,11 +130,11 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
-      className="flex-1 p-8 overflow-y-auto bg-stone-50"
+      className="flex-1 p-4 md:p-8 overflow-y-auto bg-stone-50"
     >
       <div className="max-w-5xl mx-auto space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-stone-900 tracking-tight">Mis Tareas</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-stone-900 tracking-tight">Mis Tareas</h1>
           <p className="text-stone-500 mt-1">Visualiza y gestiona las tareas que te han sido asignadas.</p>
         </div>
 
@@ -176,6 +176,11 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                         }`}>
                         {tarea.status.replace('_', ' ')}
                       </span>
+                      {tarea.is_collaborative && (
+                        <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary flex items-center gap-1.5 animate-pulse">
+                          <Users className="w-3 h-3" /> Colaborativa
+                        </span>
+                      )}
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-stone-400 bg-white px-2 py-1 rounded-md border border-stone-100">
                           <TaskLocationLabel task={tarea} compact />
@@ -264,6 +269,31 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
               </div>
 
               <div className="p-6 space-y-6 flex-1 overflow-y-auto custom-scrollbar">
+                {/* Equipo Colaborador - Solo si es tarea colaborativa */}
+                {editingTask.is_collaborative && (
+                  <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 animate-in fade-in zoom-in-95">
+                    <label className="block text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                       <Users className="w-3.5 h-3.5" /> Equipo en esta Tarea
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-primary/20">
+                         <div className="w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-black">
+                           {perfil.nombre.charAt(0)}
+                         </div>
+                         <span className="text-[11px] font-bold text-primary">Tú (Responsable)</span>
+                      </div>
+                      {/* Aquí idealmente mostraríamos los nombres de los compañeros. 
+                          Si no los tenemos en el prop, podemos mostrar "X colaboradores más" 
+                          o ajustar el servicio para traer los nombres. */}
+                      {editingTask.collaborator_ids && editingTask.collaborator_ids.length > 1 && (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-100/50 rounded-xl text-[10px] font-bold text-stone-500 italic">
+                          + {editingTask.collaborator_ids.length - 1} compañeros participando
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Historial Timeline */}
                 <div>
                   <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-4 flex items-center gap-2">

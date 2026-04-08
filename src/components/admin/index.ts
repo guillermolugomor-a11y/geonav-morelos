@@ -4,3 +4,4 @@ export * from './UserDirectoryView';
 export * from './UserStatsView';
 export * from './TaskModals';
 export * from './AdminMessage';
+export * from './MiniMap';

@@ -1,21 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Inter", sans-serif;
+  --font-display: "Plus Jakarta Sans", sans-serif;
   
-  --color-primary: #620b27;
-  --color-primary-container: #80243d;
-  --color-secondary-container: #fed795;
-  --color-on-secondary-container: #795c26;
+  --color-primary: #620041;
+  --color-primary-container: #811B5A;
+  --color-secondary-container: #d0e8b5;
+  --color-on-secondary-container: #50643d;
   
-  --color-surface: #fef8f9;
-  --color-surface-container-low: #f8f2f3;
+  --color-surface: #fdf9f1;
+  --color-surface-container-low: #f7f3eb;
   --color-surface-container-lowest: #ffffff;
   
-  --color-on-surface: #1d1b1c;
-  --color-on-surface-variant: #554245;
-  --color-outline-variant: #dbc0c3;
+  --color-on-surface: #1c1c17;
+  --color-on-surface-variant: #4a453e;
+  --color-outline-variant: #d9c0c9;
+}
+
+/* Custom Utilities for the Premium Aesthetic */
+@utility premium-gradient {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-container) 100%);
+}
+
+@utility civic-shadow {
+  box-shadow: 0 8px 32px 0 rgba(28, 28, 23, 0.06);
 }
 
 html, body, #root {

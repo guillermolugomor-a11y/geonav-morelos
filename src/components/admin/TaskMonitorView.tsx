@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertCircle, Bell, ClipboardList, Clock, Edit2, Eye, MapPin, Trash2, User, X, CheckCircle2, RotateCcw, Search, ChevronRight } from 'lucide-react';
+import { AlertCircle, Bell, ClipboardList, Clock, Edit2, Eye, MapPin, Trash2, User, X, CheckCircle2, RotateCcw, Search, ChevronRight, Users } from 'lucide-react';
 import { Poligono, Tarea, UsuarioPerfil } from '../../types';
 import { TaskLocationLabel } from '../tasks/TaskLocationLabel';
 import { useNotifications } from '../notifications/NotificationContext';
@@ -97,7 +97,7 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
   return (
     <div className="flex flex-col h-full animate-in fade-in duration-700 font-sans">
       {/* Header - Digital Curator: Editorial Authority */}
-      <div className="p-8 md:p-12 bg-surface border-b border-outline-variant/10">
+      <div className="p-6 md:p-12 bg-surface border-b border-outline-variant/10">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 max-w-screen-xl mx-auto">
           <div className="space-y-2">
             <h3 className="text-3xl font-black text-on-surface flex items-center gap-4 tracking-tighter">
@@ -247,15 +247,48 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
 
                       {/* Column 4: Estado (15%) */}
                       <div className="w-[15%] flex justify-center min-w-0">
-                        <span className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.1em] shadow-sm truncate max-w-full ${
-                          tarea.status === 'completada' ? 'bg-[#e0f2f1] text-[#00695c]' :
-                          tarea.status === 'en_progreso' ? 'bg-secondary-container text-on-secondary-container' :
-                          tarea.status === 'programada' ? 'bg-[#e8eaf6] text-[#283593]' :
-                          'bg-surface-container-low text-on-surface-variant'
-                        }`}>
-                          {tarea.status === 'programada' ? <Clock className="w-3.5 h-3.5 shrink-0" /> : <div className={`w-2 h-2 rounded-full shrink-0 ${tarea.status === 'completada' ? 'bg-[#009688]' : tarea.status === 'en_progreso' ? 'bg-[#ff9800]' : 'bg-stone-300'}`} />}
-                          {tarea.status === 'programada' ? 'Programada' : tarea.status.replace('_', ' ')}
-                        </span>
+                        <div className="flex flex-col items-center gap-1.5">
+                          <span className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.1em] shadow-sm truncate max-w-full ${
+                            tarea.status === 'completada' ? 'bg-[#e0f2f1] text-[#00695c]' :
+                            tarea.status === 'en_progreso' ? 'bg-secondary-container text-on-secondary-container' :
+                            tarea.status === 'programada' ? 'bg-[#e8eaf6] text-[#283593]' :
+                            'bg-surface-container-low text-on-surface-variant'
+                          }`}>
+                            {tarea.status === 'programada' ? <Clock className="w-3.5 h-3.5 shrink-0" /> : <div className={`w-2 h-2 rounded-full shrink-0 ${tarea.status === 'completada' ? 'bg-[#009688]' : tarea.status === 'en_progreso' ? 'bg-[#ff9800]' : 'bg-stone-300'}`} />}
+                            {tarea.status === 'programada' ? 'Programada' : tarea.status.replace('_', ' ')}
+                          </span>
+                          {tarea.is_collaborative && (
+                            <div className="relative group/tooltip">
+                              <span className="text-[9px] font-black uppercase text-primary bg-primary/10 px-2 py-0.5 rounded-md flex items-center gap-1 cursor-help transition-all hover:bg-primary/20">
+                                <Users className="w-2.5 h-2.5" /> Colaborativa
+                              </span>
+                              
+                              {/* Tooltip con nombres */}
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-[220px] bg-stone-900 text-white text-[10px] p-3 rounded-xl opacity-0 scale-95 transition-all pointer-events-none group-hover/tooltip:opacity-100 group-hover/tooltip:scale-100 z-[60] shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
+                                <p className="font-black uppercase tracking-[0.15em] border-b border-white/10 pb-1.5 mb-1.5 text-primary-container">Equipo de Trabajo</p>
+                                <div className="space-y-1.5">
+                                  {/* Responsable Principal */}
+                                  <div className="flex items-center gap-2">
+                                     <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                     <span className="font-bold">{userMap.get(tarea.user_id)?.nombre} (Líder)</span>
+                                  </div>
+                                  {/* Colaboradores adicionales */}
+                                  {tarea.collaborator_ids?.filter(id => id !== tarea.user_id).map(id => (
+                                    <div key={id} className="flex items-center gap-2 opacity-80">
+                                       <div className="w-1.5 h-1.5 rounded-full bg-stone-400" />
+                                       <span>{userMap.get(id)?.nombre || 'Usuario...'}</span>
+                                    </div>
+                                  ))}
+                                  {(!tarea.collaborator_ids || tarea.collaborator_ids.length <= 1) && (
+                                    <p className="text-[9px] italic opacity-50">Sin otros integrantes</p>
+                                  )}
+                                </div>
+                                {/* Flechita del tooltip */}
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-[6px] border-transparent border-t-stone-900" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {/* Column 5: Fecha (10%) */}

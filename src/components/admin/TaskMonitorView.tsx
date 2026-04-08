@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertCircle, Bell, ClipboardList, Clock, Edit2, Eye, MapPin, Trash2, User, X, CheckCircle2, RotateCcw, Search, ChevronRight, Users } from 'lucide-react';
+import { AlertCircle, Bell, ClipboardList, Clock, Edit2, Eye, MapPin, Trash2, User, X, CheckCircle2, RotateCcw, Search, ChevronRight, Users, Camera, Image as ImageIcon } from 'lucide-react';
 import { Poligono, Tarea, UsuarioPerfil } from '../../types';
 import { TaskLocationLabel } from '../tasks/TaskLocationLabel';
 import { useNotifications } from '../notifications/NotificationContext';
@@ -39,6 +39,7 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
   const { notifications } = useNotifications();
   const [searchTerm, setSearchTerm] = useState('');
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   const userMap = useMemo(() => {
     const map = new Map<string, UsuarioPerfil>();
@@ -243,6 +244,22 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
                         <p className="text-[14px] text-on-surface-variant font-medium leading-relaxed italic border-l-3 border-outline-variant/10 pl-6 group-hover:border-primary/20 transition-all duration-700 truncate">
                           "{tarea.instruccion}"
                         </p>
+                        {tarea.evidencia_url && (
+                          <div className="mt-2.5 flex items-center gap-2 pl-6">
+                             <button 
+                               onClick={() => setPreviewImageUrl(tarea.evidencia_url || null)}
+                               className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-emerald-100 transition-all"
+                             >
+                                <Camera className="w-3 h-3" /> Ver Evidencia
+                             </button>
+                             <div 
+                               className="w-8 h-8 rounded-lg overflow-hidden border border-outline-variant/10 cursor-pointer hover:scale-110 transition-transform"
+                               onClick={() => setPreviewImageUrl(tarea.evidencia_url || null)}
+                             >
+                               <img src={tarea.evidencia_url} alt="Evidencia" className="w-full h-full object-cover" />
+                             </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Column 4: Estado (15%) */}
@@ -378,9 +395,27 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
                     <ChevronRight size={14} className="ml-auto opacity-30" />
                   </button>
 
-                  <p className="text-sm text-stone-600 font-medium leading-relaxed mb-6 italic pl-4 border-l-2 border-[#f7f3eb]">
+                  <p className="text-sm text-stone-600 font-medium leading-relaxed mb-4 italic pl-4 border-l-2 border-[#f7f3eb]">
                     "{tarea.instruccion}"
                   </p>
+
+                  {tarea.evidencia_url && (
+                    <div className="mb-6 relative rounded-2xl overflow-hidden border border-stone-100 group/img">
+                       <img 
+                          src={tarea.evidencia_url} 
+                          alt="Evidencia" 
+                          className="w-full h-40 object-cover" 
+                       />
+                       <button 
+                         onClick={() => setPreviewImageUrl(tarea.evidencia_url || null)}
+                         className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center"
+                       >
+                         <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary shadow-lg flex items-center gap-2">
+                            <Camera className="w-3.5 h-3.5" /> Ampliar Evidencia
+                         </div>
+                       </button>
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between pt-4 border-t border-stone-50">
                     <span className="text-[10px] font-black text-stone-300 uppercase tracking-widest flex items-center gap-1.5">
@@ -409,6 +444,35 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* Modal de Previsualización de Imagen */}
+      <AnimatePresence>
+        {previewImageUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setPreviewImageUrl(null)}
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 md:p-12 cursor-zoom-out"
+          >
+             <button 
+               className="absolute top-8 right-8 w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all"
+               onClick={() => setPreviewImageUrl(null)}
+             >
+               <X className="w-6 h-6" />
+             </button>
+             <motion.img
+               initial={{ scale: 0.9, opacity: 0 }}
+               animate={{ scale: 1, opacity: 1 }}
+               exit={{ scale: 0.9, opacity: 0 }}
+               src={previewImageUrl}
+               alt="Evidencia Ampliada"
+               className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl"
+               onClick={(e) => e.stopPropagation()}
+             />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

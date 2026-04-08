@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { UsuarioPerfil, Tarea, TareaHistorial } from '../types';
 import { taskService } from '../services/taskService';
-import { CheckSquare, Loader2, ArrowRight, Edit3, X, Save, MessageSquare, Clock, User, ChevronRight, Bell, Users } from 'lucide-react';
+import { CheckSquare, Loader2, ArrowRight, Edit3, X, Save, MessageSquare, Clock, User, ChevronRight, Bell, Users, Camera, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { cloudinaryService } from '../services/cloudinaryService';
 import { motion, AnimatePresence } from 'motion/react';
 import { TaskLocationLabel } from './tasks/TaskLocationLabel';
 import { useNotifications } from './notifications/NotificationContext';
@@ -21,6 +22,11 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
   const [editStatus, setEditStatus] = useState<Tarea['status']>('pendiente');
   const [newUpdate, setNewUpdate] = useState('');
   const [savingTask, setSavingTask] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [evidenceUrl, setEvidenceUrl] = useState<string | null>(null);
   
   const { notifications, markTaskNotificationsAsRead } = useNotifications();
 
@@ -55,6 +61,9 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
     setEditingTask(tarea);
     setEditStatus(tarea.status);
     setNewUpdate('');
+    setEvidenceUrl(tarea.evidencia_url || null);
+    setSelectedFile(null);
+    setPreviewUrl(null);
     
     // Cargar historial
     setLoadingHistorial(true);
@@ -76,23 +85,47 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
     setEditStatus('pendiente');
     setNewUpdate('');
     setHistorial([]);
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setUploadProgress(0);
+    setIsUploading(false);
+    setEvidenceUrl(null);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
   };
 
   const handleSaveEdit = async () => {
-    if (!editingTask) return;
-    if (!newUpdate.trim() && editStatus === editingTask.status) {
-      handleCancelEdit();
-      return;
-    }
-
     setSavingTask(true);
+    let finalEvidenceUrl = evidenceUrl;
+
     try {
-      // Si hay un mensaje nuevo o cambio de estado, actualizar
+      // 1. Si hay un archivo nuevo, subirlo primero
+      if (selectedFile) {
+        setIsUploading(true);
+        const uploadedUrl = await cloudinaryService.uploadImage(selectedFile, (progress) => {
+          setUploadProgress(progress);
+        });
+        if (uploadedUrl) {
+          finalEvidenceUrl = uploadedUrl;
+        } else {
+          throw new Error('Error al subir la imagen a Cloudinary');
+        }
+      }
+
+      // 2. Si hay un mensaje nuevo, cambio de estado o nueva evidencia, actualizar
       const success = await taskService.updateTareaStatus(
         editingTask.id, 
         editStatus, 
         newUpdate.trim() || undefined, 
-        perfil.id
+        perfil.id,
+        finalEvidenceUrl || undefined
       );
       
       if (success) {
@@ -100,6 +133,9 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
         const history = await taskService.getTareaHistorial(editingTask.id);
         setHistorial(history);
         setNewUpdate('');
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        setEvidenceUrl(finalEvidenceUrl);
         
         // Refrescamos la lista de fondo por si acaso
         await fetchTasks();
@@ -108,9 +144,11 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
       }
     } catch (error) {
       console.error('Error saving task:', error);
-      alert('Error al actualizar la tarea');
+      alert(error instanceof Error ? error.message : 'Error al actualizar la tarea');
     } finally {
       setSavingTask(false);
+      setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -372,6 +410,63 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                       placeholder="Escribe una actualización de esta tarea..."
                       className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-[#8C3154]/20 focus:border-[#8C3154] transition-all resize-none h-24"
                     />
+                  </div>
+
+                  {/* Subida de Evidencia */}
+                  <div>
+                    <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                      <Camera className="w-3.5 h-3.5" />
+                      Evidencia Fotográfica
+                    </label>
+                    
+                    {previewUrl || evidenceUrl ? (
+                      <div className="relative group rounded-2xl overflow-hidden border border-stone-200 bg-stone-50 h-48 mb-3">
+                        <img 
+                          src={previewUrl || evidenceUrl || ''} 
+                          alt="Previsualización" 
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                           <button 
+                             onClick={() => { setSelectedFile(null); setPreviewUrl(null); }}
+                             className="p-2 bg-white/20 hover:bg-white/40 backdrop-blur-md rounded-full text-white transition-all transform hover:scale-110"
+                             title="Remover foto"
+                           >
+                             <Trash2 className="w-5 h-5" />
+                           </button>
+                        </div>
+                        {isUploading && (
+                          <div className="absolute inset-x-0 bottom-0 p-4 bg-black/60 backdrop-blur-sm">
+                            <div className="flex justify-between text-[10px] font-bold text-white uppercase mb-1.5">
+                              <span>Subiendo a Cloudinary...</span>
+                              <span>{uploadProgress}%</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
+                              <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${uploadProgress}%` }}
+                                className="h-full bg-white rounded-full"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-stone-200 rounded-2xl bg-stone-50 hover:bg-stone-100 hover:border-[#8C3154]/30 transition-all cursor-pointer group">
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          capture="environment"
+                          onChange={handleFileChange} 
+                          className="hidden" 
+                        />
+                        <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                          <ImageIcon className="w-6 h-6 text-stone-400 group-hover:text-[#8C3154]" />
+                        </div>
+                        <span className="text-xs font-bold text-stone-500">Haz clic para tomar o subir una foto</span>
+                        <span className="text-[10px] text-stone-400 mt-1 uppercase tracking-tighter">JPG, PNG hasta 5MB</span>
+                      </label>
+                    )}
                   </div>
                 </div>
               </div>

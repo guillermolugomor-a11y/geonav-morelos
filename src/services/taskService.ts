@@ -330,10 +330,21 @@ export const taskService = {
     }
   },
 
-  async updateTareaStatus(tareaId: string, status: Tarea['status'], comentarios?: string, userId?: string): Promise<boolean> {
+  async updateTareaStatus(
+    tareaId: string, 
+    status: Tarea['status'], 
+    comentarios?: string, 
+    userId?: string,
+    evidenciaUrl?: string
+  ): Promise<boolean> {
+    const updates: any = { status, comentarios_usuario: comentarios };
+    if (evidenciaUrl) {
+      updates.evidencia_url = evidenciaUrl;
+    }
+
     const { error } = await supabase
       .from('tareas')
-      .update({ status, comentarios_usuario: comentarios })
+      .update(updates)
       .eq('id', tareaId);
 
     if (error) {
@@ -345,7 +356,9 @@ export const taskService = {
       await this.addTareaHistorial({
         tarea_id: tareaId,
         user_id: userId,
-        mensaje: comentarios,
+        mensaje: evidenciaUrl 
+          ? `${comentarios} (Evidencia fotográfica adjunta)` 
+          : comentarios,
         estado_snapshot: status,
         tipo: 'avance'
       });
@@ -353,7 +366,9 @@ export const taskService = {
        await this.addTareaHistorial({
         tarea_id: tareaId,
         user_id: userId,
-        mensaje: `La tarea cambió de estado a "${status}"`,
+        mensaje: evidenciaUrl 
+          ? `La tarea cambió de estado a "${status}" y se adjuntó evidencia.` 
+          : `La tarea cambió de estado a "${status}"`,
         estado_snapshot: status,
         tipo: 'cambio_estado'
       });

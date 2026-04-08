@@ -30,12 +30,16 @@ const mapTareas = (data: any[] | null): Tarea[] => {
 export const taskService = {
   async getTareas(usuarioId: string): Promise<Tarea[]> {
     try {
-      // Obtenemos tareas donde el usuario sea el creador O colaborador
-      // Usamos un join con tarea_colaboradores para filtrar
+      /**
+       * ROOT CAUSE FIX: La consulta previa usaba un .or() manual con joins que fallaba
+       * en Postgrest para muchos-a-muchos. 
+       * Ahora confiamos en RLS para los operativos (que ya filtra lo que pueden ver)
+       * y aplicamos un filtro explícito que funciona tanto para dueños como colaboradores.
+       */
       const { data, error, status } = await supabase
         .from('tareas')
         .select(TASK_SELECTOR)
-        .or(`user_id.eq.${usuarioId},tarea_colaboradores.user_id.eq.${usuarioId}`)
+        .or(`user_id.eq.${usuarioId},is_collaborative.is.true`) // El RLS de tareas filtrará el acceso real
         .neq('status', 'programada')
         .order('created_at', { ascending: false });
 
@@ -44,7 +48,14 @@ export const taskService = {
         return [];
       }
 
-      return mapTareas(data);
+      // IMPORTANTE: El filtro .or anterior es amplio, pero RLS garantiza la seguridad.
+      // Aquí hacemos un filtrado fino en JS para asegurar que si se pidió un usuario específico, 
+      // solo devolvamos las tareas relevantes para ese usuario (Dueño o Colaborador).
+      const mapped = mapTareas(data);
+      return mapped.filter(t => 
+        t.user_id === usuarioId || 
+        (t.collaborator_ids && t.collaborator_ids.includes(usuarioId))
+      );
     } catch (err) {
       debugError('Error inesperado al obtener tareas:', err);
       return [];
@@ -60,7 +71,9 @@ export const taskService = {
         .neq('status', 'programada');
 
       if (usuarioId) {
-        query = query.eq('user_id', usuarioId);
+        // Al igual que en getTareas, permitimos ver si es dueño O si es colectiva 
+        // (RLS filtrará las colectivas donde no participe)
+        query = query.or(`user_id.eq.${usuarioId},is_collaborative.is.true`);
       }
 
       const { data, error, status } = await query;
@@ -70,7 +83,14 @@ export const taskService = {
         return [];
       }
 
-      return mapTareas(data);
+      const mapped = mapTareas(data);
+      if (usuarioId) {
+        return mapped.filter(t => 
+          t.user_id === usuarioId || 
+          (t.collaborator_ids && t.collaborator_ids.includes(usuarioId))
+        );
+      }
+      return mapped;
     } catch (err) {
       debugError('Error inesperado al obtener tareas del polígono:', err);
       return [];

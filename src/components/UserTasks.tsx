@@ -41,6 +41,17 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
     return set;
   }, [notifications]);
 
+  const hasChanges = useMemo(() => {
+    if (!editingTask) return false;
+    
+    const statusChanged = editStatus !== editingTask.status;
+    const messageChanged = newUpdate.trim().length > 0;
+    const evidenceChanged = evidenceUrl !== (editingTask.evidencia_url || null);
+    const fileSelected = selectedFile !== null;
+    
+    return statusChanged || messageChanged || evidenceChanged || fileSelected;
+  }, [editingTask, editStatus, newUpdate, evidenceUrl, selectedFile]);
+
   const fetchTasks = async () => {
     setLoadingTasks(true);
     try {
@@ -498,8 +509,8 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                 </button>
                 <button
                   onClick={handleSaveEdit}
-                  disabled={savingTask}
-                  className="flex items-center gap-2 px-6 py-2 bg-[#8C3154] hover:bg-[#7a2a49] text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50"
+                  disabled={savingTask || !hasChanges}
+                  className="flex items-center gap-2 px-6 py-2 bg-[#8C3154] hover:bg-[#7a2a49] text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
                 >
                   {savingTask ? (
                     <>

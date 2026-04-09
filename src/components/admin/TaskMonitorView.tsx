@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertCircle, Bell, ClipboardList, Clock, Edit2, Eye, MapPin, Trash2, User, X, CheckCircle2, RotateCcw, Search, ChevronRight, Users, Camera, Image as ImageIcon } from 'lucide-react';
+import { AlertCircle, Bell, ClipboardList, Clock, Edit2, Eye, MapPin, Trash2, User, X, CheckCircle2, RotateCcw, Search, ChevronRight, ChevronLeft, Users, Camera, Image as ImageIcon } from 'lucide-react';
 import { Poligono, Tarea, UsuarioPerfil } from '../../types';
 import { TaskLocationLabel } from '../tasks/TaskLocationLabel';
 import { useNotifications } from '../notifications/NotificationContext';
@@ -39,7 +39,25 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
   const { notifications } = useNotifications();
   const [searchTerm, setSearchTerm] = useState('');
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [galleryPreview, setGalleryPreview] = useState<{ urls: string[], index: number } | null>(null);
+
+  // Keyboard navigation for gallery
+  React.useEffect(() => {
+    if (!galleryPreview) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        setGalleryPreview(prev => prev ? ({ ...prev, index: (prev.index + 1) % prev.urls.length }) : null);
+      } else if (e.key === 'ArrowLeft') {
+        setGalleryPreview(prev => prev ? ({ ...prev, index: (prev.index - 1 + prev.urls.length) % prev.urls.length }) : null);
+      } else if (e.key === 'Escape') {
+        setGalleryPreview(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [galleryPreview]);
 
   const userMap = useMemo(() => {
     const map = new Map<string, UsuarioPerfil>();
@@ -244,20 +262,26 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
                         <p className="text-[14px] text-on-surface-variant font-medium leading-relaxed italic border-l-3 border-outline-variant/10 pl-6 group-hover:border-primary/20 transition-all duration-700 truncate">
                           "{tarea.instruccion}"
                         </p>
-                        {tarea.evidencia_url && (
-                          <div className="mt-2.5 flex items-center gap-2 pl-6">
-                             <button 
-                               onClick={() => setPreviewImageUrl(tarea.evidencia_url || null)}
-                               className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-emerald-100 transition-all"
-                             >
-                                <Camera className="w-3 h-3" /> Ver Evidencia
-                             </button>
-                             <div 
-                               className="w-8 h-8 rounded-lg overflow-hidden border border-outline-variant/10 cursor-pointer hover:scale-110 transition-transform"
-                               onClick={() => setPreviewImageUrl(tarea.evidencia_url || null)}
-                             >
-                               <img src={tarea.evidencia_url} alt="Evidencia" className="w-full h-full object-cover" />
-                             </div>
+                        {(tarea.evidencia_url || (tarea.evidencia_urls && tarea.evidencia_urls.length > 0)) && (
+                          <div className="mt-3 flex overflow-x-auto gap-2.5 pl-6 pb-2 custom-scrollbar">
+                             {(tarea.evidencia_urls && tarea.evidencia_urls.length > 0) ? (
+                               tarea.evidencia_urls.map((url, idx) => (
+                                 <div 
+                                   key={`${tarea.id}-ev-${idx}`}
+                                   className="w-11 h-11 rounded-lg overflow-hidden border border-outline-variant/15 cursor-pointer hover:scale-105 transition-transform shadow-sm shrink-0"
+                                   onClick={() => setGalleryPreview({ urls: tarea.evidencia_urls!, index: idx })}
+                                 >
+                                   <img src={url} alt={`Evidencia ${idx + 1}`} className="w-full h-full object-cover" />
+                                 </div>
+                               ))
+                             ) : (
+                               <div 
+                                 className="w-11 h-11 rounded-lg overflow-hidden border border-outline-variant/15 cursor-pointer hover:scale-105 transition-transform shadow-sm shrink-0"
+                                 onClick={() => setGalleryPreview({ urls: [tarea.evidencia_url!], index: 0 })}
+                               >
+                                 <img src={tarea.evidencia_url} alt="Evidencia" className="w-full h-full object-cover" />
+                               </div>
+                             )}
                           </div>
                         )}
                       </div>
@@ -399,21 +423,46 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
                     "{tarea.instruccion}"
                   </p>
 
-                  {tarea.evidencia_url && (
-                    <div className="mb-6 relative rounded-2xl overflow-hidden border border-stone-100 group/img">
-                       <img 
-                          src={tarea.evidencia_url} 
-                          alt="Evidencia" 
-                          className="w-full h-40 object-cover" 
-                       />
-                       <button 
-                         onClick={() => setPreviewImageUrl(tarea.evidencia_url || null)}
-                         className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center"
-                       >
-                         <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary shadow-lg flex items-center gap-2">
-                            <Camera className="w-3.5 h-3.5" /> Ampliar Evidencia
-                         </div>
-                       </button>
+                  {(tarea.evidencia_url || (tarea.evidencia_urls && tarea.evidencia_urls.length > 0)) && (
+                    <div className="mb-6">
+                       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                          {(tarea.evidencia_urls && tarea.evidencia_urls.length > 0) ? (
+                            tarea.evidencia_urls.map((url, idx) => (
+                              <div 
+                                key={`mob-ev-${idx}`}
+                                className="relative rounded-2xl overflow-hidden border border-stone-100 group/img shrink-0 w-48"
+                              >
+                                 <img 
+                                    src={url} 
+                                    alt={`Evidencia ${idx + 1}`} 
+                                    className="w-full h-32 object-cover" 
+                                 />
+                                 <button 
+                                   onClick={() => setGalleryPreview({ urls: tarea.evidencia_urls!, index: idx })}
+                                   className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 active:opacity-100 transition-opacity"
+                                 >
+                                   <Camera className="w-6 h-6 text-white" />
+                                 </button>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="relative rounded-2xl overflow-hidden border border-stone-100 group/img shrink-0 w-full">
+                               <img 
+                                  src={tarea.evidencia_url} 
+                                  alt="Evidencia" 
+                                  className="w-full h-40 object-cover" 
+                               />
+                               <button 
+                                 onClick={() => setGalleryPreview({ urls: [tarea.evidencia_url!], index: 0 })}
+                                 className="absolute inset-0 bg-black/20 flex items-center justify-center"
+                               >
+                                 <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary shadow-lg flex items-center gap-2">
+                                    <Camera className="w-3.5 h-3.5" /> Ampliar
+                                 </div>
+                               </button>
+                            </div>
+                          )}
+                       </div>
                     </div>
                   )}
 
@@ -445,31 +494,73 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
         </div>
       </div>
 
-      {/* Modal de Previsualización de Imagen */}
+      {/* Modal de Previsualización de Imagen - Galería Interactiva */}
       <AnimatePresence>
-        {previewImageUrl && (
+        {galleryPreview && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setPreviewImageUrl(null)}
-            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 md:p-12 cursor-zoom-out"
+            onClick={() => setGalleryPreview(null)}
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4 md:p-12"
           >
+             {/* Botón de Cierre */}
              <button 
-               className="absolute top-8 right-8 w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all"
-               onClick={() => setPreviewImageUrl(null)}
+               className="absolute top-8 right-8 w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all z-[110]"
+               onClick={() => setGalleryPreview(null)}
              >
                <X className="w-6 h-6" />
              </button>
-             <motion.img
-               initial={{ scale: 0.9, opacity: 0 }}
-               animate={{ scale: 1, opacity: 1 }}
-               exit={{ scale: 0.9, opacity: 0 }}
-               src={previewImageUrl}
-               alt="Evidencia Ampliada"
-               className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl"
-               onClick={(e) => e.stopPropagation()}
-             />
+
+             {/* Navegación Izquierda */}
+             {galleryPreview.urls.length > 1 && (
+               <button
+                 className="absolute left-4 md:left-12 w-14 h-14 bg-white/5 hover:bg-white/10 text-white rounded-full flex items-center justify-center transition-all z-[110]"
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   setGalleryPreview(prev => prev ? ({
+                     ...prev,
+                     index: (prev.index - 1 + prev.urls.length) % prev.urls.length
+                   }) : null);
+                 }}
+               >
+                 <ChevronLeft className="w-8 h-8" />
+               </button>
+             )}
+
+             {/* Imagen Principal */}
+             <div className="relative flex flex-col items-center gap-6 max-w-full max-h-full" onClick={(e) => e.stopPropagation()}>
+               <motion.img
+                 key={galleryPreview.urls[galleryPreview.index]}
+                 initial={{ scale: 0.95, opacity: 0, x: 20 }}
+                 animate={{ scale: 1, opacity: 1, x: 0 }}
+                 exit={{ scale: 0.95, opacity: 0, x: -20 }}
+                 src={galleryPreview.urls[galleryPreview.index]}
+                 alt={`Evidencia ${galleryPreview.index + 1}`}
+                 className="max-w-[70vw] max-h-[75vh] object-contain rounded-2xl shadow-2xl border border-white/10"
+               />
+               
+               {/* Contador */}
+               <div className="px-6 py-2 bg-white/10 backdrop-blur-md rounded-full text-white text-[12px] font-black tracking-widest uppercase border border-white/5 shadow-lg select-none">
+                 Evidencia {galleryPreview.index + 1} / {galleryPreview.urls.length}
+               </div>
+             </div>
+
+             {/* Navegación Derecha */}
+             {galleryPreview.urls.length > 1 && (
+               <button
+                 className="absolute right-4 md:right-12 w-14 h-14 bg-white/5 hover:bg-white/10 text-white rounded-full flex items-center justify-center transition-all z-[110]"
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   setGalleryPreview(prev => prev ? ({
+                     ...prev,
+                     index: (prev.index + 1) % prev.urls.length
+                   }) : null);
+                 }}
+               >
+                 <ChevronRight className="w-8 h-8" />
+               </button>
+             )}
           </motion.div>
         )}
       </AnimatePresence>

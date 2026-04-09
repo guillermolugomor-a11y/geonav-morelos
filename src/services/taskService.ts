@@ -335,11 +335,15 @@ export const taskService = {
     status: Tarea['status'], 
     comentarios?: string, 
     userId?: string,
-    evidenciaUrl?: string
+    evidenciaUrl?: string,
+    evidenciaUrls?: string[]
   ): Promise<boolean> {
     const updates: any = { status, comentarios_usuario: comentarios };
     if (evidenciaUrl !== undefined) {
       updates.evidencia_url = evidenciaUrl;
+    }
+    if (evidenciaUrls !== undefined) {
+      updates.evidencia_urls = evidenciaUrls;
     }
 
     const { error } = await supabase
@@ -353,10 +357,11 @@ export const taskService = {
     }
 
     if (comentarios && userId) {
+      const hasEvidence = (evidenciaUrl && evidenciaUrl.length > 0) || (evidenciaUrls && evidenciaUrls.length > 0);
       await this.addTareaHistorial({
         tarea_id: tareaId,
         user_id: userId,
-        mensaje: evidenciaUrl 
+        mensaje: hasEvidence 
           ? `${comentarios} (Evidencia fotográfica adjunta)` 
           : comentarios,
         estado_snapshot: status,

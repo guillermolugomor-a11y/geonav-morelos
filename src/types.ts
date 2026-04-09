@@ -39,6 +39,7 @@ export interface Tarea {
   fecha_limite?: string;
   comentarios_usuario?: string;
   evidencia_url?: string;
+  evidencia_urls?: string[];
   seccion?: string | null;
   manzana?: string | null;
   clave_seccion?: string | null;

@@ -16,7 +16,8 @@ export const getTaskLocationParts = (task: Partial<Tarea>, poligono?: Poligono |
   const seccion =
     asDisplayValue(task.seccion) ??
     asDisplayValue(task.clave_seccion) ??
-    asDisplayValue(poligono?.metadata?.seccion);
+    asDisplayValue(poligono?.metadata?.seccion) ??
+    asDisplayValue(poligono?.nombre);
 
   const manzana =
     asDisplayValue(task.manzana) ??
@@ -54,7 +55,7 @@ export const getTaskLocationParts = (task: Partial<Tarea>, poligono?: Poligono |
     return {
       seccion: null,
       manzana: null,
-      label: `Polígono ${task.polygon_id}`,
+      label: `Referencia #${task.polygon_id}`,
       detail: `ID:${task.polygon_id}`
     };
   }

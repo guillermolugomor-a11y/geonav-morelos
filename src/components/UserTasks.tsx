@@ -22,11 +22,11 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
   const [editStatus, setEditStatus] = useState<Tarea['status']>('pendiente');
   const [newUpdate, setNewUpdate] = useState('');
   const [savingTask, setSavingTask] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [evidenceUrl, setEvidenceUrl] = useState<string | null>(null);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [evidenceUrls, setEvidenceUrls] = useState<string[]>([]);
   
   const { notifications, markTaskNotificationsAsRead } = useNotifications();
 
@@ -46,11 +46,13 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
     
     const statusChanged = editStatus !== editingTask.status;
     const messageChanged = newUpdate.trim().length > 0;
-    const evidenceChanged = evidenceUrl !== (editingTask.evidencia_url || null);
-    const fileSelected = selectedFile !== null;
     
-    return statusChanged || messageChanged || evidenceChanged || fileSelected;
-  }, [editingTask, editStatus, newUpdate, evidenceUrl, selectedFile]);
+    const originalUrls = editingTask.evidencia_urls || [];
+    const evidenceUrlsChanged = JSON.stringify(evidenceUrls) !== JSON.stringify(originalUrls);
+    const filesSelected = selectedFiles.length > 0;
+    
+    return statusChanged || messageChanged || evidenceUrlsChanged || filesSelected;
+  }, [editingTask, editStatus, newUpdate, evidenceUrls, selectedFiles]);
 
   const fetchTasks = async () => {
     setLoadingTasks(true);
@@ -72,9 +74,9 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
     setEditingTask(tarea);
     setEditStatus(tarea.status);
     setNewUpdate('');
-    setEvidenceUrl(tarea.evidencia_url || null);
-    setSelectedFile(null);
-    setPreviewUrl(null);
+    setEvidenceUrls(tarea.evidencia_urls || (tarea.evidencia_url ? [tarea.evidencia_url] : []));
+    setSelectedFiles([]);
+    setPreviewUrls([]);
     
     // Cargar historial
     setLoadingHistorial(true);
@@ -96,66 +98,83 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
     setEditStatus('pendiente');
     setNewUpdate('');
     setHistorial([]);
-    setSelectedFile(null);
-    setPreviewUrl(null);
+    setSelectedFiles([]);
+    setPreviewUrls([]);
     setUploadProgress(0);
     setIsUploading(false);
-    setEvidenceUrl(null);
+    setEvidenceUrls([]);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const newFiles = Array.from(files);
+      const remainingSlots = 5 - (evidenceUrls.length + selectedFiles.length);
+      const filesToAdd = newFiles.slice(0, remainingSlots);
+      
+      if (filesToAdd.length < newFiles.length) {
+        alert("Máximo 5 fotos por tarea");
+      }
+
+      if (filesToAdd.length > 0) {
+        setSelectedFiles(prev => [...prev, ...filesToAdd] as File[]);
+        const urls = filesToAdd.map(file => URL.createObjectURL(file as File));
+        setPreviewUrls(prev => [...prev, ...urls]);
+      }
     }
   };
 
   const handleSaveEdit = async () => {
+    if (!editingTask) return;
     setSavingTask(true);
-    let finalEvidenceUrl = evidenceUrl;
+    let finalEvidenceUrls = [...evidenceUrls];
 
     try {
-      // 1. Si hay un archivo nuevo, subirlo primero
-      if (selectedFile) {
+      // 1. Subir archivos nuevos secuencialmente
+      if (selectedFiles.length > 0) {
         setIsUploading(true);
-        const uploadedUrl = await cloudinaryService.uploadImage(selectedFile, (progress) => {
-          setUploadProgress(progress);
-        });
-        if (uploadedUrl) {
-          finalEvidenceUrl = uploadedUrl;
-        } else {
-          throw new Error('Error al subir la imagen a Cloudinary');
+        const totalFiles = selectedFiles.length;
+        
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const uploadedUrl = await cloudinaryService.uploadImage(selectedFiles[i], (progress) => {
+            const overallProgress = ((i * 100) + progress) / totalFiles;
+            setUploadProgress(overallProgress);
+          });
+          
+          if (uploadedUrl) {
+            finalEvidenceUrls.push(uploadedUrl);
+          } else {
+            throw new Error(`Error al subir la imagen ${i + 1} de ${totalFiles}`);
+          }
         }
       }
 
-      // 2. Si hay un mensaje nuevo, cambio de estado o nueva evidencia, actualizar
+      // 2. Actualizar tarea con la nueva lista de evidencias
       const success = await taskService.updateTareaStatus(
         editingTask.id, 
         editStatus, 
         newUpdate.trim() || undefined, 
         perfil.id,
-        finalEvidenceUrl // Pasamos el valor actual (puede ser null si se eliminó)
+        finalEvidenceUrls[0] || null, // Compatibilidad (primera foto)
+        finalEvidenceUrls // Lista completa
       );
       
       if (success) {
-        // ACTUALIZACIÓN: En lugar de cerrar, refrescamos el historial local
         const history = await taskService.getTareaHistorial(editingTask.id);
         setHistorial(history);
         setNewUpdate('');
-        setSelectedFile(null);
-        setPreviewUrl(null);
-        setEvidenceUrl(finalEvidenceUrl);
-        
-        // Refrescamos la lista de fondo por si acaso
+        setSelectedFiles([]);
+        setPreviewUrls([]);
+        setEvidenceUrls(finalEvidenceUrls);
+        setUploadProgress(0);
+        setIsUploading(false);
         await fetchTasks();
       } else {
-        alert('Error al actualizar la tarea');
+        alert('No se pudo guardar la tarea');
       }
-    } catch (error) {
-      console.error('Error saving task:', error);
-      alert(error instanceof Error ? error.message : 'Error al actualizar la tarea');
+    } catch (error: any) {
+      console.error('Error al guardar reporte:', error);
+      alert(`Error: ${error.message}`);
     } finally {
       setSavingTask(false);
       setIsUploading(false);
@@ -299,13 +318,14 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-4 bg-stone-900/60 backdrop-blur-sm shadow-2xl overflow-hidden"
+            className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-4 pb-32 sm:pb-4 bg-stone-900/60 backdrop-blur-sm shadow-2xl overflow-hidden"
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col h-[80vh] sm:h-auto sm:max-h-[92vh] border border-stone-100"
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col h-[75vh] sm:h-auto sm:max-h-[92vh] border border-stone-100"
             >
               <div className="flex justify-between items-center p-5 md:p-8 border-b border-stone-50">
                 <div className="flex flex-col">
@@ -438,62 +458,96 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
 
                   {/* Subida de Evidencia */}
                   <div>
-                    <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2 flex items-center gap-2">
-                      <Camera className="w-3.5 h-3.5" />
-                      Evidencia Fotográfica
+                    <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2 flex items-center justify-between gap-2">
+                       <span className="flex items-center gap-2">
+                          <Camera className="w-3.5 h-3.5" />
+                          Evidencia Fotográfica ({evidenceUrls.length + selectedFiles.length}/5)
+                       </span>
+                       {isUploading && (
+                          <span className="text-[10px] text-[#8C3154] animate-pulse">Subiendo... {Math.round(uploadProgress)}%</span>
+                       )}
                     </label>
                     
-                    {previewUrl || evidenceUrl ? (
-                      <div className="relative group rounded-2xl overflow-hidden border border-stone-200 bg-stone-50 h-48 mb-3">
-                        <img 
-                          src={previewUrl || evidenceUrl || ''} 
-                          alt="Previsualización" 
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                           <button 
-                             onClick={() => { 
-                               setSelectedFile(null); 
-                               setPreviewUrl(null); 
-                               setEvidenceUrl(null); 
-                             }}
-                             className="p-2 bg-white/20 hover:bg-white/40 backdrop-blur-md rounded-full text-white transition-all transform hover:scale-110"
-                             title="Remover foto"
-                           >
-                             <Trash2 className="w-5 h-5" />
-                           </button>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-2">
+                      {/* Fotos ya guardadas en la tarea */}
+                      {evidenceUrls.map((url, index) => (
+                        <div key={`ev-${index}`} className="relative h-28 rounded-xl overflow-hidden border border-stone-200 bg-stone-50 group shadow-sm">
+                          <img 
+                            src={url} 
+                            alt={`Evidencia ${index + 1}`} 
+                            className="w-full h-full object-cover"
+                          />
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setEvidenceUrls(prev => prev.filter((_, i) => i !== index));
+                            }}
+                            className="absolute top-1.5 right-1.5 p-2 bg-white/80 backdrop-blur-md rounded-full text-[#8C3154] shadow-md transition-all active:scale-90"
+                            title="Remover foto"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
-                        {isUploading && (
-                          <div className="absolute inset-x-0 bottom-0 p-4 bg-black/60 backdrop-blur-sm">
-                            <div className="flex justify-between text-[10px] font-bold text-white uppercase mb-1.5">
-                              <span>Subiendo a Cloudinary...</span>
-                              <span>{uploadProgress}%</span>
-                            </div>
-                            <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
-                              <motion.div 
-                                initial={{ width: 0 }}
-                                animate={{ width: `${uploadProgress}%` }}
-                                className="h-full bg-white rounded-full"
-                              />
-                            </div>
+                      ))}
+
+                      {/* Previsualización de fotos nuevas seleccionadas */}
+                      {previewUrls.map((url, index) => (
+                        <div key={`prev-${index}`} className="relative h-28 rounded-xl overflow-hidden border-2 border-[#8C3154]/30 bg-stone-50 group shadow-sm ring-4 ring-[#8C3154]/5">
+                          <img 
+                            src={url} 
+                            alt={`Previsualización ${index + 1}`} 
+                            className="w-full h-full object-cover brightness-90"
+                          />
+                          <div className="absolute inset-0 bg-stone-900/10 flex items-center justify-center">
+                             <div className="bg-white/90 px-2 py-0.5 rounded text-[8px] font-black text-[#8C3154] uppercase tracking-tighter">Pendiente</div>
                           </div>
-                        )}
-                      </div>
-                    ) : (
-                      <label className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-stone-200 rounded-2xl bg-stone-50 hover:bg-stone-100 hover:border-[#8C3154]/30 transition-all cursor-pointer group">
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          capture="environment"
-                          onChange={handleFileChange} 
-                          className="hidden" 
-                        />
-                        <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                          <ImageIcon className="w-6 h-6 text-stone-400 group-hover:text-[#8C3154]" />
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+                              setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+                            }}
+                            className="absolute top-1.5 right-1.5 p-2 bg-white/80 backdrop-blur-md rounded-full text-[#8C3154] shadow-md transition-all active:scale-90"
+                            title="Remover foto"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
-                        <span className="text-xs font-bold text-stone-500">Haz clic para tomar o subir una foto</span>
-                        <span className="text-[10px] text-stone-400 mt-1 uppercase tracking-tighter">JPG, PNG hasta 5MB</span>
-                      </label>
+                      ))}
+
+                      {/* Ranura para añadir más (si hay espacio) */}
+                      {(evidenceUrls.length + selectedFiles.length) < 5 && (
+                        <label className="flex flex-col items-center justify-center h-28 border-2 border-dashed border-stone-200 rounded-xl bg-stone-50 hover:bg-stone-100 hover:border-[#8C3154]/30 transition-all cursor-pointer group shadow-sm">
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            capture="environment"
+                            multiple
+                            onChange={handleFileChange} 
+                            className="hidden" 
+                          />
+                          <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                            <ImageIcon className="w-5 h-5 text-stone-400 group-hover:text-[#8C3154]" />
+                          </div>
+                          <span className="text-[10px] font-black text-stone-500 uppercase tracking-tighter">Añadir Foto</span>
+                        </label>
+                      )}
+                    </div>
+
+                    {isUploading && (
+                      <div className="mt-3 bg-stone-50 p-3 rounded-xl border border-stone-100">
+                        <div className="flex justify-between text-[9px] font-black text-stone-400 uppercase mb-2">
+                          <span>Subiendo archivos...</span>
+                          <span>{Math.round(uploadProgress)}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${uploadProgress}%` }}
+                            className="h-full bg-gradient-to-r from-[#8C3154] to-[#BC9B73] rounded-full"
+                          />
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>

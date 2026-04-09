@@ -18,9 +18,11 @@ const app = express();
 const port = Number(process.env.PORT) || 3002;
 const __dirname = path.resolve();
 
-// Logging middleware
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+// Logging middleware (Only for non-static API requests to avoid noise)
+app.use('/api', (req, res, next) => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  }
   next();
 });
 

@@ -11,16 +11,25 @@ interface TaskLocationLabelProps {
 export const TaskLocationLabel: React.FC<TaskLocationLabelProps> = ({ task, poligono, compact = false }) => {
   const location = getTaskLocationParts(task, poligono);
 
-  if (compact || (!location.seccion && !location.manzana)) {
-    return <span>{location.label}</span>;
+  // If compact mod is on (like in a small badge), we still try to show both but in one line
+  if (compact) {
+    return <span className="truncate">{location.label}</span>;
   }
 
+  // Uniform "Red Box" style for the Task Monitor
   return (
-    <div className="flex flex-col leading-tight">
-      {location.seccion && <span>Sección {location.seccion}</span>}
+    <div className="flex flex-col leading-tight py-0.5">
+      <span className="text-[11px] font-bold text-primary tracking-tight whitespace-nowrap">
+        {location.seccion ? `Sección ${location.seccion}` : location.label}
+      </span>
       {location.manzana && (
-        <span className="text-[10px] font-bold uppercase tracking-wide opacity-70">
+        <span className="text-[9px] font-black uppercase tracking-[0.05em] text-on-surface-variant opacity-60">
           Manzana {location.manzana}
+        </span>
+      )}
+      {!location.manzana && location.seccion && (
+        <span className="text-[9px] font-black uppercase tracking-[0.05em] text-on-surface-variant opacity-30">
+          Ubicación Única
         </span>
       )}
     </div>

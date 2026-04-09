@@ -3,6 +3,8 @@
  * utilizando la Cache API del navegador.
  */
 
+import { debugLog } from './debug';
+
 const CACHE_NAME = 'geonav-static-data-v1';
 
 export async function fetchWithCache<T>(url: string): Promise<T> {
@@ -10,11 +12,11 @@ export async function fetchWithCache<T>(url: string): Promise<T> {
   const cachedResponse = await cache.match(url);
 
   if (cachedResponse) {
-    console.log(`[Cache] Cargando desde disco: ${url}`);
+    debugLog(`[Cache] Cargando desde disco: ${url}`);
     return await cachedResponse.json();
   }
 
-  console.log(`[Cache] No encontrado. Descargando de red: ${url}`);
+  debugLog(`[Cache] No encontrado. Descargando de red: ${url}`);
   const response = await fetch(url);
   
   // Guardar en caché para la próxima vez

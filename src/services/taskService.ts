@@ -338,7 +338,7 @@ export const taskService = {
     evidenciaUrl?: string
   ): Promise<boolean> {
     const updates: any = { status, comentarios_usuario: comentarios };
-    if (evidenciaUrl) {
+    if (evidenciaUrl !== undefined) {
       updates.evidencia_url = evidenciaUrl;
     }
 

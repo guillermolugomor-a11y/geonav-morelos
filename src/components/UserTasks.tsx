@@ -125,7 +125,7 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
         editStatus, 
         newUpdate.trim() || undefined, 
         perfil.id,
-        finalEvidenceUrl || undefined
+        finalEvidenceUrl // Pasamos el valor actual (puede ser null si se eliminó)
       );
       
       if (success) {
@@ -441,7 +441,11 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                         />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
                            <button 
-                             onClick={() => { setSelectedFile(null); setPreviewUrl(null); }}
+                             onClick={() => { 
+                               setSelectedFile(null); 
+                               setPreviewUrl(null); 
+                               setEvidenceUrl(null); 
+                             }}
                              className="p-2 bg-white/20 hover:bg-white/40 backdrop-blur-md rounded-full text-white transition-all transform hover:scale-110"
                              title="Remover foto"
                            >

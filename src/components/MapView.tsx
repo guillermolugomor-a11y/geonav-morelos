@@ -365,7 +365,7 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
             <div className="absolute inset-0 border-4 border-primary/10 rounded-full" />
             <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin" />
             <div className="absolute inset-0 flex items-center justify-center">
-              <img src="/iesm-logo.png" className="w-8 h-8 opacity-20 mix-blend-multiply" alt="" />
+              <img src="/nuevologo.jpeg" className="w-8 h-8 opacity-20 mix-blend-multiply" alt="" />
             </div>
           </div>
           <p className="text-primary font-display font-extrabold text-sm tracking-widest uppercase animate-pulse">Cargando Cartografía</p>

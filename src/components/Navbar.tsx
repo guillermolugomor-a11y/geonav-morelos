@@ -28,7 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({ perfil, user, onLogout, currentV
     <nav className="bg-surface/60 backdrop-blur-xl px-4 md:px-10 py-3 md:py-4 flex items-center justify-between sticky top-0 z-[100] civic-shadow">
       <div className="flex items-center gap-4 md:gap-6">
         <img
-          src="/iesm-logo.png"
+          src="/nuevologo.jpeg"
           alt="I.E.S.M."
           className="h-10 md:h-12 w-auto mix-blend-multiply opacity-90"
         />

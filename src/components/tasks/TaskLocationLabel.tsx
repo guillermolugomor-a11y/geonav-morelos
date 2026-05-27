@@ -27,11 +27,6 @@ export const TaskLocationLabel: React.FC<TaskLocationLabelProps> = ({ task, poli
           Manzana {location.manzana}
         </span>
       )}
-      {!location.manzana && location.seccion && (
-        <span className="text-[9px] font-black uppercase tracking-[0.05em] text-on-surface-variant opacity-30">
-          Ubicación Única
-        </span>
-      )}
     </div>
   );
 };

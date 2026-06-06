@@ -387,6 +387,11 @@ export const taskService = {
     return { error };
   },
 
+  async deleteTareas(tareaIds: string[]): Promise<{ error: any }> {
+    const { error } = await supabase.from('tareas').delete().in('id', tareaIds);
+    return { error };
+  },
+
   async updateTarea(tarea_id: string, updates: Partial<Tarea>, adminId?: string): Promise<{ data: Tarea | null; error: any }> {
     try {
       // Primero obtenemos el estado actual para comparar

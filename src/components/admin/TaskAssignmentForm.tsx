@@ -131,7 +131,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
           <ClipboardList className="w-8 h-8" />
           Gestión de Tareas
         </h2>
-        <p className="text-base text-stone-500 mt-2 font-medium">Asigna polígonos y tareas específicas a los operativos.</p>
+        <p className="text-base text-stone-500 mt-2 font-medium">Asigna polígonos y tareas específicas a los supervisores de campo.</p>
       </div>
 
       <form onSubmit={onSubmit} className="p-6 md:p-8 space-y-8 bg-surface">
@@ -141,7 +141,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-on-surface uppercase tracking-widest flex items-center gap-2 opacity-85">
-                <User className="w-4 h-4" /> Operativos
+                <User className="w-4 h-4" /> Supervisores de Campo
               </label>
               <button
                 type="button"
@@ -190,7 +190,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                           </p>
                           <div className="flex items-center gap-2">
                              <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest truncate">
-                                {u.rol || 'Operativo'}
+                                {u.rol === 'admin' ? 'Administrador' : 'Supervisor de Campo'}
                              </p>
                              {/* Badge de Workload */}
                              {(() => {
@@ -485,7 +485,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                 <p className="text-xs text-stone-500 font-medium max-w-md">
                   {isCollaborative 
                     ? 'Todo el equipo compartirá la misma tarea, chat y evidencias. Ideal para trabajo en conjunto.' 
-                    : 'Cada operativo recibirá una copia independiente del trabajo. Ideal para repartir manzanas.'}
+                    : 'Cada supervisor de campo recibirá una copia independiente del trabajo. Ideal para repartir manzanas.'}
                 </p>
               </div>
             </div>

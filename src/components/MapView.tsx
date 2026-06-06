@@ -570,7 +570,7 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
               </div>
               <h3 className="text-2xl font-display font-extrabold text-on-surface mb-3 tracking-tight">Sin Asignación</h3>
               <p className="text-on-surface-variant/60 text-sm leading-relaxed mb-10 font-medium">
-                Actualmente no tienes un área operativa asignada. Por favor, solicita una asignación al administrador.
+                Actualmente no tienes un área de supervisión asignada. Por favor, solicita una asignación al administrador.
               </p>
               <button
                 onClick={() => loadTasks()}

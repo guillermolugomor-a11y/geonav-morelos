@@ -322,7 +322,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedUsers.length === 0 || selectedSections.length === 0 || !instruccion) {
-      setMessage({ type: 'error', text: 'Por favor selecciona al menos un operativo, al menos una sección y escribe las instrucciones.' });
+      setMessage({ type: 'error', text: 'Por favor selecciona al menos un supervisor de campo, al menos una sección y escribe las instrucciones.' });
       return;
     }
 
@@ -350,7 +350,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           auto_activate: autoActivate
         }, selectedUsers, perfil?.id);
         if (error) throw error;
-        setMessage({ type: 'success', text: `Tarea colaborativa asignada a ${selectedUsers.length} operativos en Sección ${sec.id}.` });
+        setMessage({ type: 'success', text: `Tarea colaborativa asignada a ${selectedUsers.length} supervisores de campo en Sección ${sec.id}.` });
 
       } else {
         // ── Asignación masiva: una tarea por cada combinación (usuario × sección) ──
@@ -372,7 +372,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           }
         }
 
-        debugLog(`Enviando ${payloads.length} tareas (${selectedSections.length} secciones × ${selectedUsers.length} operativos):`, payloads);
+        debugLog(`Enviando ${payloads.length} tareas (${selectedSections.length} secciones × ${selectedUsers.length} supervisores de campo):`, payloads);
 
         if (payloads.length === 1) {
           // Camino rápido: inserción simple
@@ -386,7 +386,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
         const seccionesLabel = selectedSections.length === 1
           ? `Sección ${selectedSections[0].id}`
           : `${selectedSections.length} secciones`;
-        setMessage({ type: 'success', text: `${payloads.length} tarea(s) asignada(s) correctamente (${seccionesLabel} · ${selectedUsers.length} operativo(s)).` });
+        setMessage({ type: 'success', text: `${payloads.length} tarea(s) asignada(s) correctamente (${seccionesLabel} · ${selectedUsers.length} supervisor(es) de campo).` });
       }
 
       resetForm();

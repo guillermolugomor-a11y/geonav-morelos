@@ -25,7 +25,7 @@ export const Navbar: React.FC<NavbarProps> = ({ perfil, user, onLogout, currentV
   };
 
   return (
-    <nav className="bg-surface/60 backdrop-blur-xl px-4 md:px-10 py-3 md:py-4 flex items-center justify-between sticky top-0 z-[100] civic-shadow">
+    <nav className="bg-surface/60 backdrop-blur-xl px-4 md:px-10 py-3 md:py-4 flex items-center justify-between sticky top-0 z-[1050] civic-shadow">
       <div className="flex items-center gap-4 md:gap-6">
         <img
           src="/nuevologo.jpeg"
@@ -36,8 +36,8 @@ export const Navbar: React.FC<NavbarProps> = ({ perfil, user, onLogout, currentV
           <span className="font-display font-extrabold text-sm md:text-xl text-primary tracking-tighter block leading-none">
             GeoNav <span className="text-primary-container/80">Morelos</span>
           </span>
-          <span className="text-[9px] uppercase tracking-[0.25em] font-black text-on-surface-variant/40 mt-1 block">
-            Instituto de Estudios Sociales
+          <span className="text-[9px] uppercase tracking-[0.2em] font-black text-on-surface-variant/40 mt-1 block">
+            Instituto Morelense de Estudios Sociodemográficos
           </span>
         </div>
       </div>

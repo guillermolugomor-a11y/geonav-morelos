@@ -113,7 +113,7 @@ export const UserStatsView: React.FC<UserStatsViewProps> = ({ usuarios, tareas }
 
       {/* Ranking Header - Synchronized Columns */}
       <div className="hidden md:flex items-center px-8 mb-4 text-[11px] font-black uppercase tracking-[0.25em] text-on-surface-variant opacity-80">
-        <div className="w-[35%] pl-4">Operativos</div>
+        <div className="w-[35%] pl-4">Supervisores de Campo</div>
         <div className="w-[15%] text-center">Pend.</div>
         <div className="w-[15%] text-center">Prog.</div>
         <div className="w-[15%] text-center">Hechas</div>

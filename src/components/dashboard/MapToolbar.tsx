@@ -8,7 +8,7 @@ interface MapToolbarProps {
 
 export const MapToolbar: React.FC<MapToolbarProps> = ({ searchTerm, setSearchTerm }) => {
   return (
-    <div className="absolute top-24 md:top-8 right-4 md:right-10 z-[1000] flex flex-col gap-4 items-end">
+    <div className="absolute top-24 md:top-8 right-4 md:right-10 z-[800] flex flex-col gap-4 items-end">
       <div className="bg-surface/95 backdrop-blur-xl p-2.5 rounded-3xl civic-shadow flex items-center gap-3 w-72 md:w-80 group transition-all focus-within:ring-2 focus-within:ring-primary/10">
         <div className="premium-gradient p-3 rounded-2xl civic-shadow shadow-primary/20">
           <Database size={20} className="text-white" />

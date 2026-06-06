@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertCircle, Bell, ClipboardList, Clock, Edit2, Eye, MapPin, Trash2, User, X, CheckCircle2, RotateCcw, Search, ChevronRight, ChevronLeft, Users, Camera, Image as ImageIcon } from 'lucide-react';
+import { AlertCircle, ClipboardList, Clock, Edit2, Eye, MapPin, Trash2, User, X, CheckCircle2, RotateCcw, Search, ChevronRight, ChevronLeft, Users, Camera } from 'lucide-react';
 import { Poligono, Tarea, UsuarioPerfil } from '../../types';
 import { TaskLocationLabel } from '../tasks/TaskLocationLabel';
 import { useNotifications } from '../notifications/NotificationContext';
@@ -40,24 +40,7 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [galleryPreview, setGalleryPreview] = useState<{ urls: string[], index: number } | null>(null);
-
-  // Keyboard navigation for gallery
-  React.useEffect(() => {
-    if (!galleryPreview) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') {
-        setGalleryPreview(prev => prev ? ({ ...prev, index: (prev.index + 1) % prev.urls.length }) : null);
-      } else if (e.key === 'ArrowLeft') {
-        setGalleryPreview(prev => prev ? ({ ...prev, index: (prev.index - 1 + prev.urls.length) % prev.urls.length }) : null);
-      } else if (e.key === 'Escape') {
-        setGalleryPreview(null);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [galleryPreview]);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
 
   const userMap = useMemo(() => {
     const map = new Map<string, UsuarioPerfil>();
@@ -88,6 +71,66 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
       return searchMatch;
     });
   }, [tareas, userMap, searchTerm]);
+
+  const allVisibleSelected = filteredTareas.length > 0 && filteredTareas.every(t => selectedTaskIds.has(t.id));
+  
+  const handleSelectAllToggle = () => {
+    if (allVisibleSelected) {
+      const newSelected = new Set(selectedTaskIds);
+      filteredTareas.forEach(t => newSelected.delete(t.id));
+      setSelectedTaskIds(newSelected);
+    } else {
+      const newSelected = new Set(selectedTaskIds);
+      filteredTareas.forEach(t => newSelected.add(t.id));
+      setSelectedTaskIds(newSelected);
+    }
+  };
+
+  const handleSelectTaskToggle = (id: string) => {
+    const newSelected = new Set(selectedTaskIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedTaskIds(newSelected);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar permanentemente las ${selectedTaskIds.size} tareas seleccionadas? Esta acción es irreversible.`)) return;
+    setProcessingId('bulk-delete');
+    try {
+      const { error } = await taskService.deleteTareas(Array.from(selectedTaskIds));
+      if (error) {
+        alert(`Error al eliminar tareas: ${error.message}`);
+      } else {
+        setSelectedTaskIds(new Set());
+        if (onRefresh) onRefresh();
+      }
+    } catch (err: any) {
+      alert(`Error inesperado: ${err.message}`);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  // Keyboard navigation for gallery
+  React.useEffect(() => {
+    if (!galleryPreview) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        setGalleryPreview(prev => prev ? ({ ...prev, index: (prev.index + 1) % prev.urls.length }) : null);
+      } else if (e.key === 'ArrowLeft') {
+        setGalleryPreview(prev => prev ? ({ ...prev, index: (prev.index - 1 + prev.urls.length) % prev.urls.length }) : null);
+      } else if (e.key === 'Escape') {
+        setGalleryPreview(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [galleryPreview]);
 
   const handleApprove = async (tarea: Tarea) => {
     if (!window.confirm('¿Aprobar esta tarea? Se registrará la validación final.')) return;
@@ -202,11 +245,51 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
       {/* Main Content Area - Digital Curator: Architectural White Space */}
       <div className="flex-1 overflow-y-auto p-6 md:p-12 lg:p-16 bg-surface-container-low animate-in fade-in slide-in-from-bottom-4 duration-1000">
         
+        {/* Bulk operations bar */}
+        {selectedTaskIds.size > 0 && (
+          <div className="max-w-screen-xl mx-auto mb-8 bg-red-50 border border-red-100 py-4 px-6 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-3xl animate-in slide-in-from-top-4 duration-300">
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-black text-red-800 uppercase tracking-wider">
+                {selectedTaskIds.size} {selectedTaskIds.size === 1 ? 'tarea seleccionada' : 'tareas seleccionadas'} para eliminación
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setSelectedTaskIds(new Set())}
+                className="text-[10px] font-black uppercase tracking-widest text-stone-500 hover:text-stone-700 transition-colors bg-white px-4 py-2.5 rounded-xl border border-stone-200 shadow-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={processingId === 'bulk-delete'}
+                className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black rounded-xl uppercase tracking-widest transition-all shadow-md disabled:opacity-50 active:scale-[0.98]"
+              >
+                {processingId === 'bulk-delete' ? 'Eliminando...' : 'Eliminar Seleccionadas'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Desktop View: Editorial Spread (Digital Curator) */}
         <div className="hidden md:block max-w-screen-xl mx-auto">
           {/* List Header - Synchronized Columns */}
           <div className="flex items-center px-8 mb-8 text-[11px] font-black uppercase tracking-[0.25em] text-on-surface-variant opacity-90">
-            <div className="w-[25%] pl-4 truncate">Operativo</div>
+            <div className="w-[5%] flex justify-center">
+              <input
+                type="checkbox"
+                checked={allVisibleSelected}
+                ref={el => {
+                  if (el) {
+                    el.indeterminate = selectedTaskIds.size > 0 && !allVisibleSelected;
+                  }
+                }}
+                onChange={handleSelectAllToggle}
+                className="w-4 h-4 accent-primary cursor-pointer rounded border-stone-300"
+                title="Seleccionar todo"
+              />
+            </div>
+            <div className="w-[20%] pl-4 truncate">Supervisor de Campo</div>
             <div className="w-[15%] px-2">Ubicación</div>
             <div className="w-[20%] px-2">Instrucción</div>
             <div className="w-[15%] text-center">Estado</div>
@@ -235,14 +318,25 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
                   >
                     <div className="flex items-center">
                       
-                      {/* Column 1: Personal (25%) */}
-                      <div className="w-[25%] flex items-center gap-5 pl-4 min-w-0">
+                      {/* Selection Checkbox */}
+                      <div className="w-[5%] flex justify-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedTaskIds.has(tarea.id)}
+                          onChange={() => handleSelectTaskToggle(tarea.id)}
+                          className="w-4 h-4 accent-primary cursor-pointer rounded border-stone-300"
+                          title="Seleccionar tarea"
+                        />
+                      </div>
+
+                      {/* Column 1: Personal (20%) */}
+                      <div className="w-[20%] flex items-center gap-5 pl-4 min-w-0">
                         <div className="w-14 h-14 rounded-2xl bg-surface-container-low flex items-center justify-center text-xs font-black text-primary border border-outline-variant/10 group-hover:bg-white transition-colors duration-500 shrink-0">
                           {usuario?.nombre.substring(0,2).toUpperCase()}
                         </div>
                         <div className="flex flex-col min-w-0">
                           <span className="text-[17px] font-black text-on-surface tracking-tight leading-tight group-hover:text-primary transition-colors truncate">{usuario?.nombre}</span>
-                          <span className="text-[12px] text-on-surface-variant font-medium tracking-tight opacity-50 italic truncate">{usuario?.email || 'institucional@morelos.gob.mx'}</span>
+                          <span className="text-[12px] text-on-surface-variant font-medium tracking-tight opacity-50 italic truncate">{usuario?.email || 'correo@instituto.org'}</span>
                         </div>
                       </div>
 
@@ -373,6 +467,27 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
 
         {/* Mobile View: Cards - Civic Nexus Redesign */}
         <div className="md:hidden space-y-4">
+          {filteredTareas.length > 0 && (
+            <div className="flex items-center justify-between px-2 mb-4 bg-white/50 backdrop-blur-md p-4 rounded-2xl border border-stone-200/50 shadow-sm">
+              <label className="flex items-center gap-3 text-xs font-black uppercase tracking-wider text-stone-500 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={allVisibleSelected}
+                  ref={el => {
+                    if (el) {
+                      el.indeterminate = selectedTaskIds.size > 0 && !allVisibleSelected;
+                    }
+                  }}
+                  onChange={handleSelectAllToggle}
+                  className="w-4 h-4 accent-primary rounded border-stone-300"
+                />
+                Seleccionar todo
+              </label>
+              <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
+                {filteredTareas.length} {filteredTareas.length === 1 ? 'tarea' : 'tareas'}
+              </span>
+            </div>
+          )}
           {filteredTareas.length === 0 ? (
             <div className="py-20 text-center bg-white rounded-3xl border border-dashed border-stone-200">
                <ClipboardList className="w-12 h-12 text-stone-200 mx-auto mb-4" />
@@ -395,11 +510,20 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
                   }`} />
 
                   <div className="flex justify-between items-start mb-4">
-                    <div className="flex flex-col">
-                      <h4 className="font-black text-stone-900 leading-tight">
-                        {usuario?.nombre || 'Usuario Desconocido'}
-                      </h4>
-                      <p className="text-[10px] text-stone-400 font-bold tracking-tight">{usuario?.email}</p>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedTaskIds.has(tarea.id)}
+                        onChange={() => handleSelectTaskToggle(tarea.id)}
+                        className="w-4 h-4 accent-primary cursor-pointer rounded border-stone-300 shrink-0"
+                        title="Seleccionar tarea"
+                      />
+                      <div className="flex flex-col">
+                        <h4 className="font-black text-stone-900 leading-tight">
+                          {usuario?.nombre || 'Usuario Desconocido'}
+                        </h4>
+                        <p className="text-[10px] text-stone-400 font-bold tracking-tight">{usuario?.email}</p>
+                      </div>
                     </div>
                     <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
                       tarea.status === 'completada' ? 'bg-emerald-50 text-emerald-600' :

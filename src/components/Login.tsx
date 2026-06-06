@@ -43,7 +43,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           <h1 className="font-display text-2xl font-extrabold text-primary tracking-tight text-center leading-tight">
             Geonavegación <span className="text-primary-container">Morelos</span>
           </h1>
-          <p className="text-on-surface-variant/60 mt-3 font-medium text-sm tracking-wide uppercase">Acceso Operativo</p>
+          <p className="text-on-surface-variant/60 mt-3 font-medium text-sm tracking-wide uppercase">Acceso Supervisor de Campo</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -53,7 +53,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               type="email"
               required
               className="w-full px-5 py-4 rounded-2xl bg-surface-container-low border-none focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-on-surface-variant/30 text-on-surface"
-              placeholder="usuario@morelos.gob.mx"
+              placeholder="usuario@instituto.org"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />

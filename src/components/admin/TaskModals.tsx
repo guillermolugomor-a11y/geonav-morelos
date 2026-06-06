@@ -127,7 +127,7 @@ export const TaskModals: React.FC<TaskModalsProps> = ({
   return (
     <AnimatePresence>
       {isViewModalOpen && selectedTarea && (
-        <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center p-0 md:p-6 bg-on-surface/40 backdrop-blur-md">
+        <div className="fixed inset-0 z-[2100] flex items-end md:items-center justify-center p-0 md:p-6 bg-on-surface/40 backdrop-blur-md">
           <motion.div
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
@@ -334,7 +334,7 @@ export const TaskModals: React.FC<TaskModalsProps> = ({
       )}
 
       {isEditModalOpen && selectedTarea && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-on-surface/40 backdrop-blur-md">
+        <div className="fixed inset-0 z-[2100] flex items-center justify-center p-4 bg-on-surface/40 backdrop-blur-md">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -408,7 +408,7 @@ export const TaskModals: React.FC<TaskModalsProps> = ({
       )}
 
       {isDeleteModalOpen && selectedTarea && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-on-surface/50 backdrop-blur-xl">
+        <div className="fixed inset-0 z-[2200] flex items-center justify-center p-4 bg-on-surface/50 backdrop-blur-xl">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}

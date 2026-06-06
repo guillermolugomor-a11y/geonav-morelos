@@ -31,7 +31,7 @@ export const UserDirectoryView: React.FC<UserDirectoryViewProps> = ({ usuarios }
     switch (rol) {
       case 'admin': return 'Administrador';
       case 'field_worker': 
-      case 'campo': return 'Operativo';
+      case 'campo': return 'Supervisor de Campo';
       default: return rol.charAt(0).toUpperCase() + rol.slice(1);
     }
   };
@@ -85,7 +85,7 @@ export const UserDirectoryView: React.FC<UserDirectoryViewProps> = ({ usuarios }
                   {u.nombre}
                 </h3>
                 <p className="text-[11px] text-on-surface-variant font-medium italic opacity-70 truncate group-hover:opacity-100 transition-opacity">
-                  {u.email || 'institucional@morelos.gob.mx'}
+                  {u.email || 'correo@instituto.org'}
                 </p>
               </div>
 

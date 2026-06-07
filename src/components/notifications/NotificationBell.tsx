@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Check, X, Clipboard, Activity, CheckCircle } from 'lucide-react';
+import { Bell, Check, X, Clipboard, Activity } from 'lucide-react';
 import { useNotifications } from './NotificationContext';
 import { motion, AnimatePresence } from 'motion/react';
 

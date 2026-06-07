@@ -47,15 +47,13 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
             .catch(err => console.error('Error cargando padrón:', err));
     }, []);
 
-    const { assignedSectionIds, assignedManzanaIds } = useMemo(() => {
+    const { assignedSectionIds } = useMemo(() => {
         const sections = new Set<number>();
-        const manzanas = new Set<number>();
         
         tareas.forEach(t => {
             if (['padron', 'seccion', 'secciones', 'Sección'].includes(t.tipo_capa)) {
                 sections.add(Number(t.polygon_id));
             } else if (['manzana', 'manzanas'].includes(t.tipo_capa)) {
-                manzanas.add(Number(t.polygon_id));
                 // También marcar la sección a la que pertenece la manzana
                 const mzInfo = manzanasPadron.find(m => Number(m.id) === Number(t.polygon_id));
                 if (mzInfo && mzInfo.seccion) {
@@ -63,7 +61,7 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
                 }
             }
         });
-        return { assignedSectionIds: sections, assignedManzanaIds: manzanas };
+        return { assignedSectionIds: sections };
     }, [tareas, manzanasPadron]);
 
     const filteredGeoJSON = useMemo(() => {

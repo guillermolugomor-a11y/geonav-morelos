@@ -309,7 +309,6 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
               filteredTareas.map((tarea) => {
                 const usuario = userMap.get(tarea.user_id);
                 const poligono = polygonMap.get(tarea.polygon_id);
-                const hasUnread = unreadTaskNotifications.has(tarea.id);
 
                 return (
                   <div 

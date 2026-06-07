@@ -1,7 +1,6 @@
 import React, { useCallback, useRef, useEffect } from 'react';
 import { GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
-import { Poligono } from '../../types';
 
 interface PolygonLayerProps {
     data: any; // FeatureCollection

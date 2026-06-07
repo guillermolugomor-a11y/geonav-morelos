@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Poligono } from '../types';
 import { poligonosService } from '../services/poligonosService';
 import { taskService } from '../services/taskService';
-import { supabase } from '../lib/supabaseClient';
-import { debugError, debugLog, debugWarn } from '../utils/debug';
+import { debugError, debugLog } from '../utils/debug';
 import { useStore } from '../store/useStore';
 
 interface UseMapDataParams {

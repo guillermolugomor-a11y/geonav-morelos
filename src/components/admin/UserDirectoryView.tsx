@@ -9,10 +9,14 @@ interface UserDirectoryViewProps {
 export const UserDirectoryView: React.FC<UserDirectoryViewProps> = ({ usuarios }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredUsers = usuarios.filter(u => 
-    u.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = usuarios
+    .filter(u => 
+      u.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => 
+      a.nombre.localeCompare(b.nombre, undefined, { numeric: true, sensitivity: 'base' })
+    );
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);

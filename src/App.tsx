@@ -8,7 +8,6 @@ import { useStore } from './store/useStore';
 
 export default function App() {
   const user = useStore(s => s.user);
-  const perfil = useStore(s => s.perfil);
   const appLoading = useStore(s => s.appLoading);
   const setUser = useStore(s => s.setUser);
   const setPerfil = useStore(s => s.setPerfil);

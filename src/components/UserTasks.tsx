@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { UsuarioPerfil, Tarea, TareaHistorial } from '../types';
 import { taskService } from '../services/taskService';
-import { CheckSquare, Loader2, ArrowRight, Edit3, X, Save, MessageSquare, Clock, User, ChevronRight, Bell, Users, Camera, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { CheckSquare, Loader2, ArrowRight, Edit3, X, Save, MessageSquare, Clock, User, ChevronRight, Users, Camera, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { cloudinaryService } from '../services/cloudinaryService';
 import { motion, AnimatePresence } from 'motion/react';
 import { TaskLocationLabel } from './tasks/TaskLocationLabel';

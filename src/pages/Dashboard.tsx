@@ -5,7 +5,7 @@ import { AdminPanel } from '../components/AdminPanel';
 import { UserProfile } from '../components/UserProfile';
 import { UserTasks } from '../components/UserTasks';
 import { PolygonSidebar } from '../components/PolygonSidebar';
-import { UsuarioPerfil, Poligono } from '../types';
+import { UsuarioPerfil } from '../types';
 import { userService } from '../services/userService';
 import { motion, AnimatePresence } from 'motion/react';
 import { isAdminUser } from '../constants/roles';
@@ -22,7 +22,7 @@ interface DashboardProps {
 import { BottomNav } from '../components/BottomNav';
 
 export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onProfileUpdate }) => {
-  const { user, perfil, usuarios, setUsuarios, selectedPoligono, setSelectedPoligono } = useStore();
+  const { user, perfil, setUsuarios, selectedPoligono, setSelectedPoligono } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [view, setView] = useState<'map' | 'admin_gestion' | 'admin_monitor' | 'admin_users' | 'admin_stats' | 'profile' | 'tasks'>('map');
   const [pendingFocusPolygonId, setPendingFocusPolygonId] = useState<number | null>(null);

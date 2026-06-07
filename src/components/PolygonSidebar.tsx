@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { X, MapPin, Layers, Database, ClipboardList, Send, Clock, User, MessageSquare, ChevronRight, Bell, Globe, Navigation } from 'lucide-react';
-import { Poligono, UsuarioPerfil } from '../types';
+import { motion } from 'motion/react';
+import { X, MapPin, Layers, Database, ClipboardList, Send, Clock, MessageSquare, ChevronRight, Globe, Navigation } from 'lucide-react';
+import { Poligono } from '../types';
 import { useTaskAssignment } from '../hooks/useTaskAssignment';
 import { useNotifications } from './notifications/NotificationContext';
 import { NotificationIndicator } from './notifications/NotificationIndicator';

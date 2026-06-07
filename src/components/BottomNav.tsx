@@ -1,5 +1,5 @@
 import React from 'react';
-import { Map, ClipboardList, LayoutDashboard, User, TrendingUp, UserCircle } from 'lucide-react';
+import { Map, ClipboardList, LayoutDashboard, TrendingUp, UserCircle } from 'lucide-react';
 
 interface BottomNavProps {
   currentView: 'map' | 'admin_gestion' | 'admin_monitor' | 'admin_users' | 'admin_stats' | 'profile' | 'tasks';

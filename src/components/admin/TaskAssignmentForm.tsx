@@ -96,6 +96,17 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
   selectedGeometry
 }) => {
   const getUsername = (id: string) => usuarios.find(u => u.id === id)?.nombre || 'Desconocido';
+  const [searchUserQuery, setSearchUserQuery] = React.useState('');
+
+  const sortedAndFilteredUsuarios = React.useMemo(() => {
+    const filtered = usuarios.filter(u => 
+      u.nombre.toLowerCase().includes(searchUserQuery.toLowerCase()) ||
+      (u.rol === 'admin' ? 'administrador' : 'supervisor de campo').toLowerCase().includes(searchUserQuery.toLowerCase())
+    );
+    return filtered.sort((a, b) => 
+      a.nombre.localeCompare(b.nombre, undefined, { numeric: true, sensitivity: 'base' })
+    );
+  }, [usuarios, searchUserQuery]);
 
   // Sección primaria para referencias en el combo de colindantes
   const primarySection = selectedSections[0] ?? null;
@@ -139,29 +150,56 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-on-surface uppercase tracking-widest flex items-center gap-2 opacity-85">
-                <User className="w-4 h-4" /> Supervisores de Campo
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  if (selectedUsers.length === usuarios.length) {
-                    setSelectedUsers([]);
-                  } else {
-                    setSelectedUsers(usuarios.map(u => u.id));
-                  }
-                }}
-                className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/70 transition-colors bg-primary/5 px-3 py-1.5 rounded-lg"
-              >
-                {selectedUsers.length === usuarios.length ? 'Desmarcar Todos' : 'Seleccionar Todos'}
-              </button>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-on-surface uppercase tracking-widest flex items-center gap-2 opacity-85">
+                  <User className="w-4 h-4" /> Supervisores de Campo
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const filteredIds = sortedAndFilteredUsuarios.map(u => u.id);
+                    const allFilteredSelected = filteredIds.every(id => selectedUsers.includes(id));
+                    if (allFilteredSelected) {
+                      setSelectedUsers(selectedUsers.filter(id => !filteredIds.includes(id)));
+                    } else {
+                      setSelectedUsers(Array.from(new Set([...selectedUsers, ...filteredIds])));
+                    }
+                  }}
+                  className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/70 transition-colors bg-primary/5 px-3 py-1.5 rounded-lg"
+                >
+                  {sortedAndFilteredUsuarios.length > 0 &&
+                  sortedAndFilteredUsuarios.every(u => selectedUsers.includes(u.id))
+                    ? 'Desmarcar Todos'
+                    : 'Seleccionar Todos'}
+                </button>
+              </div>
+
+              {/* Cuadro de búsqueda rápida */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Buscar supervisor..."
+                  value={searchUserQuery}
+                  onChange={(e) => setSearchUserQuery(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-surface-container-low border border-primary/5 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-xs font-bold shadow-inner"
+                />
+                {searchUserQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchUserQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-primary text-xs font-bold"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
             </div>
             
             <div className="bg-surface-container-low rounded-3xl p-3 max-h-56 overflow-y-auto civic-shadow shadow-inner custom-scrollbar">
               <div className="grid grid-cols-1 gap-2">
-                {usuarios.length > 0 ? (
-                  usuarios.map((u) => {
+                {sortedAndFilteredUsuarios.length > 0 ? (
+                  sortedAndFilteredUsuarios.map((u) => {
                     const isSelected = selectedUsers.includes(u.id);
                     return (
                       <div

@@ -1,7 +1,7 @@
 import React from 'react';
 import { authService } from '../services/authService';
 import { UsuarioPerfil } from '../types';
-import { LogOut, User, Map as MapIcon, ClipboardList, Bell, LayoutDashboard, TrendingUp } from 'lucide-react';
+import { LogOut, User, Map as MapIcon, ClipboardList, LayoutDashboard, TrendingUp } from 'lucide-react';
 import { NotificationBell } from './notifications/NotificationBell';
 
 interface NavbarProps {
@@ -12,7 +12,7 @@ interface NavbarProps {
   onViewChange: (view: 'map' | 'admin_gestion' | 'admin_monitor' | 'admin_users' | 'admin_stats' | 'profile' | 'tasks') => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ perfil, user, onLogout, currentView, onViewChange }) => {
+export const Navbar: React.FC<NavbarProps> = ({ perfil, user: _user, onLogout, currentView, onViewChange }) => {
   const isAdmin = perfil?.rol === 'admin';
 
   const handleLogout = async () => {

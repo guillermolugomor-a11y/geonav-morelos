@@ -1,6 +1,6 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { AlertCircle, Edit2, Eye, Loader2, X, Clock, User, ChevronRight, Send, Map as MapIcon, MapPin, Users } from 'lucide-react';
+import { AlertCircle, Edit2, Eye, Loader2, X, Clock, User, Send, MapPin, Users } from 'lucide-react';
 import { Poligono, Tarea, TareaHistorial, UsuarioPerfil } from '../../types';
 import { taskService } from '../../services/taskService';
 import { TaskLocationLabel } from '../tasks/TaskLocationLabel';

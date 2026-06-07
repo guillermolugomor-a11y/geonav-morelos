@@ -36,7 +36,7 @@ export const RouteController: React.FC<RouteControllerProps> = ({
     onOriginSet,
     onDestinationSet,
     onRouteResult,
-    onReset,
+    onReset: _onReset,
 }) => {
     const map = useMap();
     const originMarkerRef = useRef<L.Marker | null>(null);

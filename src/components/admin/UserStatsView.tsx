@@ -7,16 +7,6 @@ interface UserStatsViewProps {
   tareas: Tarea[];
 }
 
-interface UserPerformance {
-  user: UsuarioPerfil;
-  total: number;
-  completed: number;
-  inProgress: number;
-  pending: number;
-  efficiency: number;
-  lastActivity?: string;
-}
-
 export const UserStatsView: React.FC<UserStatsViewProps> = ({ usuarios, tareas }) => {
   const stats = useMemo(() => {
     return usuarios

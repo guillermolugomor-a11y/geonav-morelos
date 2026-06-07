@@ -1,6 +1,5 @@
 import React from 'react';
-import { Navigation, MapPin, Car, Footprints, Layers, Hexagon, LayoutGrid, Target, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { MapPin, Car, Footprints, LayoutGrid, Target, X } from 'lucide-react';
 import { LatLng } from './RouteController';
 import { geocodeService } from '../services/geocodeService';
 

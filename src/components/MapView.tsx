@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
-import { LayerGroup, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import React, { useEffect, useState, useRef } from 'react';
+import { LayerGroup, MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Info, ExternalLink, Menu, MapPin, X, Globe } from 'lucide-react';
@@ -17,8 +17,7 @@ import { useStore } from '../store/useStore';
 import { isAdminUser } from '../constants/roles';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-import { debugError, debugLog } from '../utils/debug';
-import { debounce } from '../utils/debounce';
+import { debugLog } from '../utils/debug';
 
 let DefaultIcon = L.icon({
   iconUrl: markerIcon,

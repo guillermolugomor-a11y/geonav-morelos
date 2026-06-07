@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UsuarioPerfil, Tarea } from '../types';
-import { authService } from '../services/authService';
 import { userService } from '../services/userService';
 import { taskService } from '../services/taskService';
-import { poligonosService } from '../services/poligonosService';
 import { User, Mail, Shield, Save, CheckCircle, AlertCircle, Loader2, MapPin, CheckSquare, Clock, LogOut } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -14,7 +12,7 @@ interface UserProfileProps {
   onNavigateToMap?: (poligonoId: number) => void;
 }
 
-export const UserProfile: React.FC<UserProfileProps> = ({ perfil, onProfileUpdate, onLogout, onNavigateToMap }) => {
+export const UserProfile: React.FC<UserProfileProps> = ({ perfil, onProfileUpdate, onLogout, onNavigateToMap: _onNavigateToMap }) => {
   const [nombre, setNombre] = useState(perfil.nombre);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);

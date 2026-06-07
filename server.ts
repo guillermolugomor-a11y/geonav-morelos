@@ -19,7 +19,7 @@ const port = Number(process.env.PORT) || 3002;
 const __dirname = path.resolve();
 
 // Logging middleware (Only for non-static API requests to avoid noise)
-app.use('/api', (req, res, next) => {
+app.use('/api', (req, _res, next) => {
   if (process.env.NODE_ENV !== 'production') {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   }
@@ -91,7 +91,7 @@ app.get('/api/tiles/:layer/:z/:x/:y.pbf', async (req, res) => {
 });
 
 // Endpoint persistente para estado básico (Health Check)
-app.get('/api/status', (req, res) => {
+app.get('/api/status', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), scheduler: 'active' });
 });
 
@@ -104,7 +104,6 @@ function addLog(msg: string, details?: any) {
 }
 
 async function runTaskActivation() {
-  const now = new Date();
   try {
     const { data: count, error } = await supabase.rpc('activate_scheduled_tasks');
     
@@ -127,7 +126,7 @@ async function runTaskActivation() {
 }
 
 // Nueva ruta de diagnóstico
-app.get('/api/scheduler-debug', (req, res) => {
+app.get('/api/scheduler-debug', (_req, res) => {
   res.json({
     active: true,
     last_runs: schedulerHistory,
@@ -190,7 +189,7 @@ async function startViteMiddleware() {
   }
 
   // Manejar rutas de React (Fase 1) - Movido aquí para ser el final de la cadena
-  app.get('*', (req, res) => {
+  app.get('*', (_req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
   });
 }

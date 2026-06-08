@@ -86,9 +86,17 @@ export const useMapData = ({ isAdmin, userId }: UseMapDataParams) => {
         setLoading(true);
         setError(null);
 
-        // Cargar manzanas estáticas
+        // Descargar ambos archivos en paralelo para ahorrar tiempo
+        const [mzData, padronData] = await Promise.all([
+          manzanasPadron.length === 0 
+            ? fetchCachedCartography('/manzanas_5_mas_cercanas_full.geojson') 
+            : Promise.resolve(manzanasGeojson),
+          !padronGeojson 
+            ? fetchCachedCartography('/secciones_padron_optimizado.geojson') 
+            : Promise.resolve(padronGeojson)
+        ]);
+
         if (manzanasPadron.length === 0) {
-          const mzData = await fetchCachedCartography('/manzanas_5_mas_cercanas_full.geojson');
           setManzanasGeojson(mzData);
           setManzanasPadron(
             mzData.features.map((feature: any) => ({
@@ -108,10 +116,7 @@ export const useMapData = ({ isAdmin, userId }: UseMapDataParams) => {
           );
         }
 
-        // Cargar Padrón (secciones) estático en lugar de llamar a Supabase
-        let padronData = padronGeojson;
-        if (!padronData) {
-          padronData = await fetchCachedCartography('/secciones_padron_optimizado.geojson');
+        if (!padronGeojson) {
           setPadronGeojson(padronData);
         }
 

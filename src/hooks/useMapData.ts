@@ -3,6 +3,7 @@ import { poligonosService } from '../services/poligonosService';
 import { taskService } from '../services/taskService';
 import { debugError, debugLog } from '../utils/debug';
 import { useStore } from '../store/useStore';
+import { fetchWithCache } from '../utils/cache';
 
 interface UseMapDataParams {
   isAdmin: boolean;
@@ -57,30 +58,6 @@ export const useMapData = ({ isAdmin, userId }: UseMapDataParams) => {
 
   // Carga inicial completa de datos
   useEffect(() => {
-    const fetchCachedCartography = async (url: string) => {
-      try {
-        const cache = await caches.open('geonav-cartography-v1');
-        let response = await cache.match(url);
-        
-        if (!response) {
-          debugLog(`Descargando cartografía desde red: ${url}`);
-          response = await fetch(url);
-          if (response.ok) {
-            await cache.put(url, response.clone());
-          }
-        } else {
-          debugLog(`Cartografía cargada desde caché local: ${url}`);
-        }
-        
-        return await response.json();
-      } catch (err) {
-        // Fallback a fetch normal si el Cache API falla
-        console.warn('Cache API falló, usando fetch tradicional', err);
-        const res = await fetch(url);
-        return await res.json();
-      }
-    };
-
     const loadData = async () => {
       try {
         setLoading(true);
@@ -89,10 +66,10 @@ export const useMapData = ({ isAdmin, userId }: UseMapDataParams) => {
         // Descargar ambos archivos en paralelo para ahorrar tiempo
         const [mzData, padronData] = await Promise.all([
           manzanasPadron.length === 0 
-            ? fetchCachedCartography('/manzanas_5_mas_cercanas_full.geojson') 
+            ? fetchWithCache('/manzanas_5_mas_cercanas_full.geojson') 
             : Promise.resolve(manzanasGeojson),
           !padronGeojson 
-            ? fetchCachedCartography('/secciones_padron_optimizado.geojson') 
+            ? fetchWithCache('/secciones_padron_optimizado.geojson') 
             : Promise.resolve(padronGeojson)
         ]);
 

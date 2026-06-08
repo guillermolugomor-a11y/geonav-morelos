@@ -64,10 +64,8 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
     const filteredGeoJSON = useMemo(() => {
         if (!padronGeojson) return null;
 
-        // 1. Caso Admin: mostrar todo el GeoJSON
         if (isAdmin) return padronGeojson;
 
-        // 2. Caso Field Worker: filtrar usando el Set pre-calculado
         const filtered = {
             ...padronGeojson,
             features: padronGeojson.features.filter((f: any) => 
@@ -77,35 +75,6 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
 
         return filtered;
     }, [padronGeojson, isAdmin, assignedSectionIds]);
-
-    const culledGeoJSON = useMemo(() => {
-        if (!filteredGeoJSON) return null;
-        
-        const expandedBounds = mapBounds.pad(0.3); // Margen del 30%
-
-        const visibleFeatures = filteredGeoJSON.features.filter((f: any) => {
-            try {
-                let point;
-                if (f.geometry.type === 'MultiPolygon') {
-                    point = f.geometry.coordinates[0][0][0]; // Primer polígono, primer anillo, primer punto
-                } else if (f.geometry.type === 'Polygon') {
-                    point = f.geometry.coordinates[0][0]; // Primer anillo, primer punto
-                }
-                
-                if (point && point.length >= 2) {
-                    return expandedBounds.contains([point[1], point[0]]);
-                }
-                return false;
-            } catch (e) {
-                return false;
-            }
-        });
-
-        return {
-            ...filteredGeoJSON,
-            features: visibleFeatures
-        };
-    }, [filteredGeoJSON, mapBounds]);
 
     // Auto-zoom autónomo basado en geometría real cargada
     useEffect(() => {
@@ -196,12 +165,12 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
     // Para Admin, permitir ver el padrón completo sin restricciones de zoom (Opción A).
     if (isAdmin && !padronGeojson) return null;
 
-    if (!padronGeojson || !culledGeoJSON || culledGeoJSON.features.length === 0) return null;
+    if (!padronGeojson || !filteredGeoJSON || filteredGeoJSON.features.length === 0) return null;
 
     return (
         <GeoJSON 
-            key={`padron-layer-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}-${mapBounds.toBBoxString()}`}
-            data={culledGeoJSON} 
+            key={`padron-layer-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}`}
+            data={filteredGeoJSON} 
             onEachFeature={onEachFeature}
             style={style}
         />

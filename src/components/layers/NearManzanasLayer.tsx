@@ -143,40 +143,6 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
         };
     };
 
-    // Filtro de visibilidad por Zoom y Culling (recorte) por Bounding Box
-    const culledGeoJSON = useMemo(() => {
-        if (!filteredGeoJSON) return null;
-        if (isAdmin && zoomLevel < 13) return null; // Solo mostrar si zoom >= 13 para Admin
-
-        const expandedBounds = mapBounds.pad(0.3); // Margen del 30% para evitar parpadeos en los bordes
-
-        const visibleFeatures = filteredGeoJSON.features.filter((f: any) => {
-            try {
-                // GeoJSON Polygon coords: [[[lng, lat], ...]]
-                // GeoJSON MultiPolygon coords: [[[[lng, lat], ...]]]
-                let point;
-                if (f.geometry.type === 'MultiPolygon') {
-                    point = f.geometry.coordinates[0][0][0]; // Primer polígono, primer anillo, primer punto
-                } else if (f.geometry.type === 'Polygon') {
-                    point = f.geometry.coordinates[0][0]; // Primer anillo, primer punto
-                }
-                
-                if (point && point.length >= 2) {
-                    // GeoJSON is [lng, lat], Leaflet is [lat, lng]
-                    return expandedBounds.contains([point[1], point[0]]);
-                }
-                return false;
-            } catch (e) {
-                return false;
-            }
-        });
-
-        return {
-            ...filteredGeoJSON,
-            features: visibleFeatures
-        };
-    }, [filteredGeoJSON, mapBounds, isAdmin, zoomLevel]);
-
     const onEachFeature = (feature: any, layer: L.Layer) => {
         layer.on({
             click: (e: L.LeafletMouseEvent) => {
@@ -222,14 +188,15 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
         }
     };
 
-    if (!culledGeoJSON || culledGeoJSON.features.length === 0) return null;
+    // Filtro de visibilidad por Zoom: Solo visible en zoom 11 o superior para ADMIN
+    // Pero SIEMPRE visible para Field Worker si es su manzana asignada
+    if (isAdmin && zoomLevel < 11) return null;
+    if (!filteredGeoJSON || filteredGeoJSON.features.length === 0) return null;
 
-    // React-Leaflet no actualiza dinámicamente los features de un GeoJSON existente de forma fiable 
-    // a menos que cambie su key completamente
     return (
         <GeoJSON 
-            key={`near-manzanas-layer-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}-${mapBounds.toBBoxString()}`}
-            data={culledGeoJSON} 
+            key={`near-manzanas-layer-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}`}
+            data={filteredGeoJSON} 
             onEachFeature={onEachFeature}
             style={style}
         />

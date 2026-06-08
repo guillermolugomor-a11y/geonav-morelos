@@ -56,13 +56,28 @@ export const useMapData = ({ isAdmin, userId }: UseMapDataParams) => {
     }
   }, [isAdmin, userId, setTareas]);
 
-  // Carga inicial completa de datos
+  // 1. Carga crítica inicial (rápida, bloquea la UI)
   useEffect(() => {
-    const loadData = async () => {
+    const loadCriticalData = async () => {
       try {
         setLoading(true);
         setError(null);
+        await loadTasks();
+      } catch (err: any) {
+        debugError('Error en carga inicial useMapData:', err);
+        setError(err.message || 'Error desconocido al cargar tareas');
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    loadCriticalData();
+  }, [loadTasks, setError]);
+
+  // 2. Carga pesada de cartografía en segundo plano (NO bloquea la UI)
+  useEffect(() => {
+    const fetchCartography = async () => {
+      try {
         // Descargar ambos archivos en paralelo para ahorrar tiempo
         const [mzData, padronData] = await Promise.all([
           manzanasPadron.length === 0 
@@ -97,31 +112,26 @@ export const useMapData = ({ isAdmin, userId }: UseMapDataParams) => {
           setPadronGeojson(padronData);
         }
 
-        // Construir 'poligonos' localmente sin consultar Supabase (ahorra memoria y tiempo)
-        const parsedData = padronData.features.map((feature: any) => ({
-          id: Number(feature.properties.SECCION),
-          nombre: `Sección ${feature.properties.SECCION}`,
-          tipo: 'Sección',
-          municipio: 'Morelos', // u obtener de feature.properties si existe
-          metadata: { ...feature.properties },
-          geom: feature.geometry
-        }));
-        
-        setPoligonos(parsedData);
-
-        // Cargar tareas
-        await loadTasks();
+        // Construir 'poligonos' localmente
+        if (poligonos.length === 0 && padronData) {
+          const parsedData = padronData.features.map((feature: any) => ({
+            id: Number(feature.properties.SECCION),
+            nombre: `Sección ${feature.properties.SECCION}`,
+            tipo: 'Sección',
+            municipio: 'Morelos',
+            metadata: { ...feature.properties },
+            geom: feature.geometry
+          }));
+          setPoligonos(parsedData);
+        }
 
       } catch (err: any) {
-        debugError('Error en carga inicial useMapData:', err);
-        setError(err.message || 'Error desconocido al cargar datos');
-      } finally {
-        setLoading(false);
+        debugError('Error cargando cartografía en segundo plano:', err);
       }
     };
 
-    loadData();
-  }, [loadTasks, setPoligonos, setError]); // Removido manzanasPadron.length para evitar re-ejecución si cambia internamente
+    fetchCartography();
+  }, [manzanasPadron.length, padronGeojson, poligonos.length, setPoligonos]); // Removido manzanasPadron.length para evitar re-ejecución si cambia internamente
 
   useEffect(() => {
     const handleRefresh = () => loadTasks();

@@ -35,6 +35,7 @@ interface MapViewProps {
 interface MapControllerProps {
   poligonos: Poligono[];
   manzanasPadron: any[];
+  tareas?: any[];
   focusPolygon?: Poligono | null;
   onFocusHandled?: () => void;
   handleMapSelection: (latlng: { lat: number; lng: number }) => void;
@@ -43,13 +44,27 @@ interface MapControllerProps {
 const MapController: React.FC<MapControllerProps> = ({
   poligonos,
   manzanasPadron,
+  tareas = [],
   focusPolygon,
   onFocusHandled,
   handleMapSelection,
 }) => {
   const map = useMap();
   const lastProcessedZoomRef = useRef<number | null>(null);
+  const hasInitialCentered = useRef(false);
   const { setSelectedPoligono } = useStore();
+
+  useEffect(() => {
+    // Zoom inicial a Morelos si no hay tareas ni enfoque activo
+    if (!hasInitialCentered.current && !focusPolygon) {
+      hasInitialCentered.current = true;
+      if (tareas.length === 0) {
+        debugLog('MapController: Centrando mapa en el estado de Morelos (sin actividades)');
+        const morelosBounds = L.latLngBounds([18.3344, -99.4923], [19.0844, -98.6366]);
+        map.fitBounds(morelosBounds, { padding: [20, 20], duration: 1.5 });
+      }
+    }
+  }, [map, focusPolygon, tareas]);
 
   useEffect(() => {
     // Si ya no hay un polígono enfocado, reseteamos la referencia para permitir futuros enfoques
@@ -294,7 +309,7 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
 
   const { 
     poligonos, tareas, loading, 
-    tasksUpdateKey, manzanasPadron, loadTasks 
+    tasksUpdateKey, manzanasPadron, manzanasGeojson, padronGeojson, loadTasks 
   } = useMapData({ isAdmin, userId });
 
   const mapStyle = useStore(s => s.mapStyle);
@@ -469,6 +484,7 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
           <MapController
             poligonos={poligonos}
             manzanasPadron={manzanasPadron}
+            tareas={tareas}
             focusPolygon={focusTarget}
             onFocusHandled={() => {
               setFocusTarget(null);
@@ -496,6 +512,7 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
                 handleMapSelection={handleMapSelection}
                 isRoutingActive={routeMode}
                 manzanasPadron={manzanasPadron}
+                padronGeojson={padronGeojson}
               />
             </LayerGroup>
           )}
@@ -507,6 +524,7 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
                 tasksUpdateKey={tasksUpdateKey}
                 handleMapSelection={handleMapSelection}
                 isRoutingActive={routeMode}
+                manzanasGeojson={manzanasGeojson}
               />
             </LayerGroup>
           )}

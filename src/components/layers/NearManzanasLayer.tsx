@@ -9,40 +9,37 @@ interface NearManzanasLayerProps {
     tareas: any[];
     tasksUpdateKey?: number;
     handleMapSelection: (latlng: { lat: number; lng: number }) => void;
-    isRoutingActive: boolean;
+    manzanasGeojson?: any;
 }
 
 export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
     tareas,
     tasksUpdateKey = 0,
     handleMapSelection,
-    isRoutingActive
+    isRoutingActive,
+    manzanasGeojson
 }) => {
     const { perfil, selectedPoligono, setSelectedPoligono } = useStore();
     const isAdmin = isAdminUser(perfil);
 
-    const [geojsonData, setGeojsonData] = useState<any>(null);
+    const vectorGridRef = useRef<any>(null);
     const routeStateRef = useRef({ isRoutingActive });
 
-    const map = useMapEvents({
+    const mapInstance = useMapEvents({
         zoomend: () => {
-            setZoomLevel(map.getZoom());
+            setZoomLevel(mapInstance.getZoom());
+            setMapBounds(mapInstance.getBounds());
+        },
+        moveend: () => {
+            setMapBounds(mapInstance.getBounds());
         }
     });
-    const [zoomLevel, setZoomLevel] = useState<number>(map.getZoom());
+    const [zoomLevel, setZoomLevel] = useState<number>(mapInstance.getZoom());
+    const [mapBounds, setMapBounds] = useState<L.LatLngBounds>(mapInstance.getBounds());
 
     useEffect(() => {
         routeStateRef.current = { isRoutingActive };
     }, [isRoutingActive]);
-
-    useEffect(() => {
-        fetch('/manzanas_5_mas_cercanas_full.geojson')
-            .then(res => res.json())
-            .then(data => {
-                setGeojsonData(data);
-            })
-            .catch(err => console.error('Error cargando manzanas cercanas:', err));
-    }, []);
 
     const { assignedManzanaIds, assignedSectionIds } = useMemo(() => {
         const manzanas = new Set<number>();
@@ -59,13 +56,13 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
     }, [tareas]);
 
     const filteredGeoJSON = useMemo(() => {
-        if (!geojsonData) return null;
+        if (!manzanasGeojson) return null;
 
-        if (isAdmin) return geojsonData;
+        if (isAdmin) return manzanasGeojson;
 
         const filtered = {
-            ...geojsonData,
-            features: geojsonData.features.filter((f: any) => {
+            ...manzanasGeojson,
+            features: manzanasGeojson.features.filter((f: any) => {
                 const featureManzanaId = Number(f.properties.ID);
                 const featureSectionId = Number(f.properties.SECCION);
                 return assignedManzanaIds.has(featureManzanaId) || assignedSectionIds.has(featureSectionId);
@@ -73,10 +70,9 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
         };
 
         return filtered;
-    }, [geojsonData, isAdmin, assignedManzanaIds, assignedSectionIds]);
+    }, [manzanasGeojson, isAdmin, assignedManzanaIds, assignedSectionIds]);
 
     // Auto-zoom autónomo para manzanas (Prioridad sobre secciones)
-    const mapInstance = useMapEvents({});
     useEffect(() => {
         if (!isAdmin && filteredGeoJSON && filteredGeoJSON.features.length > 0) {
             // Verificamos si hay alguna manzana asignada directamente para darle prioridad de zoom
@@ -96,51 +92,6 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
             }
         }
     }, [filteredGeoJSON, isAdmin, mapInstance, tareas]);
-
-    const onEachFeature = (feature: any, layer: L.Layer) => {
-        layer.on({
-            click: (e: L.LeafletMouseEvent) => {
-                L.DomEvent.stopPropagation(e);
-                if (routeStateRef.current.isRoutingActive) {
-                    handleMapSelection({ lat: e.latlng.lat, lng: e.latlng.lng });
-                } else {
-                    if (feature.properties) {
-                        const { ID, MANZANA, SECCION, MUNICIPIO, LOCALIDAD, ENTIDAD, DISTRITO_F, CONTROL, STATUS, rank_near, dist_m } = feature.properties;
-                        
-                        const syntheticPoligono = {
-                            id: ID || Math.random(),
-                            nombre: `Manzana ${MANZANA}`,
-                            municipio: MUNICIPIO?.toString() || 'N/A', 
-                            tipo: 'Manzana (Cercana)',
-                            metadata: {
-                                seccion: SECCION,
-                                manzana: MANZANA,
-                                localidad: LOCALIDAD,
-                                entidad: ENTIDAD,
-                                municipio: MUNICIPIO,
-                                distrito_f: DISTRITO_F,
-                                control: CONTROL,
-                                status: STATUS, // 1=Urbana, 0=Dispersa
-                                rank_near: rank_near,
-                                dist_m: dist_m !== undefined ? Math.round(dist_m) : undefined,
-                                isNearManzana: true
-                            },
-                            geom: feature.geometry
-                        };
-                        
-                        setSelectedPoligono(syntheticPoligono);
-                    }
-                }
-            }
-        });
-        
-        if (feature.properties && feature.properties.MANZANA) {
-            layer.bindTooltip(`Manzana: ${feature.properties.MANZANA}<br>Rank: ${feature.properties.rank_near}`, { 
-                sticky: true,
-                opacity: 0.8
-            });
-        }
-    };
 
     const style = (feature: any) => {
         const featureId = Number(feature.properties.ID);
@@ -192,15 +143,93 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
         };
     };
 
-    // Filtro de visibilidad por Zoom: Solo visible en zoom 11 o superior para ADMIN
-    // Pero SIEMPRE visible para Field Worker si es su manzana asignada
-    if (isAdmin && zoomLevel < 11) return null;
-    if (!geojsonData) return null;
+    // Filtro de visibilidad por Zoom y Culling (recorte) por Bounding Box
+    const culledGeoJSON = useMemo(() => {
+        if (!filteredGeoJSON) return null;
+        if (isAdmin && zoomLevel < 13) return null; // Solo mostrar si zoom >= 13 para Admin
 
+        const expandedBounds = mapBounds.pad(0.3); // Margen del 30% para evitar parpadeos en los bordes
+
+        const visibleFeatures = filteredGeoJSON.features.filter((f: any) => {
+            try {
+                // GeoJSON Polygon coords: [[[lng, lat], ...]]
+                // GeoJSON MultiPolygon coords: [[[[lng, lat], ...]]]
+                let point;
+                if (f.geometry.type === 'MultiPolygon') {
+                    point = f.geometry.coordinates[0][0][0]; // Primer polígono, primer anillo, primer punto
+                } else if (f.geometry.type === 'Polygon') {
+                    point = f.geometry.coordinates[0][0]; // Primer anillo, primer punto
+                }
+                
+                if (point && point.length >= 2) {
+                    // GeoJSON is [lng, lat], Leaflet is [lat, lng]
+                    return expandedBounds.contains([point[1], point[0]]);
+                }
+                return false;
+            } catch (e) {
+                return false;
+            }
+        });
+
+        return {
+            ...filteredGeoJSON,
+            features: visibleFeatures
+        };
+    }, [filteredGeoJSON, mapBounds, isAdmin, zoomLevel]);
+
+    const onEachFeature = (feature: any, layer: L.Layer) => {
+        layer.on({
+            click: (e: L.LeafletMouseEvent) => {
+                L.DomEvent.stopPropagation(e);
+                if (routeStateRef.current.isRoutingActive) {
+                    handleMapSelection({ lat: e.latlng.lat, lng: e.latlng.lng });
+                } else {
+                    if (feature.properties) {
+                        const { ID, MANZANA, SECCION, MUNICIPIO, LOCALIDAD, ENTIDAD, DISTRITO_F, CONTROL, STATUS, rank_near, dist_m } = feature.properties;
+                        
+                        const syntheticPoligono = {
+                            id: ID || Math.random(),
+                            nombre: `Manzana ${MANZANA}`,
+                            municipio: MUNICIPIO?.toString() || 'N/A', 
+                            tipo: 'Manzana (Cercana)',
+                            metadata: {
+                                seccion: SECCION,
+                                manzana: MANZANA,
+                                localidad: LOCALIDAD,
+                                entidad: ENTIDAD,
+                                municipio: MUNICIPIO,
+                                distrito_f: DISTRITO_F,
+                                control: CONTROL,
+                                status: STATUS,
+                                rank_near: rank_near,
+                                dist_m: dist_m !== undefined ? Math.round(dist_m) : undefined,
+                                isNearManzana: true
+                            },
+                            geom: feature.geometry
+                        };
+                        
+                        setSelectedPoligono(syntheticPoligono);
+                    }
+                }
+            }
+        });
+        
+        if (feature.properties && feature.properties.MANZANA) {
+            layer.bindTooltip(`Manzana: ${feature.properties.MANZANA}<br>Rank: ${feature.properties.rank_near}`, { 
+                sticky: true,
+                opacity: 0.8
+            });
+        }
+    };
+
+    if (!culledGeoJSON || culledGeoJSON.features.length === 0) return null;
+
+    // React-Leaflet no actualiza dinámicamente los features de un GeoJSON existente de forma fiable 
+    // a menos que cambie su key completamente
     return (
         <GeoJSON 
-            key={`near-manzanas-layer-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}`}
-            data={filteredGeoJSON} 
+            key={`near-manzanas-layer-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}-${mapBounds.toBBoxString()}`}
+            data={culledGeoJSON} 
             onEachFeature={onEachFeature}
             style={style}
         />

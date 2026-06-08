@@ -11,6 +11,7 @@ interface PadronLayerProps {
     handleMapSelection: (latlng: { lat: number; lng: number }) => void;
     isRoutingActive: boolean;
     manzanasPadron?: any[];
+    padronGeojson?: any;
 }
 
 export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
@@ -18,34 +19,30 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
     tasksUpdateKey = 0,
     handleMapSelection,
     isRoutingActive,
-    manzanasPadron = []
+    manzanasPadron = [],
+    padronGeojson
 }) => {
     const { perfil, selectedPoligono, setSelectedPoligono } = useStore();
     const isAdmin = isAdminUser(perfil);
 
-    const [geojsonData, setGeojsonData] = useState<any>(null);
     const routeStateRef = useRef({ isRoutingActive });
 
-    // Lógica de Visibilidad por Zoom
-    const map = useMapEvents({
+    // Lógica de Visibilidad por Zoom y Culling (recorte)
+    const mapInstance = useMapEvents({
         zoomend: () => {
-            setZoomLevel(map.getZoom());
+            setZoomLevel(mapInstance.getZoom());
+            setMapBounds(mapInstance.getBounds());
+        },
+        moveend: () => {
+            setMapBounds(mapInstance.getBounds());
         }
     });
-    const [zoomLevel, setZoomLevel] = useState<number>(map.getZoom());
+    const [zoomLevel, setZoomLevel] = useState<number>(mapInstance.getZoom());
+    const [mapBounds, setMapBounds] = useState<L.LatLngBounds>(mapInstance.getBounds());
 
     useEffect(() => {
         routeStateRef.current = { isRoutingActive };
     }, [isRoutingActive]);
-
-    useEffect(() => {
-        fetch('/secciones_padron_optimizado.geojson')
-            .then(res => res.json())
-            .then(data => {
-                setGeojsonData(data);
-            })
-            .catch(err => console.error('Error cargando padrón:', err));
-    }, []);
 
     const { assignedSectionIds } = useMemo(() => {
         const sections = new Set<number>();
@@ -65,24 +62,52 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
     }, [tareas, manzanasPadron]);
 
     const filteredGeoJSON = useMemo(() => {
-        if (!geojsonData) return null;
+        if (!padronGeojson) return null;
 
         // 1. Caso Admin: mostrar todo el GeoJSON
-        if (isAdmin) return geojsonData;
+        if (isAdmin) return padronGeojson;
 
         // 2. Caso Field Worker: filtrar usando el Set pre-calculado
         const filtered = {
-            ...geojsonData,
-            features: geojsonData.features.filter((f: any) => 
+            ...padronGeojson,
+            features: padronGeojson.features.filter((f: any) => 
                 assignedSectionIds.has(Number(f.properties.SECCION))
             )
         };
 
         return filtered;
-    }, [geojsonData, isAdmin, assignedSectionIds]);
+    }, [padronGeojson, isAdmin, assignedSectionIds]);
+
+    const culledGeoJSON = useMemo(() => {
+        if (!filteredGeoJSON) return null;
+        
+        const expandedBounds = mapBounds.pad(0.3); // Margen del 30%
+
+        const visibleFeatures = filteredGeoJSON.features.filter((f: any) => {
+            try {
+                let point;
+                if (f.geometry.type === 'MultiPolygon') {
+                    point = f.geometry.coordinates[0][0][0]; // Primer polígono, primer anillo, primer punto
+                } else if (f.geometry.type === 'Polygon') {
+                    point = f.geometry.coordinates[0][0]; // Primer anillo, primer punto
+                }
+                
+                if (point && point.length >= 2) {
+                    return expandedBounds.contains([point[1], point[0]]);
+                }
+                return false;
+            } catch (e) {
+                return false;
+            }
+        });
+
+        return {
+            ...filteredGeoJSON,
+            features: visibleFeatures
+        };
+    }, [filteredGeoJSON, mapBounds]);
 
     // Auto-zoom autónomo basado en geometría real cargada
-    const mapInstance = useMapEvents({});
     useEffect(() => {
         if (!isAdmin && filteredGeoJSON && filteredGeoJSON.features.length > 0) {
             debugLog('PadronLayer: Ejecutando fitBounds autónomo...');
@@ -169,14 +194,14 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
 
     // Mostrar siempre para Field Worker sus áreas asignadas.
     // Para Admin, permitir ver el padrón completo sin restricciones de zoom (Opción A).
-    if (isAdmin && !geojsonData) return null;
+    if (isAdmin && !padronGeojson) return null;
 
-    if (!geojsonData || !filteredGeoJSON || filteredGeoJSON.features.length === 0) return null;
+    if (!padronGeojson || !culledGeoJSON || culledGeoJSON.features.length === 0) return null;
 
     return (
         <GeoJSON 
-            key={`padron-layer-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}`}
-            data={filteredGeoJSON} 
+            key={`padron-layer-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}-${mapBounds.toBBoxString()}`}
+            data={culledGeoJSON} 
             onEachFeature={onEachFeature}
             style={style}
         />

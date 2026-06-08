@@ -34,6 +34,8 @@ export const useMapData = ({ isAdmin, userId }: UseMapDataParams) => {
   const [loading, setLoading] = useState(true);
   const [tasksUpdateKey, setTasksUpdateKey] = useState(0);
   const [manzanasPadron, setManzanasPadron] = useState<PadronManzanaRef[]>([]);
+  const [manzanasGeojson, setManzanasGeojson] = useState<any>(null);
+  const [padronGeojson, setPadronGeojson] = useState<any>(null);
 
   const loadTasks = useCallback(async () => {
     debugLog('MapView: Cargando tareas...', { isAdmin, userId });
@@ -55,6 +57,30 @@ export const useMapData = ({ isAdmin, userId }: UseMapDataParams) => {
 
   // Carga inicial completa de datos
   useEffect(() => {
+    const fetchCachedCartography = async (url: string) => {
+      try {
+        const cache = await caches.open('geonav-cartography-v1');
+        let response = await cache.match(url);
+        
+        if (!response) {
+          debugLog(`Descargando cartografía desde red: ${url}`);
+          response = await fetch(url);
+          if (response.ok) {
+            await cache.put(url, response.clone());
+          }
+        } else {
+          debugLog(`Cartografía cargada desde caché local: ${url}`);
+        }
+        
+        return await response.json();
+      } catch (err) {
+        // Fallback a fetch normal si el Cache API falla
+        console.warn('Cache API falló, usando fetch tradicional', err);
+        const res = await fetch(url);
+        return await res.json();
+      }
+    };
+
     const loadData = async () => {
       try {
         setLoading(true);
@@ -62,8 +88,8 @@ export const useMapData = ({ isAdmin, userId }: UseMapDataParams) => {
 
         // Cargar manzanas estáticas
         if (manzanasPadron.length === 0) {
-          const mzResponse = await fetch('/manzanas_5_mas_cercanas_full.geojson');
-          const mzData = await mzResponse.json();
+          const mzData = await fetchCachedCartography('/manzanas_5_mas_cercanas_full.geojson');
+          setManzanasGeojson(mzData);
           setManzanasPadron(
             mzData.features.map((feature: any) => ({
               id: feature.properties.ID,
@@ -82,12 +108,23 @@ export const useMapData = ({ isAdmin, userId }: UseMapDataParams) => {
           );
         }
 
-        // Cargar polígonos (todo) - Como estaba originalmente pero en el store
-        const data = await poligonosService.getPoligonos();
-        const parsedData = data.map((polygon) => ({
-          ...polygon,
-          geom: typeof polygon.geom === 'string' ? JSON.parse(polygon.geom) : polygon.geom
+        // Cargar Padrón (secciones) estático en lugar de llamar a Supabase
+        let padronData = padronGeojson;
+        if (!padronData) {
+          padronData = await fetchCachedCartography('/secciones_padron_optimizado.geojson');
+          setPadronGeojson(padronData);
+        }
+
+        // Construir 'poligonos' localmente sin consultar Supabase (ahorra memoria y tiempo)
+        const parsedData = padronData.features.map((feature: any) => ({
+          id: Number(feature.properties.SECCION),
+          nombre: `Sección ${feature.properties.SECCION}`,
+          tipo: 'Sección',
+          municipio: 'Morelos', // u obtener de feature.properties si existe
+          metadata: { ...feature.properties },
+          geom: feature.geometry
         }));
+        
         setPoligonos(parsedData);
 
         // Cargar tareas
@@ -148,6 +185,8 @@ export const useMapData = ({ isAdmin, userId }: UseMapDataParams) => {
     loading,
     tasksUpdateKey,
     manzanasPadron,
+    manzanasGeojson,
+    padronGeojson,
     secciones,
     loadTasks
   };

@@ -33,6 +33,7 @@ export const useMapData = ({ isAdmin, userId }: UseMapDataParams) => {
   const setError = useStore(s => s.setError);
 
   const [loading, setLoading] = useState(true);
+  const [isCartographyLoading, setIsCartographyLoading] = useState(true);
   const [tasksUpdateKey, setTasksUpdateKey] = useState(0);
   const [manzanasPadron, setManzanasPadron] = useState<PadronManzanaRef[]>([]);
   const [manzanasGeojson, setManzanasGeojson] = useState<any>(null);
@@ -127,6 +128,8 @@ export const useMapData = ({ isAdmin, userId }: UseMapDataParams) => {
 
       } catch (err: any) {
         debugError('Error cargando cartografía en segundo plano:', err);
+      } finally {
+        setIsCartographyLoading(false);
       }
     };
 
@@ -175,6 +178,7 @@ export const useMapData = ({ isAdmin, userId }: UseMapDataParams) => {
     poligonos,
     tareas,
     loading,
+    isCartographyLoading,
     tasksUpdateKey,
     manzanasPadron,
     manzanasGeojson,

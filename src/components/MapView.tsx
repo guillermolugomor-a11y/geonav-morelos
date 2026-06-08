@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { LayerGroup, MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Info, ExternalLink, Menu, MapPin, X, Globe } from 'lucide-react';
+import { Info, ExternalLink, Menu, MapPin, X, Globe, Loader2 } from 'lucide-react';
 import { Poligono } from '../types';
 import { RouteController } from './RouteController';
 import { RoutingSidebar } from './RoutingSidebar';
@@ -308,7 +308,7 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
   });
 
   const { 
-    poligonos, tareas, loading, 
+    poligonos, tareas, loading, isCartographyLoading,
     tasksUpdateKey, manzanasPadron, manzanasGeojson, padronGeojson, loadTasks 
   } = useMapData({ isAdmin, userId });
 
@@ -460,6 +460,14 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
       </div>
 
       <div className="flex-1 h-full w-full relative z-0">
+        
+        {isCartographyLoading && (
+          <div className="absolute top-24 md:top-8 left-1/2 -translate-x-1/2 z-[2000] bg-white/90 backdrop-blur-md px-6 py-3 rounded-full civic-shadow flex items-center gap-3 border border-primary/10 animate-in fade-in slide-in-from-top-4 duration-500">
+            <Loader2 className="w-5 h-5 text-primary animate-spin" />
+            <span className="text-xs font-black uppercase tracking-widest text-primary">Cargando Cartografía...</span>
+          </div>
+        )}
+
         <MapContainer 
           center={[18.92, -99.23]} 
           zoom={12} 

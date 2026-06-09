@@ -16,16 +16,20 @@ GeoNav Morelos es una herramienta estratégica diseñada para la coordinación d
 ---
 
 ## 👑 3. Manual para Administradores
-Como administrador, usted tiene control total sobre la estrategia territorial.
+Como administrador, usted tiene control total sobre la estrategia territorial, asignación de tareas y monitoreo.
 
-### 🗺️ El Mapa (Vista Principal)
-- **Navegación**: Utilice el ratón o gestos táctiles para explorar Morelos.
-- **Búsqueda**: Use la barra de búsqueda para localizar secciones (ej: `188`) o manzanas (ej: `188-5`).
+### 🗺️ El Mapa (Vista Principal) y Filtrado por Municipio
+- **Filtro de Municipio a Visualizar**: Al cargar el mapa por primera vez, las secciones de Morelos no se muestran de forma masiva para optimizar el rendimiento. Debe seleccionar el municipio que desea trabajar en el selector **"Municipio a visualizar"** ubicado en la esquina superior derecha del mapa.
+- **Limpieza de Capas Dinámica**: Al cambiar de municipio en el selector, el sistema limpia inmediatamente las secciones y manzanas del municipio anterior del mapa para evitar que se mezclen datos de diferentes regiones.
+- **Búsqueda e Integración**: Use la barra de búsqueda para localizar secciones (ej: `188`) o manzanas (ej: `188-5`). Al buscar una sección válida, el sistema identificará su municipio, actualizará automáticamente el selector y enfocará el mapa directamente en la zona.
 - **Selección**: Haga clic en un polígono para ver sus detalles.
 - **Zonas Asignadas**: Los polígonos con tareas activas se resaltan en **rojo**.
 
-### 📋 Gestión de Tareas
-Localice una sección o manzana y seleccione **"Asignar Tarea"**:
+### 📋 Gestión de Tareas (Panel de Administración)
+En esta pestaña, los administradores asignan y configuran los trabajos del personal de campo.
+
+- **Selector "Municipio de Trabajo"**: Permite filtrar todo el catálogo de secciones para mostrar únicamente las pertenecientes al municipio elegido (ej: Cuernavaca, Jiutepec, etc.). Cambiar de municipio limpiará automáticamente cualquier selección anterior de secciones y manzanas para evitar inconsistencias.
+- **Secciones Cercanas**: Al seleccionar una sección principal, el sistema calcula geográficamente las **9 secciones más cercanas del mismo municipio** utilizando coordenadas reales. Puede agregarlas rápidamente a la asignación mediante el desplegable **"Secciones cercanas"**, el cual muestra la distancia exacta (en metros o kilómetros) de cada sección colindante respecto al origen (ej. `📍 Sección 192 — 1.1 km`).
 - **Operativo**: Seleccione al responsable de la zona.
 - **Colaboración**: Active el modo "Tarea Colaborativa" si varios usuarios trabajarán en la misma zona.
 - **Instrucción**: Escriba las acciones específicas a realizar.

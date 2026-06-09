@@ -4,6 +4,7 @@ import L from 'leaflet';
 import { useStore } from '../../store/useStore';
 import { isAdminUser } from '../../constants/roles';
 import { debugError, debugLog } from '../../utils/debug';
+import { SECCIONES_POR_MUNICIPIO } from '../../constants/seccionesMunicipios';
 
 interface NearManzanasLayerProps {
     tareas: any[];
@@ -20,6 +21,7 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
     manzanasGeojson
 }) => {
     const { perfil, selectedPoligono, setSelectedPoligono } = useStore();
+    const selectedMunicipio = useStore(s => s.selectedMunicipio);
     const isAdmin = isAdminUser(perfil);
 
     const vectorGridRef = useRef<any>(null);
@@ -58,19 +60,38 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
     const filteredGeoJSON = useMemo(() => {
         if (!manzanasGeojson) return null;
 
-        if (isAdmin) return manzanasGeojson;
+        // Al cargar la aplicación, no mostrar automáticamente todas las manzanas
+        if (!selectedMunicipio) {
+            return {
+                ...manzanasGeojson,
+                features: []
+            };
+        }
 
-        const filtered = {
-            ...manzanasGeojson,
-            features: manzanasGeojson.features.filter((f: any) => {
+        let features = manzanasGeojson.features;
+
+        // Filtrar por municipio si no es "Todos"
+        if (selectedMunicipio !== 'Todos') {
+            const allowedSections = SECCIONES_POR_MUNICIPIO[selectedMunicipio] || [];
+            features = features.filter((f: any) => 
+                allowedSections.includes(Number(f.properties.SECCION))
+            );
+        }
+
+        // Filtrar por asignación si no es admin
+        if (!isAdmin) {
+            features = features.filter((f: any) => {
                 const featureManzanaId = Number(f.properties.ID);
                 const featureSectionId = Number(f.properties.SECCION);
                 return assignedManzanaIds.has(featureManzanaId) || assignedSectionIds.has(featureSectionId);
-            })
-        };
+            });
+        }
 
-        return filtered;
-    }, [manzanasGeojson, isAdmin, assignedManzanaIds, assignedSectionIds]);
+        return {
+            ...manzanasGeojson,
+            features
+        };
+    }, [manzanasGeojson, selectedMunicipio, isAdmin, assignedManzanaIds, assignedSectionIds]);
 
     // Auto-zoom autónomo para manzanas (Prioridad sobre secciones)
     useEffect(() => {
@@ -195,7 +216,7 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
 
     return (
         <GeoJSON 
-            key={`near-manzanas-layer-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}`}
+            key={`near-manzanas-layer-${selectedMunicipio || 'none'}-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}`}
             data={filteredGeoJSON} 
             onEachFeature={onEachFeature}
             style={style}

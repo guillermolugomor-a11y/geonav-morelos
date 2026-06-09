@@ -14,6 +14,7 @@ interface AppState {
   appLoading: boolean;
   mapStyle: 'streets' | 'satellite';
   error: string | null;
+  selectedMunicipio: string | null;
 
   // Acciones
   setUser: (user: any | null) => void;
@@ -27,6 +28,7 @@ interface AppState {
   setAppLoading: (loading: boolean) => void;
   setMapStyle: (style: 'streets' | 'satellite') => void;
   setError: (error: string | null) => void;
+  setSelectedMunicipio: (municipio: string | null) => void;
   
   // Limpieza
   logout: () => void;
@@ -44,6 +46,7 @@ export const useStore = create<AppState>((set) => ({
   appLoading: true,
   mapStyle: 'streets',
   error: null,
+  selectedMunicipio: null,
 
   setUser: (user) => set({ user }),
   setPerfil: (perfil) => set({ perfil }),
@@ -56,6 +59,10 @@ export const useStore = create<AppState>((set) => ({
   setAppLoading: (appLoading) => set({ appLoading }),
   setMapStyle: (mapStyle) => set({ mapStyle }),
   setError: (error) => set({ error }),
+  setSelectedMunicipio: (selectedMunicipio) => set({ 
+    selectedMunicipio, 
+    selectedPoligono: null // Reset selected polygon on municipality change
+  }),
 
   logout: () => set({ 
     user: null, 
@@ -64,6 +71,7 @@ export const useStore = create<AppState>((set) => ({
     poligonos: [], 
     tareas: [],
     selectedPoligono: null,
-    error: null
+    error: null,
+    selectedMunicipio: null
   }),
 }));

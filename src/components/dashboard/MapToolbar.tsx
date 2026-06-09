@@ -1,5 +1,6 @@
 import React from 'react';
-import { Database, MapPin } from 'lucide-react';
+import { Database, MapPin, Map, ChevronDown } from 'lucide-react';
+import { useStore } from '../../store/useStore';
 
 interface MapToolbarProps {
   searchTerm: string;
@@ -7,8 +8,41 @@ interface MapToolbarProps {
 }
 
 export const MapToolbar: React.FC<MapToolbarProps> = ({ searchTerm, setSearchTerm }) => {
+  const selectedMunicipio = useStore(s => s.selectedMunicipio);
+  const setSelectedMunicipio = useStore(s => s.setSelectedMunicipio);
+
   return (
     <div className="absolute top-24 md:top-8 right-4 md:right-10 z-[800] flex flex-col gap-4 items-end">
+      {/* ComboBox Municipio */}
+      <div className="bg-surface/95 backdrop-blur-xl p-2.5 rounded-3xl civic-shadow flex items-center gap-3 w-72 md:w-80 group border border-primary/5 transition-all focus-within:ring-2 focus-within:ring-primary/10 relative">
+        <div className="premium-gradient p-3 rounded-2xl civic-shadow shadow-primary/20 text-white">
+          <Map size={20} />
+        </div>
+        <div className="flex-1 flex flex-col min-w-0">
+          <label className="text-[9px] font-black text-on-surface-variant/40 uppercase tracking-widest leading-none mb-1">
+            Municipio a visualizar
+          </label>
+          <select
+            value={selectedMunicipio || ''}
+            onChange={(e) => setSelectedMunicipio(e.target.value || null)}
+            className="bg-transparent border-none outline-none text-xs font-bold text-on-surface w-full appearance-none cursor-pointer pr-8 focus:ring-0"
+          >
+            <option value="" className="bg-surface text-on-surface">Seleccione Municipio...</option>
+            <option value="Todos" className="bg-surface text-on-surface">Todos</option>
+            <option value="Cuernavaca" className="bg-surface text-on-surface">Cuernavaca</option>
+            <option value="Jiutepec" className="bg-surface text-on-surface">Jiutepec</option>
+            <option value="Cuautla" className="bg-surface text-on-surface">Cuautla</option>
+            <option value="Ayala" className="bg-surface text-on-surface">Ayala</option>
+            <option value="Temixco" className="bg-surface text-on-surface">Temixco</option>
+            <option value="Yautepec" className="bg-surface text-on-surface">Yautepec</option>
+          </select>
+        </div>
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant/40">
+          <ChevronDown size={16} />
+        </div>
+      </div>
+
+      {/* Buscar Sección o Manzana */}
       <div className="bg-surface/95 backdrop-blur-xl p-2.5 rounded-3xl civic-shadow flex items-center gap-3 w-72 md:w-80 group transition-all focus-within:ring-2 focus-within:ring-primary/10">
         <div className="premium-gradient p-3 rounded-2xl civic-shadow shadow-primary/20">
           <Database size={20} className="text-white" />

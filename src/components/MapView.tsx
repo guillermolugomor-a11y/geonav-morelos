@@ -15,6 +15,7 @@ import { useMapData } from '../hooks/useMapData';
 import { useRoutePlanner } from '../hooks/useRoutePlanner';
 import { useStore } from '../store/useStore';
 import { isAdminUser } from '../constants/roles';
+import { SECCIONES_POR_MUNICIPIO } from '../constants/seccionesMunicipios';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { debugLog } from '../utils/debug';
@@ -52,7 +53,10 @@ const MapController: React.FC<MapControllerProps> = ({
   const map = useMap();
   const lastProcessedZoomRef = useRef<number | null>(null);
   const hasInitialCentered = useRef(false);
-  const { setSelectedPoligono } = useStore();
+  const { setSelectedPoligono, selectedMunicipio, setSelectedMunicipio, perfil } = useStore();
+  const isAdmin = isAdminUser(perfil);
+
+  const lastSelectedMunicipioRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Zoom inicial a Morelos si no hay tareas ni enfoque activo
@@ -125,7 +129,54 @@ const MapController: React.FC<MapControllerProps> = ({
   }, [focusPolygon, map, onFocusHandled, poligonos]);
 
 
-  // Eliminamos lógica de BBox
+  // Enfoque automático al cambiar de municipio seleccionado
+  useEffect(() => {
+    if (selectedMunicipio === lastSelectedMunicipioRef.current) return;
+    lastSelectedMunicipioRef.current = selectedMunicipio;
+
+    if (!selectedMunicipio) return;
+
+    if (selectedMunicipio !== 'Todos') {
+      const allowedSections = SECCIONES_POR_MUNICIPIO[selectedMunicipio];
+      if (allowedSections && allowedSections.length > 0) {
+        let matchingPoligons = poligonos.filter(
+          (p) => p.tipo === 'Sección' && allowedSections.includes(Number(p.id))
+        );
+
+        if (!isAdmin) {
+          // Filtrar para mostrar solo las asignadas
+          const assignedSections = new Set<number>();
+          tareas.forEach(t => {
+            if (['padron', 'seccion', 'secciones', 'Sección'].includes(t.tipo_capa)) {
+              assignedSections.add(Number(t.polygon_id));
+            } else if (['manzana', 'manzanas'].includes(t.tipo_capa)) {
+              const mz = manzanasPadron.find(m => Number(m.id) === Number(t.polygon_id));
+              if (mz?.seccion) {
+                assignedSections.add(Number(mz.seccion));
+              }
+            }
+          });
+          matchingPoligons = matchingPoligons.filter(p => assignedSections.has(Number(p.id)));
+        }
+
+        if (matchingPoligons.length > 0) {
+          try {
+            const tempGroup = L.featureGroup(matchingPoligons.map(p => L.geoJSON(p.geom)));
+            const bounds = tempGroup.getBounds();
+            if (bounds.isValid()) {
+              map.flyToBounds(bounds, { padding: [50, 50], duration: 1.5 });
+            }
+          } catch (err) {
+            console.error('Error fitting bounds for municipality:', err);
+          }
+        }
+      }
+    } else {
+      // Si es "Todos", centrar en Morelos
+      const morelosBounds = L.latLngBounds([18.3344, -99.4923], [19.0844, -98.6366]);
+      map.flyToBounds(morelosBounds, { padding: [20, 20], duration: 1.5 });
+    }
+  }, [selectedMunicipio, poligonos, map, isAdmin, tareas, manzanasPadron]);
 
   useEffect(() => {
     const handleSearch = (event: Event) => {
@@ -137,6 +188,21 @@ const MapController: React.FC<MapControllerProps> = ({
 
       let foundPolygon: Poligono | undefined;
       let matchedIds: number[] = [];
+
+      // Autoselección del municipio basado en la sección buscada
+      const sectionNum = cleanQuery.includes('-') 
+        ? Number(cleanQuery.split('-')[0].trim()) 
+        : Number(cleanQuery);
+      
+      if (!isNaN(sectionNum) && sectionNum > 0) {
+        const matchedMuni = Object.keys(SECCIONES_POR_MUNICIPIO).find((muni) =>
+          SECCIONES_POR_MUNICIPIO[muni].includes(sectionNum)
+        );
+        if (matchedMuni) {
+          debugLog('🔍 MapView: Búsqueda asoció sección a municipio:', matchedMuni);
+          setSelectedMunicipio(matchedMuni);
+        }
+      }
 
       if (cleanQuery.includes('-')) {
         // Búsqueda de Manzana (Sección-Manzana)
@@ -279,7 +345,7 @@ const MapController: React.FC<MapControllerProps> = ({
       window.removeEventListener('locate-user-origin', handleLocateUserOrigin as EventListener);
       window.removeEventListener('reset-zoom', handleResetZoom);
     };
-  }, [map, poligonos, manzanasPadron, setSelectedPoligono]);
+  }, [map, poligonos, manzanasPadron, setSelectedPoligono, setSelectedMunicipio]);
 
   // Manejador de clics del mapa separado
   useEffect(() => {

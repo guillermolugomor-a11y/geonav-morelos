@@ -15,6 +15,7 @@ import {
 } from './admin';
 import { useStore } from '../store/useStore';
 import { fetchWithCache } from '../utils/cache';
+import { SECCIONES_POR_MUNICIPIO } from '../constants/seccionesMunicipios';
 
 interface AdminPanelProps {
   perfil: UsuarioPerfil | null;
@@ -68,11 +69,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   const manzanasPadron = useStore(s => s.manzanasPadron);
   const setManzanasPadron = useStore(s => s.setManzanasPadron);
 
+  const [selectedMunicipioTrabajo, setSelectedMunicipioTrabajo] = useState('Todos');
+
   const [searchTermPadron, setSearchTermPadron] = useState('');
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
   const [selectedManzana, setSelectedManzana] = useState<PadronManzana | null>(null);
   // Multi-selección: array de secciones seleccionadas
   const [selectedSections, setSelectedSections] = useState<PadronSection[]>([]);
+
+  useEffect(() => {
+    // Limpiar selección previa al cambiar el municipio de trabajo
+    setSelectedSections([]);
+    setSelectedManzana(null);
+    setExpandedSection(null);
+    setSelectedPoligono('');
+  }, [selectedMunicipioTrabajo]);
   // Sección primaria (primera del array) para compatibilidad con memos de experiencia y duplicados
   const primarySection: PadronSection | null = selectedSections[0] ?? null;
   const [isCollaborative, setIsCollaborative] = useState(false);
@@ -98,12 +109,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     return map;
   }, [manzanasPadron]);
 
-  // OPTIMIZACIÓN: Memoizar secciones filtradas
+  // Memoizar secciones filtradas por municipio de trabajo y término de búsqueda
   const seccionesFiltradas = useMemo(() => {
-    if (!searchTermPadron) return seccionesPadron;
+    let list = seccionesPadron;
+    if (selectedMunicipioTrabajo !== 'Todos') {
+      const allowedSections = SECCIONES_POR_MUNICIPIO[selectedMunicipioTrabajo] || [];
+      list = list.filter(s => allowedSections.includes(Number(s.id)));
+    }
+    if (!searchTermPadron) return list;
     const term = searchTermPadron.toLowerCase();
-    return seccionesPadron.filter(s => s.id.toString().includes(term));
-  }, [seccionesPadron, searchTermPadron]);
+    return list.filter(s => s.id.toString().includes(term));
+  }, [seccionesPadron, selectedMunicipioTrabajo, searchTermPadron]);
 
   const filteredTareas = useMemo(() => {
     return tareas.filter((task) => {
@@ -433,9 +449,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     }
   };
 
-  // Obtener las 5 secciones más cercanas a la sección primaria seleccionada
+  // Obtener las 9 secciones más cercanas a la sección primaria seleccionada
   const seccionesCercanas = useMemo(() => {
     if (!primarySection || !seccionesPadron.length) return [];
+
+    // Encontrar el municipio de la sección seleccionada
+    const currentSectionMuni = Object.keys(SECCIONES_POR_MUNICIPIO).find(muni => 
+      SECCIONES_POR_MUNICIPIO[muni].includes(Number(primarySection.id))
+    );
+    
+    if (!currentSectionMuni) return [];
+    
+    const allowedSectionsInMuni = SECCIONES_POR_MUNICIPIO[currentSectionMuni] || [];
     
     const getCentroid = (geometry: any): [number, number] | null => {
       if (!geometry) return null;
@@ -460,10 +485,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
       return [x / coords.length, y / coords.length];
     };
 
-    const getDistance = (c1: [number, number], c2: [number, number]) => {
-      const dx = c1[0] - c2[0];
-      const dy = c1[1] - c2[1];
-      return dx * dx + dy * dy;
+    // Haversine formula to compute distance in meters on the Earth's surface
+    const getHaversineDistance = (c1: [number, number], c2: [number, number]) => {
+      const R = 6371000; // Earth's radius in meters
+      const toRad = (x: number) => (x * Math.PI) / 180;
+      
+      const lon1 = c1[0];
+      const lat1 = c1[1];
+      const lon2 = c2[0];
+      const lat2 = c2[1];
+      
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
     };
 
     const originCentroid = getCentroid(primarySection.geometry);
@@ -473,15 +514,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     const selectedIds = new Set(selectedSections.map(s => Number(s.id)));
 
     return seccionesPadron
-      .filter(s => !selectedIds.has(Number(s.id)))
+      .filter(s => 
+        !selectedIds.has(Number(s.id)) && 
+        allowedSectionsInMuni.includes(Number(s.id))
+      )
       .map(s => {
         const centroid = getCentroid(s.geometry);
-        const distance = centroid ? getDistance(originCentroid, centroid) : Infinity;
+        const distance = centroid ? getHaversineDistance(originCentroid, centroid) : Infinity;
         return { ...s, distance };
       })
       .filter(s => s.distance !== Infinity)
       .sort((a, b) => a.distance - b.distance)
-      .slice(0, 5);
+      .slice(0, 9);
   }, [primarySection, selectedSections, seccionesPadron]);
 
   const openDeleteModal = (tarea: Tarea) => {
@@ -542,6 +586,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           selectedSections={selectedSections}
           setSelectedSections={setSelectedSections}
           seccionesCercanas={seccionesCercanas}
+          selectedMunicipioTrabajo={selectedMunicipioTrabajo}
+          setSelectedMunicipioTrabajo={setSelectedMunicipioTrabajo}
           tipoCapa={tipoCapa}
           isCollaborative={isCollaborative}
           setIsCollaborative={setIsCollaborative}

@@ -4,6 +4,7 @@ import L from 'leaflet';
 import { debugLog } from '../../utils/debug';
 import { useStore } from '../../store/useStore';
 import { isAdminUser } from '../../constants/roles';
+import { SECCIONES_POR_MUNICIPIO } from '../../constants/seccionesMunicipios';
 
 interface PadronLayerProps {
     tareas: any[];
@@ -23,6 +24,7 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
     padronGeojson
 }) => {
     const { perfil, selectedPoligono, setSelectedPoligono } = useStore();
+    const selectedMunicipio = useStore(s => s.selectedMunicipio);
     const isAdmin = isAdminUser(perfil);
 
     const routeStateRef = useRef({ isRoutingActive });
@@ -63,18 +65,37 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
 
     const filteredGeoJSON = useMemo(() => {
         if (!padronGeojson) return null;
+        
+        // Al cargar la aplicación, no mostrar automáticamente todas las secciones
+        if (!selectedMunicipio) {
+            return {
+                ...padronGeojson,
+                features: []
+            };
+        }
 
-        if (isAdmin) return padronGeojson;
+        let features = padronGeojson.features;
 
-        const filtered = {
-            ...padronGeojson,
-            features: padronGeojson.features.filter((f: any) => 
+        // Filtrar por municipio si no es "Todos"
+        if (selectedMunicipio !== 'Todos') {
+            const allowedSections = SECCIONES_POR_MUNICIPIO[selectedMunicipio] || [];
+            features = features.filter((f: any) => 
+                allowedSections.includes(Number(f.properties.SECCION))
+            );
+        }
+
+        // Filtrar por asignación si no es admin
+        if (!isAdmin) {
+            features = features.filter((f: any) => 
                 assignedSectionIds.has(Number(f.properties.SECCION))
-            )
-        };
+            );
+        }
 
-        return filtered;
-    }, [padronGeojson, isAdmin, assignedSectionIds]);
+        return {
+            ...padronGeojson,
+            features
+        };
+    }, [padronGeojson, selectedMunicipio, isAdmin, assignedSectionIds]);
 
     // Auto-zoom autónomo basado en geometría real cargada
     useEffect(() => {
@@ -169,7 +190,7 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
 
     return (
         <GeoJSON 
-            key={`padron-layer-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}`}
+            key={`padron-layer-${selectedMunicipio || 'none'}-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}`}
             data={filteredGeoJSON} 
             onEachFeature={onEachFeature}
             style={style}

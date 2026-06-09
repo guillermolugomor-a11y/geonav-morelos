@@ -55,7 +55,16 @@ interface TaskAssignmentFormProps {
   duplicateTask?: Tarea;
   selectedGeometry?: any;
   seccionesCercanas?: any[];
+  selectedMunicipioTrabajo: string;
+  setSelectedMunicipioTrabajo: (value: string) => void;
 }
+
+const formatDistance = (meters: number): string => {
+  if (meters < 1000) {
+    return `${Math.round(meters)} m`;
+  }
+  return `${(meters / 1000).toFixed(1)} km`;
+};
 
 export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(({
   usuarios,
@@ -85,6 +94,8 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
   selectedSections,
   setSelectedSections,
   seccionesCercanas = [],
+  selectedMunicipioTrabajo,
+  setSelectedMunicipioTrabajo,
   tipoCapa,
   submitting,
   message,
@@ -292,6 +303,31 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
 
             {tipoCapa === 'padron' ? (
               <div className="space-y-3">
+                {/* Municipio de Trabajo Selector */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest ml-1 opacity-70">
+                    Municipio de trabajo
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={selectedMunicipioTrabajo}
+                      onChange={(e) => setSelectedMunicipioTrabajo(e.target.value)}
+                      className="w-full px-4 py-3 bg-surface-container-low border border-primary/5 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-xs font-bold text-stone-600 appearance-none shadow-sm pr-10"
+                    >
+                      <option value="Todos">Todos</option>
+                      <option value="Cuernavaca">Cuernavaca</option>
+                      <option value="Jiutepec">Jiutepec</option>
+                      <option value="Cuautla">Cuautla</option>
+                      <option value="Ayala">Ayala</option>
+                      <option value="Temixco">Temixco</option>
+                      <option value="Yautepec">Yautepec</option>
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
+                      <ChevronDown className="w-4 h-4" />
+                    </div>
+                  </div>
+                </div>
+
                 <input
                   type="text"
                   placeholder="Buscar sección (ej: 450)..."
@@ -326,12 +362,12 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                   </div>
                 )}
 
-                {/* ── Combo de secciones colindantes ── */}
+                {/* ── Combo de secciones cercanas ── */}
                 {primarySection && seccionesCercanas && seccionesCercanas.length > 0 && (
                   <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="flex items-center gap-2 text-primary">
                       <MapPin className="w-3.5 h-3.5 animate-pulse" />
-                      <span className="text-[10px] font-black uppercase tracking-wider">Añadir sección colindante (Origen: S-{primarySection.id})</span>
+                      <span className="text-[10px] font-black uppercase tracking-wider">Secciones cercanas (Origen: S-{primarySection.id})</span>
                     </div>
                     <div className="relative">
                       <select
@@ -344,9 +380,9 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                         className="w-full px-4 py-3 bg-white rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-xs font-bold text-stone-600 appearance-none shadow-sm pr-10 border border-stone-200"
                       >
                         <option value="" disabled>Selecciona una sección cercana para añadir...</option>
-                        {seccionesCercanas.map((s, idx) => (
+                        {seccionesCercanas.map((s) => (
                           <option key={s.id} value={s.id}>
-                            📍 Sección {s.id} ({s.total?.toLocaleString() ?? 0} Pads) — Cercana #{idx + 1}
+                            📍 Sección {s.id} — {formatDistance(s.distance)}
                           </option>
                         ))}
                       </select>

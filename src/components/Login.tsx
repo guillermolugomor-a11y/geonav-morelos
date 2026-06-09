@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { authService } from '../services/authService';
 import { LogIn } from 'lucide-react';
 import { motion } from 'motion/react';
+import { Button, Input, Card } from './ui';
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -32,79 +33,73 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full bg-surface-container-lowest rounded-3xl civic-shadow p-8 md:p-12"
+        className="max-w-md w-full"
       >
-        <div className="flex flex-col items-center mb-10">
-          <img
-            src="/nuevologo.jpeg"
-            alt="Instituto de Estudios Sociales de Morelos"
-            className="w-64 h-auto mb-6 mix-blend-multiply opacity-90"
-          />
-          <h1 className="font-display text-2xl font-extrabold text-primary tracking-tight text-center leading-tight">
-            Geonavegación <span className="text-primary-container">Morelos</span>
-          </h1>
-          <p className="text-on-surface-variant/60 mt-3 font-medium text-sm tracking-wide uppercase">Acceso Supervisor de Campo</p>
-        </div>
+        <Card padding="lg" shadow>
+          <div className="flex flex-col items-center mb-10">
+            <img
+              src="/nuevologo.jpeg"
+              alt="Instituto de Estudios Sociales de Morelos"
+              className="w-64 h-auto mb-6 mix-blend-multiply opacity-90"
+            />
+            <h1 className="font-display text-2xl font-extrabold text-primary tracking-tight text-center leading-tight">
+              Geonavegación <span className="text-primary-container">Morelos</span>
+            </h1>
+            <p className="text-on-surface-variant/60 mt-3 font-medium text-sm tracking-wide uppercase">
+              Acceso Supervisor de Campo
+            </p>
+          </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-[11px] font-bold text-on-surface-variant uppercase tracking-widest mb-2 ml-1">Correo Electrónico</label>
-            <input
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Input
+              label="Correo Electrónico"
               type="email"
               required
-              className="w-full px-5 py-4 rounded-2xl bg-surface-container-low border-none focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-on-surface-variant/30 text-on-surface"
               placeholder="usuario@instituto.org"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
-          </div>
-          <div>
-            <label className="block text-[11px] font-bold text-on-surface-variant uppercase tracking-widest mb-2 ml-1">Contraseña</label>
-            <input
+            <Input
+              label="Contraseña"
               type="password"
               required
-              className="w-full px-5 py-4 rounded-2xl bg-surface-container-low border-none focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-on-surface-variant/30 text-on-surface"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
+
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="p-4 bg-red-50 text-red-700 text-xs font-bold rounded-2xl border border-red-100 flex items-center gap-2"
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                {error}
+              </motion.div>
+            )}
+
+            <div className="pt-2">
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                fullWidth
+                loading={loading}
+                icon={<LogIn size={18} strokeWidth={2.5} />}
+              >
+                Entrar al Sistema
+              </Button>
+            </div>
+          </form>
+
+          <div className="mt-10 pt-8 border-t border-on-surface-variant/5 text-center">
+            <p className="text-[10px] text-on-surface-variant/40 font-medium leading-relaxed">
+              Este es un sistema de uso restringido.<br />
+              Si no tiene acceso, contacte al administrador.
+            </p>
           </div>
-
-          {error && (
-            <motion.div 
-              initial={{ opacity: 0, x: -10 }} 
-              animate={{ opacity: 1, x: 0 }}
-              className="p-4 bg-red-50 text-red-700 text-xs font-bold rounded-2xl border border-red-100 flex items-center gap-2"
-            >
-              <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-              {error}
-            </motion.div>
-          )}
-
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full premium-gradient hover:opacity-90 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-3 civic-shadow disabled:opacity-50 active:scale-[0.98]"
-            >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <LogIn size={18} strokeWidth={2.5} />
-                  <span className="tracking-wide">Entrar al Sistema</span>
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-
-        <div className="mt-10 pt-8 border-t border-on-surface-variant/5 text-center">
-          <p className="text-[10px] text-on-surface-variant/40 font-medium leading-relaxed">
-            Este es un sistema de uso restringido.<br />
-            Si no tiene acceso, contacte al administrador.
-          </p>
-        </div>
+        </Card>
       </motion.div>
     </div>
   );

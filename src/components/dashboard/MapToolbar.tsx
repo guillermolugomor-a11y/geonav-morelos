@@ -12,9 +12,9 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({ searchTerm, setSearchTer
   const setSelectedMunicipio = useStore(s => s.setSelectedMunicipio);
 
   return (
-    <div className="absolute top-24 md:top-8 right-4 md:right-10 z-[800] flex flex-col gap-4 items-end">
+    <div className="absolute top-24 md:top-8 z-[800] flex flex-col gap-4 items-end" style={{ right: '8rem' }}>
       {/* ComboBox Municipio */}
-      <div className="bg-surface/95 backdrop-blur-xl p-2.5 rounded-3xl civic-shadow flex items-center gap-3 w-72 md:w-80 group border border-primary/5 transition-all focus-within:ring-2 focus-within:ring-primary/10 relative">
+      <div className="bg-surface/95 backdrop-blur-xl p-4 rounded-3xl civic-shadow flex items-center gap-3 w-72 md:w-80 group border border-primary/5 transition-all focus-within:ring-2 focus-within:ring-primary/10 relative">
         <div className="premium-gradient p-3 rounded-2xl civic-shadow shadow-primary/20 text-white">
           <Map size={20} />
         </div>
@@ -43,7 +43,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({ searchTerm, setSearchTer
       </div>
 
       {/* Buscar Sección o Manzana */}
-      <div className="bg-surface/95 backdrop-blur-xl p-2.5 rounded-3xl civic-shadow flex items-center gap-3 w-72 md:w-80 group transition-all focus-within:ring-2 focus-within:ring-primary/10">
+      <div className="bg-surface/95 backdrop-blur-xl p-4 rounded-3xl civic-shadow flex items-center gap-3 w-72 md:w-80 group transition-all focus-within:ring-2 focus-within:ring-primary/10">
         <div className="premium-gradient p-3 rounded-2xl civic-shadow shadow-primary/20">
           <Database size={20} className="text-white" />
         </div>

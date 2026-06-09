@@ -29,7 +29,52 @@ interface PadronSection {
   hombres?: number;
   mujeres?: number;
   geometry?: any;
+  distance?: number;
 }
+
+const getCentroid = (geometry: any): [number, number] | null => {
+  if (!geometry) return null;
+  let coords: any[] = [];
+  if (geometry.type === 'Polygon') {
+    coords = geometry.coordinates[0];
+  } else if (geometry.type === 'MultiPolygon') {
+    coords = geometry.coordinates.flatMap((poly: any) => poly[0]);
+  } else if (geometry.type === 'Point') {
+    coords = [geometry.coordinates];
+  } else {
+    return null;
+  }
+
+  if (coords.length === 0) return null;
+  let x = 0;
+  let y = 0;
+  coords.forEach((c: any) => {
+    x += c[0];
+    y += c[1];
+  });
+  return [x / coords.length, y / coords.length];
+};
+
+const getHaversineDistance = (c1: [number, number], c2: [number, number]) => {
+  const R = 6371000; // Earth's radius in meters
+  const toRad = (x: number) => (x * Math.PI) / 180;
+  
+  const lon1 = c1[0];
+  const lat1 = c1[1];
+  const lon2 = c2[0];
+  const lat2 = c2[1];
+  
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
 
 interface PadronManzana {
   id: number;
@@ -43,7 +88,7 @@ interface PadronManzana {
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap, viewMode = 'gestion' }) => {
   const [usuarios, setUsuarios] = useState<UsuarioPerfil[]>([]);
-  const [poligonos, setPoligonos] = useState<Poligono[]>([]);
+  const poligonos = useStore(s => s.poligonos);
   const [tareas, setTareas] = useState<Tarea[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -77,19 +122,67 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   // Multi-selección: array de secciones seleccionadas
   const [selectedSections, setSelectedSections] = useState<PadronSection[]>([]);
 
+  // Nuevos estados para Modo Automático
+  const [selectionMode, setSelectionMode] = useState<'manual' | 'automatic'>('manual');
+  const [autoOriginSectionId, setAutoOriginSectionId] = useState<string>('');
+  const [autoSelectionCount, setAutoSelectionCount] = useState<number>(5);
+
   useEffect(() => {
-    // Limpiar selección previa al cambiar el municipio de trabajo
+    // Limpiar selección previa al cambiar el municipio de trabajo o el modo
     setSelectedSections([]);
     setSelectedManzana(null);
     setExpandedSection(null);
     setSelectedPoligono('');
-  }, [selectedMunicipioTrabajo]);
+    setAutoOriginSectionId('');
+  }, [selectedMunicipioTrabajo, selectionMode]);
   // Sección primaria (primera del array) para compatibilidad con memos de experiencia y duplicados
   const primarySection: PadronSection | null = selectedSections[0] ?? null;
   const [isCollaborative, setIsCollaborative] = useState(false);
 
   const [filterUser, setFilterUser] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+
+  // Efecto para auto-selección
+  useEffect(() => {
+    if (selectionMode === 'automatic' && autoOriginSectionId && seccionesPadron.length > 0) {
+      const origin = seccionesPadron.find(s => String(s.id) === autoOriginSectionId);
+      if (!origin || !origin.geometry) {
+         setSelectedSections([]);
+         return;
+      }
+
+      const originCentroid = getCentroid(origin.geometry);
+      if (!originCentroid) {
+         setSelectedSections([]);
+         return;
+      }
+
+      let allowedSectionsInMuni: number[] = [];
+      if (selectedMunicipioTrabajo !== 'Todos') {
+        allowedSectionsInMuni = SECCIONES_POR_MUNICIPIO[selectedMunicipioTrabajo] || [];
+      } else {
+        const muni = Object.keys(SECCIONES_POR_MUNICIPIO).find(muni => 
+          SECCIONES_POR_MUNICIPIO[muni].includes(Number(origin.id))
+        );
+        allowedSectionsInMuni = muni ? SECCIONES_POR_MUNICIPIO[muni] : [];
+      }
+
+      const distances = seccionesPadron
+        .filter(s => allowedSectionsInMuni.includes(Number(s.id)))
+        .map(s => {
+          const centroid = getCentroid(s.geometry);
+          const distance = centroid ? getHaversineDistance(originCentroid, centroid) : Infinity;
+          return { ...s, distance };
+        })
+        .filter(s => s.distance !== Infinity)
+        .sort((a, b) => a.distance - b.distance);
+
+      const autoSelected = distances.slice(0, autoSelectionCount);
+      setSelectedSections(autoSelected);
+      setSelectedPoligono(String(autoSelected[0]?.id || ''));
+      setSelectedManzana(null);
+    }
+  }, [selectionMode, autoOriginSectionId, autoSelectionCount, seccionesPadron, selectedMunicipioTrabajo]);
 
   // OPTIMIZACIÓN: Agrupar manzanas por sección una sola vez (O(n))
   const manzanasPorSeccion = useMemo(() => {
@@ -278,9 +371,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
       setLoading(true);
       setMessage(null);
       try {
-        const [usersData, polyData, tasksResponse] = await Promise.all([
+        const [usersData, tasksResponse] = await Promise.all([
           userService.getAssignableUsers(),
-          poligonosService.getPoligonos(),
           taskService.getAllTareas()
         ]);
 
@@ -290,7 +382,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
         }
 
         setUsuarios(usersData);
-        setPoligonos(polyData);
         setTareas(tasksResponse.data);
 
         if (tasksResponse.error) {
@@ -462,51 +553,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     
     const allowedSectionsInMuni = SECCIONES_POR_MUNICIPIO[currentSectionMuni] || [];
     
-    const getCentroid = (geometry: any): [number, number] | null => {
-      if (!geometry) return null;
-      let coords: any[] = [];
-      if (geometry.type === 'Polygon') {
-        coords = geometry.coordinates[0];
-      } else if (geometry.type === 'MultiPolygon') {
-        coords = geometry.coordinates.flatMap((poly: any) => poly[0]);
-      } else if (geometry.type === 'Point') {
-        coords = [geometry.coordinates];
-      } else {
-        return null;
-      }
-
-      if (coords.length === 0) return null;
-      let x = 0;
-      let y = 0;
-      coords.forEach((c: any) => {
-        x += c[0];
-        y += c[1];
-      });
-      return [x / coords.length, y / coords.length];
-    };
-
-    // Haversine formula to compute distance in meters on the Earth's surface
-    const getHaversineDistance = (c1: [number, number], c2: [number, number]) => {
-      const R = 6371000; // Earth's radius in meters
-      const toRad = (x: number) => (x * Math.PI) / 180;
-      
-      const lon1 = c1[0];
-      const lat1 = c1[1];
-      const lon2 = c2[0];
-      const lat2 = c2[1];
-      
-      const dLat = toRad(lat2 - lat1);
-      const dLon = toRad(lon2 - lon1);
-      
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
-    };
-
     const originCentroid = getCentroid(primarySection.geometry);
     if (!originCentroid) return [];
 
@@ -585,6 +631,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           setSelectedManzana={setSelectedManzana}
           selectedSections={selectedSections}
           setSelectedSections={setSelectedSections}
+          selectionMode={selectionMode}
+          setSelectionMode={setSelectionMode}
+          autoOriginSectionId={autoOriginSectionId}
+          setAutoOriginSectionId={setAutoOriginSectionId}
+          autoSelectionCount={autoSelectionCount}
+          setAutoSelectionCount={setAutoSelectionCount}
           seccionesCercanas={seccionesCercanas}
           selectedMunicipioTrabajo={selectedMunicipioTrabajo}
           setSelectedMunicipioTrabajo={setSelectedMunicipioTrabajo}

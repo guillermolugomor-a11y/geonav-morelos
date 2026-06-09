@@ -8,6 +8,7 @@ interface SectionItem {
   id: number | string;
   total?: number;
   geometry?: any;
+  distance?: number;
 }
 
 interface ManzanaItem {
@@ -45,6 +46,12 @@ interface TaskAssignmentFormProps {
   // Multi-selección de secciones
   selectedSections: SectionItem[];
   setSelectedSections: (value: SectionItem[]) => void;
+  selectionMode: 'manual' | 'automatic';
+  setSelectionMode: (value: 'manual' | 'automatic') => void;
+  autoOriginSectionId: string;
+  setAutoOriginSectionId: (value: string) => void;
+  autoSelectionCount: number;
+  setAutoSelectionCount: (value: number) => void;
   tipoCapa: string;
   submitting: boolean;
   message: { type: 'success' | 'error'; text: string } | null;
@@ -93,6 +100,12 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
   setSelectedManzana,
   selectedSections,
   setSelectedSections,
+  selectionMode,
+  setSelectionMode,
+  autoOriginSectionId,
+  setAutoOriginSectionId,
+  autoSelectionCount,
+  setAutoSelectionCount,
   seccionesCercanas = [],
   selectedMunicipioTrabajo,
   setSelectedMunicipioTrabajo,
@@ -303,6 +316,23 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
 
             {tipoCapa === 'padron' ? (
               <div className="space-y-3">
+                <div className="flex items-center gap-2 bg-surface-container-low p-1.5 rounded-2xl mb-2 shadow-inner">
+                  <button
+                    type="button"
+                    onClick={() => setSelectionMode('manual')}
+                    className={`flex-1 py-2.5 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${selectionMode === 'manual' ? 'bg-primary text-white shadow-sm' : 'text-stone-500 hover:text-primary hover:bg-white/50'}`}
+                  >
+                    Manual
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectionMode('automatic')}
+                    className={`flex-1 py-2.5 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${selectionMode === 'automatic' ? 'bg-primary text-white shadow-sm' : 'text-stone-500 hover:text-primary hover:bg-white/50'}`}
+                  >
+                    Automático
+                  </button>
+                </div>
+
                 {/* Municipio de Trabajo Selector */}
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest ml-1 opacity-70">
@@ -328,42 +358,94 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                   </div>
                 </div>
 
-                <input
-                  type="text"
-                  placeholder="Buscar sección (ej: 450)..."
-                  value={searchTermPadron}
-                  onChange={(e) => setSearchTermPadron(e.target.value)}
-                  className="w-full px-5 py-4 bg-surface-container-low rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-bold"
-                />
+                {selectionMode === 'automatic' && selectedMunicipioTrabajo !== 'Todos' && (
+                  <div className="space-y-3 bg-primary/5 p-4 rounded-2xl border border-primary/10 animate-in fade-in zoom-in duration-300">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">
+                        1. Sección de Origen
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={autoOriginSectionId}
+                          onChange={(e) => setAutoOriginSectionId(e.target.value)}
+                          className="w-full px-4 py-3 bg-white border border-primary/10 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-xs font-bold text-stone-600 appearance-none shadow-sm pr-10"
+                        >
+                          <option value="">Selecciona una sección...</option>
+                          {seccionesPadron.map(s => (
+                            <option key={s.id} value={s.id}>Sección {s.id}</option>
+                          ))}
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
+                          <ChevronDown className="w-4 h-4" />
+                        </div>
+                      </div>
+                    </div>
+                    {autoOriginSectionId && (
+                      <div className="space-y-1 animate-in fade-in slide-in-from-top-2">
+                        <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">
+                          2. Cantidad de Secciones a Asignar
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="1"
+                            max="100"
+                            value={autoSelectionCount || ''}
+                            onChange={(e) => setAutoSelectionCount(Number(e.target.value) || 1)}
+                            className="w-full px-4 py-3 bg-white border border-primary/10 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-xs font-bold text-stone-600 shadow-sm"
+                            placeholder="Ej. 5"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {selectionMode === 'manual' && (
+                  <input
+                    type="text"
+                    placeholder="Buscar sección (ej: 450)..."
+                    value={searchTermPadron}
+                    onChange={(e) => setSearchTermPadron(e.target.value)}
+                    className="w-full px-5 py-4 bg-surface-container-low rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-bold"
+                  />
+                )}
 
                 {/* ── Secciones seleccionadas (chips) ── */}
                 {selectedSections.length > 0 && (
-                  <div className="flex flex-wrap gap-2 p-3 bg-primary/5 border border-primary/10 rounded-2xl animate-in fade-in duration-200">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-primary w-full flex items-center gap-1.5 mb-0.5">
+                  <div className="flex flex-col gap-2 p-3 bg-primary/5 border border-primary/10 rounded-2xl animate-in fade-in duration-200">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-primary flex items-center gap-1.5">
                       <CheckSquare className="w-3 h-3" />
                       {selectedSections.length === 1 ? '1 Sección seleccionada' : `${selectedSections.length} Secciones seleccionadas`}
                     </span>
-                    {selectedSections.map(sel => (
-                      <span
-                        key={sel.id}
-                        className="inline-flex items-center gap-1.5 bg-primary text-white text-[11px] font-black px-3 py-1 rounded-full shadow-sm"
-                      >
-                        S-{sel.id}
-                        <button
-                          type="button"
-                          onClick={() => toggleSection(sel)}
-                          className="hover:opacity-70 transition-opacity ml-0.5"
-                          aria-label={`Quitar sección ${sel.id}`}
+                    <div className="flex flex-wrap gap-2">
+                      {selectedSections.map(sel => (
+                        <span
+                          key={sel.id}
+                          className="inline-flex items-center gap-1.5 bg-primary text-white text-[11px] font-black px-3 py-1.5 rounded-full shadow-sm"
                         >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    ))}
+                          S-{sel.id}
+                          {sel.distance !== undefined && sel.distance > 0 && (
+                            <span className="opacity-75 font-medium ml-1">({formatDistance(sel.distance)})</span>
+                          )}
+                          {selectionMode === 'manual' && (
+                            <button
+                              type="button"
+                              onClick={() => toggleSection(sel)}
+                              className="hover:opacity-70 transition-opacity ml-0.5"
+                              aria-label={`Quitar sección ${sel.id}`}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
 
                 {/* ── Combo de secciones cercanas ── */}
-                {primarySection && seccionesCercanas && seccionesCercanas.length > 0 && (
+                {selectionMode === 'manual' && primarySection && seccionesCercanas && seccionesCercanas.length > 0 && (
                   <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="flex items-center gap-2 text-primary">
                       <MapPin className="w-3.5 h-3.5 animate-pulse" />
@@ -401,7 +483,8 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                   </div>
                 )}
 
-                <div className="max-h-80 overflow-y-auto rounded-2xl bg-surface-container-low divide-y divide-white/50 shadow-inner">
+                {selectionMode === 'manual' && (
+                  <div className="max-h-80 overflow-y-auto rounded-2xl bg-surface-container-low divide-y divide-white/50 shadow-inner">
                   {seccionesPadron.map((s) => {
                       const sectionId = Number(s.id);
                       const isExpanded = expandedSection === sectionId;
@@ -504,7 +587,8 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                         </div>
                       );
                     })}
-                </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="relative group">

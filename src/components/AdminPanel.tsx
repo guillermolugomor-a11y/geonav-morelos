@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { userService } from '../services/userService';
 import { taskService } from '../services/taskService';
-import { poligonosService } from '../services/poligonosService';
 import { Poligono, Tarea, UsuarioPerfil } from '../types';
 import { buildTaskPayload } from '../utils/taskPayload';
 import { debugError, debugLog, debugWarn } from '../utils/debug';
@@ -628,9 +627,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           expandedSection={expandedSection}
           setExpandedSection={setExpandedSection}
           selectedManzana={selectedManzana}
-          setSelectedManzana={setSelectedManzana}
+          setSelectedManzana={(value) => setSelectedManzana(value as typeof selectedManzana)}
           selectedSections={selectedSections}
-          setSelectedSections={setSelectedSections}
+          setSelectedSections={(value) => setSelectedSections(value as typeof selectedSections)}
           selectionMode={selectionMode}
           setSelectionMode={setSelectionMode}
           autoOriginSectionId={autoOriginSectionId}

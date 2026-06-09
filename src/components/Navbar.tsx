@@ -1,12 +1,14 @@
 import React from 'react';
+import { AuthUser } from '@supabase/supabase-js';
 import { authService } from '../services/authService';
 import { UsuarioPerfil } from '../types';
 import { LogOut, User, Map as MapIcon, ClipboardList, LayoutDashboard, TrendingUp } from 'lucide-react';
 import { NotificationBell } from './notifications/NotificationBell';
+import { APP_VERSION } from '../version';
 
 interface NavbarProps {
   perfil: UsuarioPerfil | null;
-  user: any;
+  user: AuthUser | null;
   onLogout: () => void;
   currentView: 'map' | 'admin_gestion' | 'admin_monitor' | 'admin_users' | 'admin_stats' | 'profile' | 'tasks';
   onViewChange: (view: 'map' | 'admin_gestion' | 'admin_monitor' | 'admin_users' | 'admin_stats' | 'profile' | 'tasks') => void;
@@ -38,6 +40,9 @@ export const Navbar: React.FC<NavbarProps> = ({ perfil, user: _user, onLogout, c
           </span>
           <span className="text-[9px] uppercase tracking-[0.2em] font-black text-on-surface-variant/40 mt-1 block">
             Instituto Morelense de Estudios Sociodemográficos
+          </span>
+          <span className="inline-flex items-center mt-1.5 px-1.5 py-0.5 rounded-md bg-primary/8 border border-primary/15 text-[8px] font-black text-primary/60 tracking-widest uppercase">
+            v{APP_VERSION}
           </span>
         </div>
       </div>

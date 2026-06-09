@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { LayerGroup, MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -31,6 +31,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 interface MapViewProps {
   focusPolygonId?: number | null;
   onFocusHandled?: () => void;
+  searchTerm?: string;
 }
 
 interface MapControllerProps {
@@ -40,6 +41,7 @@ interface MapControllerProps {
   focusPolygon?: Poligono | null;
   onFocusHandled?: () => void;
   handleMapSelection: (latlng: { lat: number; lng: number }) => void;
+  searchTerm?: string;
 }
 
 const MapController: React.FC<MapControllerProps> = ({
@@ -49,6 +51,7 @@ const MapController: React.FC<MapControllerProps> = ({
   focusPolygon,
   onFocusHandled,
   handleMapSelection,
+  searchTerm,
 }) => {
   const map = useMap();
   const lastProcessedZoomRef = useRef<number | null>(null);
@@ -178,130 +181,127 @@ const MapController: React.FC<MapControllerProps> = ({
     }
   }, [selectedMunicipio, poligonos, map, isAdmin, tareas, manzanasPadron]);
 
-  useEffect(() => {
-    const handleSearch = (event: Event) => {
-      const query = (event as CustomEvent<string>).detail;
-      if (!query) return;
+  const performSearch = useCallback((query: string) => {
+    const cleanQuery = query.toString().trim();
+    if (!cleanQuery) return;
+    debugLog('🔍 MapView: Iniciando búsqueda para:', cleanQuery);
 
-      const cleanQuery = query.toString().trim();
-      debugLog('🔍 MapView: Iniciando búsqueda para:', cleanQuery);
+    let foundPolygon: Poligono | undefined;
+    let matchedIds: number[] = [];
 
-      let foundPolygon: Poligono | undefined;
-      let matchedIds: number[] = [];
+    // Autoselección del municipio basado en la sección buscada
+    const sectionNum = cleanQuery.includes('-')
+      ? Number(cleanQuery.split('-')[0].trim())
+      : Number(cleanQuery);
 
-      // Autoselección del municipio basado en la sección buscada
-      const sectionNum = cleanQuery.includes('-') 
-        ? Number(cleanQuery.split('-')[0].trim()) 
-        : Number(cleanQuery);
-      
-      if (!isNaN(sectionNum) && sectionNum > 0) {
-        const matchedMuni = Object.keys(SECCIONES_POR_MUNICIPIO).find((muni) =>
-          SECCIONES_POR_MUNICIPIO[muni].includes(sectionNum)
+    if (!isNaN(sectionNum) && sectionNum > 0) {
+      const matchedMuni = Object.keys(SECCIONES_POR_MUNICIPIO).find((muni) =>
+        SECCIONES_POR_MUNICIPIO[muni].includes(sectionNum)
+      );
+      if (matchedMuni) {
+        debugLog('🔍 MapView: Búsqueda asoció sección a municipio:', matchedMuni);
+        setSelectedMunicipio(matchedMuni);
+      }
+    }
+
+    if (cleanQuery.includes('-')) {
+      const [sectionStr, manzanaStr] = cleanQuery.split('-');
+      foundPolygon = poligonos.find(
+        (polygon) =>
+          polygon.tipo === 'Manzana' &&
+          (polygon.metadata?.seccion?.toString() === sectionStr.trim() || polygon.metadata?.SECCION?.toString() === sectionStr.trim()) &&
+          (polygon.metadata?.manzana?.toString() === manzanaStr.trim() || polygon.metadata?.MANZANA?.toString() === manzanaStr.trim())
+      );
+
+      if (!foundPolygon) {
+        const mz = manzanasPadron.find(
+          (m) => m.seccion.toString() === sectionStr.trim() && m.manzana.toString() === manzanaStr.trim()
         );
-        if (matchedMuni) {
-          debugLog('🔍 MapView: Búsqueda asoció sección a municipio:', matchedMuni);
-          setSelectedMunicipio(matchedMuni);
+        if (mz && mz.geom) {
+          foundPolygon = {
+            id: mz.id,
+            nombre: `Manzana ${mz.manzana}`,
+            tipo: 'Manzana (Padrón)',
+            municipio: 'Morelos',
+            metadata: { seccion: mz.seccion, manzana: mz.manzana, isNearManzana: true },
+            geom: mz.geom
+          };
+        }
+      }
+      if (foundPolygon) matchedIds = [foundPolygon.id];
+    } else {
+      foundPolygon = poligonos.find((polygon) => {
+        if (polygon.tipo !== 'Sección') return false;
+        const metaSeccion = polygon.metadata?.seccion || polygon.metadata?.SECCION || polygon.id;
+        return metaSeccion?.toString() === cleanQuery;
+      });
+
+      if (!foundPolygon) {
+        const mz = manzanasPadron.find((m) => m.seccion.toString() === cleanQuery);
+        if (mz && mz.geom) {
+          foundPolygon = {
+            id: mz.id,
+            nombre: `Sección ${mz.seccion} (vía Padrón)`,
+            tipo: 'Sección (Referencia)',
+            municipio: 'Morelos',
+            metadata: { seccion: mz.seccion, isNearManzana: true },
+            geom: mz.geom
+          };
         }
       }
 
-      if (cleanQuery.includes('-')) {
-        // Búsqueda de Manzana (Sección-Manzana)
-        const [sectionStr, manzanaStr] = cleanQuery.split('-');
-        foundPolygon = poligonos.find(
-          (polygon) =>
-            polygon.tipo === 'Manzana' &&
-            (polygon.metadata?.seccion?.toString() === sectionStr.trim() || polygon.metadata?.SECCION?.toString() === sectionStr.trim()) &&
-            (polygon.metadata?.manzana?.toString() === manzanaStr.trim() || polygon.metadata?.MANZANA?.toString() === manzanaStr.trim())
-        );
-
-        if (!foundPolygon) {
-          // Intentar en manzanasPadron (GeoJSON local)
-          const mz = manzanasPadron.find(
-            (m) => m.seccion.toString() === sectionStr.trim() && m.manzana.toString() === manzanaStr.trim()
-          );
-          if (mz && mz.geom) {
-            foundPolygon = {
-              id: mz.id,
-              nombre: `Manzana ${mz.manzana}`,
-              tipo: 'Manzana (Padrón)',
-              municipio: 'Morelos',
-              metadata: { seccion: mz.seccion, manzana: mz.manzana, isNearManzana: true },
-              geom: mz.geom
-            };
-          }
-        }
-        if (foundPolygon) matchedIds = [foundPolygon.id];
+      if (foundPolygon) {
+        matchedIds = [foundPolygon.id];
       } else {
-        // Búsqueda de Sección
-        foundPolygon = poligonos.find((polygon) => {
-          if (polygon.tipo !== 'Sección') return false;
-          
-          const metaSeccion = polygon.metadata?.seccion || polygon.metadata?.SECCION || polygon.id;
+        const sectionManzanas = poligonos.filter((polygon) => {
+          if (polygon.tipo !== 'Manzana') return false;
+          const metaSeccion = polygon.metadata?.seccion || polygon.metadata?.SECCION;
           return metaSeccion?.toString() === cleanQuery;
         });
 
-        if (!foundPolygon) {
-          // Intentar buscar si hay alguna manzana del padrón en esa sección para al menos mover el mapa ahí
-          const mz = manzanasPadron.find((m) => m.seccion.toString() === cleanQuery);
-          if (mz && mz.geom) {
-             foundPolygon = {
-              id: mz.id,
-              nombre: `Sección ${mz.seccion} (vía Padrón)`,
-              tipo: 'Sección (Referencia)',
-              municipio: 'Morelos',
-              metadata: { seccion: mz.seccion, isNearManzana: true },
-              geom: mz.geom
-            };
-          }
+        if (sectionManzanas.length > 0) {
+          debugLog(`🔍 MapView: No se halló polígono Sección ${cleanQuery}, pero sí ${sectionManzanas.length} manzanas.`);
+          foundPolygon = sectionManzanas[0];
+          matchedIds = sectionManzanas.map((polygon) => polygon.id);
         }
+      }
+    }
 
-        if (foundPolygon) {
-          matchedIds = [foundPolygon.id];
-        } else {
-          // Intentar encontrar manzanas del store que pertenezcan a esa sección
-          const sectionManzanas = poligonos.filter((polygon) => {
-            if (polygon.tipo !== 'Manzana') return false;
-            const metaSeccion = polygon.metadata?.seccion || polygon.metadata?.SECCION;
-            return metaSeccion?.toString() === cleanQuery;
-          });
-          
-          if (sectionManzanas.length > 0) {
-            debugLog(`🔍 MapView: No se halló polígono Sección ${cleanQuery}, pero sí ${sectionManzanas.length} manzanas.`);
-            foundPolygon = sectionManzanas[0];
-            matchedIds = sectionManzanas.map((polygon) => polygon.id);
-          }
+    if (!foundPolygon) {
+      console.warn('🔍 MapView: No se encontró ningún polígono para:', cleanQuery);
+      return;
+    }
+
+    debugLog('🔍 MapView: Polígono encontrado:', foundPolygon.nombre, foundPolygon.tipo);
+    setSelectedPoligono(foundPolygon);
+
+    try {
+      if (!cleanQuery.includes('-') && matchedIds.length > 1) {
+        const sectionPolygons = poligonos.filter((polygon) => matchedIds.includes(polygon.id));
+        const featureGroup = L.featureGroup(sectionPolygons.map((polygon) => L.geoJSON(polygon.geom)));
+        const groupBounds = featureGroup.getBounds();
+        if (groupBounds.isValid()) {
+          map.flyToBounds(groupBounds, { padding: [50, 50], duration: 1.5 });
+          return;
         }
       }
 
-      if (!foundPolygon) {
-        console.warn('🔍 MapView: No se encontró ningún polígono para:', cleanQuery);
-        return;
+      const bounds = L.geoJSON(foundPolygon.geom).getBounds();
+      if (bounds.isValid()) {
+        map.flyToBounds(bounds, { padding: [50, 50], duration: 1.5 });
       }
+    } catch (err) {
+      console.error('🔍 MapView: Error al procesar zoom de búsqueda:', err);
+    }
+  }, [map, poligonos, manzanasPadron, setSelectedPoligono, setSelectedMunicipio]);
 
-      debugLog('🔍 MapView: Polígono encontrado:', foundPolygon.nombre, foundPolygon.tipo);
-      setSelectedPoligono(foundPolygon);
+  useEffect(() => {
+    if (!searchTerm) return;
+    const t = setTimeout(() => performSearch(searchTerm), 400);
+    return () => clearTimeout(t);
+  }, [searchTerm, performSearch]);
 
-      try {
-        if (!cleanQuery.includes('-') && matchedIds.length > 1) {
-          // Si buscamos sección y tenemos múltiples manzanas, hacemos zoom al grupo
-          const sectionPolygons = poligonos.filter((polygon) => matchedIds.includes(polygon.id));
-          const featureGroup = L.featureGroup(sectionPolygons.map((polygon) => L.geoJSON(polygon.geom)));
-          const groupBounds = featureGroup.getBounds();
-          if (groupBounds.isValid()) {
-            map.flyToBounds(groupBounds, { padding: [50, 50], duration: 1.5 });
-            return;
-          }
-        }
-
-        const bounds = L.geoJSON(foundPolygon.geom).getBounds();
-        if (bounds.isValid()) {
-          map.flyToBounds(bounds, { padding: [50, 50], duration: 1.5 });
-        }
-      } catch (err) {
-        console.error('🔍 MapView: Error al procesar zoom de búsqueda:', err);
-      }
-    };
-
+  useEffect(() => {
     const handleLocate = () => {
       map.locate({ setView: true, maxZoom: 16 });
       map.once('locationfound', (e) => {
@@ -310,7 +310,6 @@ const MapController: React.FC<MapControllerProps> = ({
             map.removeLayer(layer);
           }
         });
-
         L.marker(e.latlng).addTo(map).bindPopup('Estás aquí').openPopup();
       });
     };
@@ -331,21 +330,16 @@ const MapController: React.FC<MapControllerProps> = ({
       }
     };
 
-    // Eliminamos handleFocusPoligono de los eventos ya que ahora se gestiona vía props en MapController
-
-
-    window.addEventListener('search-section', handleSearch as EventListener);
     window.addEventListener('locate-user', handleLocate);
     window.addEventListener('locate-user-origin', handleLocateUserOrigin as EventListener);
     window.addEventListener('reset-zoom', handleResetZoom);
 
     return () => {
-      window.removeEventListener('search-section', handleSearch as EventListener);
       window.removeEventListener('locate-user', handleLocate);
       window.removeEventListener('locate-user-origin', handleLocateUserOrigin as EventListener);
       window.removeEventListener('reset-zoom', handleResetZoom);
     };
-  }, [map, poligonos, manzanasPadron, setSelectedPoligono, setSelectedMunicipio]);
+  }, [map, poligonos]);
 
   // Manejador de clics del mapa separado
   useEffect(() => {
@@ -354,13 +348,13 @@ const MapController: React.FC<MapControllerProps> = ({
     };
 
     map.on('click', onMapClick);
-    return () => map.off('click', onMapClick);
+    return () => { map.off('click', onMapClick); };
   }, [handleMapSelection, map]);
 
   return null;
 };
 
-export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled }) => {
+export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled, searchTerm }) => {
   const user = useStore(s => s.user);
   const perfil = useStore(s => s.perfil);
   const setSelectedPoligono = useStore(s => s.setSelectedPoligono);
@@ -565,6 +559,7 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
               onFocusHandled?.();
             }}
             handleMapSelection={handleMapSelection}
+            searchTerm={searchTerm}
           />
 
           <RouteController

@@ -10,6 +10,7 @@ interface NearManzanasLayerProps {
     tareas: any[];
     tasksUpdateKey?: number;
     handleMapSelection: (latlng: { lat: number; lng: number }) => void;
+    isRoutingActive?: boolean;
     manzanasGeojson?: any;
 }
 

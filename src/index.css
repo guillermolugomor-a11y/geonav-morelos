@@ -10,6 +10,7 @@
   --color-primary-container: #811B5A;
   --color-secondary-container: #d0e8b5;
   --color-on-secondary-container: #50643d;
+  --color-tertiary: #BC9B73;
   
   --color-surface: #fdf9f1;
   --color-surface-container-low: #f7f3eb;
@@ -61,7 +62,7 @@ html, body, #root {
 
 .leaflet-control-zoom-in:hover, .leaflet-control-zoom-out:hover {
   background-color: #f9fafb !important;
-  color: #059669 !important;
+  color: var(--color-primary) !important;
 }
 /* Custom scrollbar for horizontal reels */
 .custom-scrollbar::-webkit-scrollbar {

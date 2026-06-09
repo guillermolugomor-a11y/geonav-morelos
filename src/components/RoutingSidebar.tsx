@@ -4,7 +4,8 @@ import { LatLng } from './RouteController';
 import { geocodeService } from '../services/geocodeService';
 
 export interface RoutingSidebarProps {
-    isOpen?: boolean; // For mobile toggle logic
+    isOpen?: boolean;
+    isAdmin?: boolean;
     origin: LatLng | null;
     destination: LatLng | null;
     onUseMyLocationAsDestination: () => void;
@@ -64,9 +65,9 @@ export const RoutingSidebar: React.FC<RoutingSidebarProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="w-[260px] h-full md:w-[320px] bg-[#F2F1E8] border-r border-[#8C3154]/10 flex flex-col shadow-2xl relative z-[1000] overflow-y-auto">
+        <div className="w-[260px] h-full md:w-[320px] bg-surface-container-low border-r border-primary/10 flex flex-col shadow-2xl relative z-[1000] overflow-y-auto">
             {/* HEADER INSTITUCIONAL 2024-2030 */}
-            <div className="p-8 border-b border-[#8C3154]/10 flex flex-col items-center justify-center bg-[#F2F1E8] shadow-sm">
+            <div className="p-8 border-b border-primary/10 flex flex-col items-center justify-center bg-surface shadow-sm">
                 <div className="bg-white/50 p-2 rounded-2xl w-full">
                     <img
                         src="/nuevologo.jpeg"
@@ -79,12 +80,12 @@ export const RoutingSidebar: React.FC<RoutingSidebarProps> = ({
             <div className="p-4 space-y-6 flex-1">
                 {/* CONFIGURACIÓN DE RUTA */}
                 <section>
-                    <h2 className="text-xs uppercase tracking-widest text-slate-500 font-bold mb-4">Configuración de Ruta</h2>
+                    <h2 className="text-xs uppercase tracking-widest text-on-surface-variant/50 font-bold mb-4">Configuración de Ruta</h2>
                     <div className="space-y-4">
                         {/* Origen */}
                         <div
                             onClick={!isRoutingActive ? onVerRuta : undefined}
-                            className={`p-3 rounded-xl border cursor-pointer ${isRoutingActive && !origin ? 'border-[#8C3154] bg-[#8C3154]/5 shadow-sm' : 'border-[#8C3154]/20 bg-white hover:border-[#8C3154]/40'} flex items-center gap-3 transition-colors`}
+                            className={`p-3 rounded-xl border cursor-pointer ${isRoutingActive && !origin ? 'border-primary bg-primary/5 shadow-sm' : 'border-primary/20 bg-white hover:border-primary/40'} flex items-center gap-3 transition-colors`}
                         >
                             <div className="bg-stone-100 p-2 rounded-full text-slate-400">
                                 <MapPin className="w-4 h-4" />
@@ -100,7 +101,7 @@ export const RoutingSidebar: React.FC<RoutingSidebarProps> = ({
                         {/* Destino */}
                         <div
                             onClick={!isRoutingActive ? onVerRuta : undefined}
-                            className={`p-3 rounded-xl border cursor-pointer ${isRoutingActive && origin && !destination ? 'border-[#7C4A36] bg-[#7C4A36]/5 shadow-sm' : 'border-stone-200 bg-white hover:border-[#7C4A36]/30'} flex items-center gap-3 transition-colors relative`}
+                            className={`p-3 rounded-xl border cursor-pointer ${isRoutingActive && origin && !destination ? 'border-tertiary bg-tertiary/5 shadow-sm' : 'border-stone-200 bg-white hover:border-tertiary/30'} flex items-center gap-3 transition-colors relative`}
                         >
                             <div className="bg-stone-100 p-2 rounded-full text-slate-400">
                                 <MapPin className="w-4 h-4" />
@@ -128,13 +129,13 @@ export const RoutingSidebar: React.FC<RoutingSidebarProps> = ({
 
                 {/* MODO DE VIAJE */}
                 <section>
-                    <h2 className="text-xs uppercase tracking-widest text-slate-500 font-bold mb-4">Modo de Viaje</h2>
+                    <h2 className="text-xs uppercase tracking-widest text-on-surface-variant/50 font-bold mb-4">Modo de Viaje</h2>
                     <div className="flex gap-4">
                         <button
                             onClick={() => setTravelMode('driving')}
                             className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold transition-all ${travelMode === 'driving'
-                                ? 'bg-[#8C3154] text-white shadow-md'
-                                : 'bg-white border border-[#8C3154]/10 text-[#8C3154]/60 hover:bg-[#8C3154]/5 hover:border-[#8C3154]/30'
+                                ? 'bg-primary text-white shadow-md'
+                                : 'bg-white border border-primary/10 text-primary/60 hover:bg-primary/5 hover:border-primary/30'
                                 }`}
                         >
                             <Car className="w-4 h-4 opacity-80" />
@@ -143,8 +144,8 @@ export const RoutingSidebar: React.FC<RoutingSidebarProps> = ({
                         <button
                             onClick={() => setTravelMode('foot')}
                             className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold transition-all ${travelMode === 'foot'
-                                ? 'bg-[#BC9B73] text-white shadow-md'
-                                : 'bg-white border border-[#BC9B73]/10 text-[#BC9B73]/60 hover:bg-[#BC9B73]/5 hover:border-[#BC9B73]/30'
+                                ? 'bg-tertiary text-white shadow-md'
+                                : 'bg-white border border-tertiary/10 text-tertiary/60 hover:bg-tertiary/5 hover:border-tertiary/30'
                                 }`}
                         >
                             <Footprints className="w-4 h-4 opacity-80" />
@@ -158,14 +159,14 @@ export const RoutingSidebar: React.FC<RoutingSidebarProps> = ({
                     {!isRoutingActive ? (
                         <button
                             onClick={onVerRuta}
-                            className="w-full bg-[#8C3154] hover:bg-[#7a2a49] text-white text-[11px] font-black uppercase tracking-[0.2em] py-2.5 rounded-xl shadow-lg shadow-[#8C3154]/20 transition-all active:scale-[0.98]"
+                            className="w-full bg-primary hover:bg-primary-container text-white text-[11px] font-black uppercase tracking-[0.2em] py-2.5 rounded-xl shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
                         >
                             Trazar Ruta
                         </button>
                     ) : (
                         <button
                             onClick={onCancelRouting}
-                            className="w-full bg-[#7C4A36] hover:bg-[#633a2a] text-white text-[11px] font-black uppercase tracking-[0.2em] py-2.5 rounded-xl shadow-lg shadow-[#7C4A36]/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                            className="w-full bg-stone-600 hover:bg-stone-700 text-white text-[11px] font-black uppercase tracking-[0.2em] py-2.5 rounded-xl shadow-lg shadow-stone-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                         >
                             <X className="w-4 h-4" />
                             Cancelar Ruta
@@ -175,13 +176,13 @@ export const RoutingSidebar: React.FC<RoutingSidebarProps> = ({
 
                 {/* CAPAS DEL MAPA */}
                 <section className="pt-4 border-t border-stone-100">
-                    <h2 className="text-xs uppercase tracking-widest text-slate-500 font-bold mb-4">Capas del Mapa</h2>
+                    <h2 className="text-xs uppercase tracking-widest text-on-surface-variant/50 font-bold mb-4">Capas del Mapa</h2>
                     <div className="flex flex-row gap-3">
                         <button
                             onClick={() => setVisibleLayers(p => ({ ...p, padron: !p.padron }))}
                             className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-xl font-bold transition-all ${visibleLayers.padron
-                                ? 'bg-[#8C3154] text-white shadow-md'
-                                : 'bg-white border border-[#8C3154]/10 text-stone-500 hover:bg-[#8C3154]/5'
+                                ? 'bg-primary text-white shadow-md'
+                                : 'bg-white border border-primary/10 text-stone-500 hover:bg-primary/5'
                                 }`}
                         >
                             <Target className="w-4 h-4 opacity-80" />
@@ -191,8 +192,8 @@ export const RoutingSidebar: React.FC<RoutingSidebarProps> = ({
                         <button
                             onClick={() => setVisibleLayers(p => ({ ...p, nearManzanas: !p.nearManzanas }))}
                             className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-xl font-bold transition-all ${visibleLayers.nearManzanas
-                                ? 'bg-[#BC9B73] text-white shadow-md'
-                                : 'bg-white border border-[#BC9B73]/10 text-stone-500 hover:bg-[#BC9B73]/5'
+                                ? 'bg-tertiary text-white shadow-md'
+                                : 'bg-white border border-tertiary/10 text-stone-500 hover:bg-tertiary/5'
                                 }`}
                         >
                             <LayoutGrid className="w-4 h-4 opacity-80" />

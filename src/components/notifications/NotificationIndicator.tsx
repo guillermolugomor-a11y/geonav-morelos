@@ -30,9 +30,9 @@ export const NotificationIndicator: React.FC<NotificationIndicatorProps> = ({
     >
       <div className="relative flex items-center justify-center">
         {pulse && (
-          <div className="absolute inset-0 animate-ping bg-[#8C3154] rounded-full opacity-30"></div>
+          <div className="absolute inset-0 animate-ping bg-primary rounded-full opacity-30"></div>
         )}
-        <div className={`bg-[#8C3154] ${containerPadding} rounded-full relative shadow-sm border border-white/20`}>
+        <div className={`bg-primary ${containerPadding} rounded-full relative shadow-sm border border-white/20`}>
           <Bell className={`${iconSize} text-white fill-current`} />
         </div>
         {!pulse && (
@@ -40,7 +40,7 @@ export const NotificationIndicator: React.FC<NotificationIndicatorProps> = ({
         )}
       </div>
       {showText && (
-        <span className="text-[10px] font-bold text-[#8C3154] uppercase tracking-tighter animate-pulse">
+        <span className="text-[10px] font-bold text-primary uppercase tracking-tighter animate-pulse">
           Nuevo
         </span>
       )}

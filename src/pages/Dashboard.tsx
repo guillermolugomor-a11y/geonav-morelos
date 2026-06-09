@@ -44,17 +44,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onProfileUpdate 
     }
   }, [isAdmin, setUsuarios]);
 
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (searchTerm) {
-        const event = new CustomEvent('search-section', { detail: searchTerm });
-        window.dispatchEvent(event);
-      }
-    }, 400);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm]);
-
   return (
     <div className="h-screen flex flex-col bg-surface overflow-hidden font-sans selection:bg-primary/10 selection:text-primary">
       <Navbar perfil={perfil} user={user} onLogout={onLogout} currentView={view} onViewChange={setView} />
@@ -88,6 +77,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onProfileUpdate 
                 <MapView
                   focusPolygonId={pendingFocusPolygonId}
                   onFocusHandled={handleFocusHandled}
+                  searchTerm={searchTerm}
                 />
               </div>
             </motion.div>

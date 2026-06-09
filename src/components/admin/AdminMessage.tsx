@@ -12,8 +12,8 @@ export const AdminMessage: React.FC<AdminMessageProps> = ({ message }) => {
     <div
       className={`p-4 rounded-xl flex items-center gap-3 ${
         message.type === 'success'
-          ? 'bg-[#8C3154]/5 text-[#8C3154] border border-[#8C3154]/20'
-          : 'bg-[#7C4A36]/5 text-[#7C4A36] border border-[#7C4A36]/20'
+          ? 'bg-primary/5 text-primary border border-primary/20'
+          : 'bg-red-50 text-red-700 border border-red-200'
       }`}
     >
       {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}

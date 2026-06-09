@@ -23,7 +23,7 @@ export const NotificationBell: React.FC = React.memo(() => {
         <div className="relative" ref={panelRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`p-2 rounded-full transition-all relative ${isOpen ? 'bg-[#8C3154]/10 text-[#8C3154]' : 'text-stone-500 hover:bg-stone-100'
+                className={`p-2 rounded-full transition-all relative ${isOpen ? 'bg-primary/10 text-primary' : 'text-stone-500 hover:bg-stone-100'
                     }`}
             >
                 <Bell size={20} />
@@ -45,14 +45,14 @@ export const NotificationBell: React.FC = React.memo(() => {
                         <div className="p-4 bg-stone-50 border-b border-stone-200 flex items-center justify-between">
                             <h3 className="font-bold text-stone-900 flex items-center gap-2">
                                 Notificaciones
-                                <span className="bg-[#8C3154]/10 text-[#8C3154] text-xs px-2 py-0.5 rounded-full">
+                                <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">
                                     {unreadCount} nuevas
                                 </span>
                             </h3>
                             {unreadCount > 0 && (
                                 <button
                                     onClick={markAllAsRead}
-                                    className="text-xs text-[#8C3154] hover:text-[#7a2a49] font-bold flex items-center gap-1"
+                                    className="text-xs text-primary hover:text-primary-container font-bold flex items-center gap-1"
                                 >
                                     <Check size={12} />
                                     Leer todo
@@ -76,7 +76,7 @@ export const NotificationBell: React.FC = React.memo(() => {
                                             className="p-4 hover:bg-stone-50 transition-colors group relative"
                                         >
                                             <div className="flex gap-3">
-                                                <div className={`mt-1 p-1.5 rounded-lg shrink-0 ${n.tipo === 'task_assigned' ? 'bg-[#8C3154]/10 text-[#8C3154]' : 'bg-[#BC9B73]/10 text-[#BC9B73]'
+                                                <div className={`mt-1 p-1.5 rounded-lg shrink-0 ${n.tipo === 'task_assigned' ? 'bg-primary/10 text-primary' : 'bg-tertiary/10 text-tertiary'
                                                     }`}>
                                                     {n.tipo === 'task_assigned' ? <Clipboard size={14} /> : <Activity size={14} />}
                                                 </div>

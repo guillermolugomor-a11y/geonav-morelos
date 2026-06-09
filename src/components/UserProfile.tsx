@@ -82,7 +82,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ perfil, onProfileUpdat
         </div>
 
         {message && (
-          <div className={`p-4 rounded-xl flex items-start gap-3 ${message.type === 'success' ? 'bg-stone-50 text-[#8C3154] border border-[#8C3154]/20' : 'bg-red-50 text-red-800 border border-red-200'
+          <div className={`p-4 rounded-xl flex items-start gap-3 ${message.type === 'success' ? 'bg-primary/5 text-primary border border-primary/20' : 'bg-red-50 text-red-800 border border-red-200'
             }`}>
             {message.type === 'success' ? <CheckCircle className="w-5 h-5 shrink-0 mt-0.5" /> : <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />}
             <p className="text-sm font-medium">{message.text}</p>
@@ -95,7 +95,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ perfil, onProfileUpdat
           <div className="md:col-span-2 bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
             <div className="p-6 border-b border-stone-100 bg-stone-50/50">
               <h2 className="text-lg font-bold text-stone-800 flex items-center gap-2">
-                <User className="w-5 h-5 text-[#8C3154]" />
+                <User className="w-5 h-5 text-primary" />
                 Información Personal
               </h2>
             </div>
@@ -109,7 +109,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ perfil, onProfileUpdat
                   type="text"
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-stone-800 font-medium focus:ring-2 focus:ring-[#8C3154] focus:border-[#8C3154] transition-all outline-none"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-stone-800 font-medium focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all outline-none"
                   placeholder="Tu nombre"
                 />
               </div>
@@ -139,7 +139,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ perfil, onProfileUpdat
                 <button
                   type="submit"
                   disabled={isSubmitting || nombre === perfil.nombre}
-                  className="bg-[#8C3154] hover:bg-[#7a2a49] disabled:bg-stone-300 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2"
+                  className="bg-primary hover:bg-primary-container disabled:bg-stone-300 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2"
                 >
                   {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Guardar Cambios
@@ -152,7 +152,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ perfil, onProfileUpdat
           <div className="space-y-6">
             <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6">
               <h3 className="text-sm font-bold text-stone-800 mb-4 flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-[#8C3154]" />
+                <MapPin className="w-4 h-4 text-primary" />
                 Resumen de Trabajo
               </h3>
               
@@ -164,7 +164,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ perfil, onProfileUpdat
                 <div className="space-y-4">
                   <div className="bg-stone-50 p-4 rounded-xl border border-stone-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="bg-stone-100 p-2 rounded-lg text-[#8C3154]">
+                      <div className="bg-primary/10 p-2 rounded-lg text-primary">
                         <MapPin className="w-4 h-4" />
                       </div>
                       <div>
@@ -180,20 +180,20 @@ export const UserProfile: React.FC<UserProfileProps> = ({ perfil, onProfileUpdat
                         <Clock className="w-4 h-4" />
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase font-bold text-[#BC9B73]">Pendientes</p>
-                        <p className="text-lg font-bold text-[#BC9B73] leading-none">{tareasPendientes}</p>
+                        <p className="text-[10px] uppercase font-bold text-tertiary">Pendientes</p>
+                        <p className="text-lg font-bold text-tertiary leading-none">{tareasPendientes}</p>
                       </div>
                     </div>
                   </div>
 
                   <div className="bg-stone-50 p-4 rounded-xl border border-stone-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="bg-[#8C3154]/10 p-2 rounded-lg text-[#8C3154]">
+                      <div className="bg-primary/10 p-2 rounded-lg text-primary">
                         <CheckSquare className="w-4 h-4" />
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase font-bold text-[#8C3154]">Completadas</p>
-                        <p className="text-lg font-bold text-[#8C3154] leading-none"> {tareasCompletadas}</p>
+                        <p className="text-[10px] uppercase font-bold text-primary">Completadas</p>
+                        <p className="text-lg font-bold text-primary leading-none"> {tareasCompletadas}</p>
                       </div>
                     </div>
                   </div>

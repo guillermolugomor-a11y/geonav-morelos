@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { UsuarioPerfil, Tarea, TareaHistorial } from '../types';
 import { taskService } from '../services/taskService';
-import { CheckSquare, ArrowRight, Edit3, X, Save, MessageSquare, Clock, User, ChevronRight, Users, Camera, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { CheckSquare, ArrowRight, Edit3, X, Save, MessageSquare, Clock, User, ChevronRight, Users, Camera, Image as ImageIcon, Trash2, AlertCircle, CheckCircle } from 'lucide-react';
 import { cloudinaryService } from '../services/cloudinaryService';
 import { motion, AnimatePresence } from 'motion/react';
 import { TaskLocationLabel } from './tasks/TaskLocationLabel';
 import { useNotifications } from './notifications/NotificationContext';
 import { NotificationIndicator } from './notifications/NotificationIndicator';
 import { Button, Textarea, TaskStatusBadge, Spinner } from './ui';
+import { useStore } from '../store/useStore';
 
 interface UserTasksProps {
   perfil: UsuarioPerfil;
@@ -15,8 +16,9 @@ interface UserTasksProps {
 }
 
 export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap }) => {
-  const [tareas, setTareas] = useState<Tarea[]>([]);
-  const [loadingTasks, setLoadingTasks] = useState(true);
+  const tareas = useStore(s => s.tareas);
+  const setStoreTareas = useStore(s => s.setTareas);
+  const [loadingTasks, setLoadingTasks] = useState(tareas.length === 0);
   const [editingTask, setEditingTask] = useState<Tarea | null>(null);
   const [historial, setHistorial] = useState<TareaHistorial[]>([]);
   const [loadingHistorial, setLoadingHistorial] = useState(false);
@@ -28,8 +30,27 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [evidenceUrls, setEvidenceUrls] = useState<string[]>([]);
-  
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'info' } | null>(null);
+
+  const showToast = useCallback((message: string, type: 'error' | 'info' = 'error') => {
+    setToast({ message, type });
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   const { notifications, markTaskNotificationsAsRead } = useNotifications();
+
+  const previewUrlsRef = useRef<string[]>([]);
+  useEffect(() => {
+    previewUrlsRef.current = previewUrls;
+  }, [previewUrls]);
+  useEffect(() => {
+    return () => { previewUrlsRef.current.forEach(url => URL.revokeObjectURL(url)); };
+  }, []);
 
   // OPTIMIZACIÓN: Pre-calcular tareas con notificaciones no leídas (O(n))
   const tareasConNotificaciones = useMemo(() => {
@@ -59,7 +80,7 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
     setLoadingTasks(true);
     try {
       const userTasks = await taskService.getTareas(perfil.id);
-      setTareas(userTasks);
+      setStoreTareas(userTasks);
     } catch (error) {
       console.error('Error cargando tareas:', error);
     } finally {
@@ -68,7 +89,9 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
   };
 
   useEffect(() => {
-    fetchTasks();
+    if (tareas.length === 0) {
+      fetchTasks();
+    }
   }, [perfil.id]);
 
   const handleEditClick = async (tarea: Tarea) => {
@@ -95,6 +118,7 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
   };
 
   const handleCancelEdit = () => {
+    previewUrls.forEach(url => URL.revokeObjectURL(url));
     setEditingTask(null);
     setEditStatus('pendiente');
     setNewUpdate('');
@@ -114,7 +138,7 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
       const filesToAdd = newFiles.slice(0, remainingSlots);
       
       if (filesToAdd.length < newFiles.length) {
-        alert("Máximo 5 fotos por tarea");
+        showToast('Máximo 5 fotos por tarea', 'info');
       }
 
       if (filesToAdd.length > 0) {
@@ -165,17 +189,18 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
         setHistorial(history);
         setNewUpdate('');
         setSelectedFiles([]);
+        previewUrls.forEach(url => URL.revokeObjectURL(url));
         setPreviewUrls([]);
         setEvidenceUrls(finalEvidenceUrls);
         setUploadProgress(0);
         setIsUploading(false);
         await fetchTasks();
       } else {
-        alert('No se pudo guardar la tarea');
+        showToast('No se pudo guardar la tarea');
       }
     } catch (error: any) {
       console.error('Error al guardar reporte:', error);
-      alert(`Error: ${error.message}`);
+      showToast(error.message || 'Error al guardar la tarea');
     } finally {
       setSavingTask(false);
       setIsUploading(false);
@@ -238,7 +263,7 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {tareas.map(tarea => (
-                  <div key={tarea.id} className="bg-surface-container-low border border-outline-variant/15 rounded-2xl p-5 flex flex-col hover:shadow-md transition-all">
+                  <div key={tarea.id} className="bg-surface-container-low border border-outline-variant/15 rounded-2xl p-5 flex flex-col hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
                     <div className="flex justify-between items-start mb-4">
                       <TaskStatusBadge status={tarea.status as any} />
                       {tarea.is_collaborative && (
@@ -339,6 +364,26 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                 </button>
               </div>
 
+              <AnimatePresence>
+                {toast && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    className={`mx-5 mt-3 flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold ${
+                      toast.type === 'error'
+                        ? 'bg-red-50 text-red-700 border border-red-200'
+                        : 'bg-blue-50 text-blue-700 border border-blue-200'
+                    }`}
+                  >
+                    {toast.type === 'error'
+                      ? <AlertCircle className="w-4 h-4 shrink-0" />
+                      : <CheckCircle className="w-4 h-4 shrink-0" />}
+                    <span>{toast.message}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 min-h-0 custom-scrollbar bg-surface-container-lowest">
                 {/* Visual Header in Body */}
                 <div className="bg-surface-container-low rounded-2xl p-4 flex items-center gap-4 border border-outline-variant/10">
@@ -416,7 +461,7 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                             </p>
                             {item.estado_snapshot && (
                               <div className="mt-2 text-[9px] font-bold text-on-surface-variant/50 uppercase tracking-tighter">
-                                Estado: <span className="text-[#BC9B73]">{item.estado_snapshot}</span>
+                                Estado: <span className="text-tertiary">{item.estado_snapshot}</span>
                               </div>
                             )}
                           </div>
@@ -491,7 +536,7 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
 
                       {/* Previsualización de fotos nuevas seleccionadas */}
                       {previewUrls.map((url, index) => (
-                        <div key={`prev-${index}`} className="relative h-28 rounded-xl overflow-hidden border-2 border-[#8C3154]/30 bg-surface-container-low group shadow-sm ring-4 ring-[#8C3154]/5">
+                        <div key={`prev-${index}`} className="relative h-28 rounded-xl overflow-hidden border-2 border-primary/30 bg-surface-container-low group shadow-sm ring-4 ring-primary/5">
                           <img 
                             src={url} 
                             alt={`Previsualización ${index + 1}`} 
@@ -500,9 +545,10 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                           <div className="absolute inset-0 bg-stone-900/10 flex items-center justify-center">
                              <div className="bg-white/90 px-2 py-0.5 rounded text-[8px] font-black text-primary uppercase tracking-tighter">Pendiente</div>
                           </div>
-                          <button 
+                          <button
                             onClick={(e) => {
                               e.preventDefault();
+                              URL.revokeObjectURL(previewUrls[index]);
                               setSelectedFiles(prev => prev.filter((_, i) => i !== index));
                               setPreviewUrls(prev => prev.filter((_, i) => i !== index));
                             }}
@@ -516,7 +562,7 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
 
                       {/* Ranura para añadir más (si hay espacio) */}
                       {(evidenceUrls.length + selectedFiles.length) < 5 && (
-                        <label className="flex flex-col items-center justify-center h-28 border-2 border-dashed border-outline-variant/20 rounded-xl bg-surface-container-low hover:bg-surface-container-low hover:border-[#8C3154]/30 transition-all cursor-pointer group shadow-sm">
+                        <label className="flex flex-col items-center justify-center h-28 border-2 border-dashed border-outline-variant/20 rounded-xl bg-surface-container-low hover:bg-surface-container-low hover:border-primary/30 transition-all cursor-pointer group shadow-sm">
                           <input 
                             type="file" 
                             accept="image/*" 

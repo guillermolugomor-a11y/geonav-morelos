@@ -59,7 +59,7 @@ export const UserStatsView: React.FC<UserStatsViewProps> = ({ usuarios, tareas }
       {/* Resumen Global */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white/50 p-4 md:p-6 rounded-[2rem] shadow-sm border border-stone-100 flex items-center gap-4 md:gap-5">
-          <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-[#8C3154]/10 flex items-center justify-center text-[#8C3154] shrink-0">
+          <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
             <BarChart3 className="w-6 h-6 md:w-7 md:h-7" />
           </div>
           <div>

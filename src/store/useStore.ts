@@ -1,9 +1,10 @@
 import { create } from 'zustand';
+import { AuthUser } from '@supabase/supabase-js';
 import { UsuarioPerfil, Poligono, Tarea } from '../types';
 
 interface AppState {
   // Estado
-  user: any | null;
+  user: AuthUser | null;
   perfil: UsuarioPerfil | null;
   usuarios: UsuarioPerfil[];
   poligonos: Poligono[];
@@ -17,7 +18,7 @@ interface AppState {
   selectedMunicipio: string | null;
 
   // Acciones
-  setUser: (user: any | null) => void;
+  setUser: (user: AuthUser | null) => void;
   setPerfil: (perfil: UsuarioPerfil | null) => void;
   setUsuarios: (usuarios: UsuarioPerfil[]) => void;
   setPoligonos: (poligonos: Poligono[]) => void;

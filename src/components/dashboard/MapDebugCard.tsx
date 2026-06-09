@@ -1,8 +1,9 @@
 import React from 'react';
+import { AuthUser } from '@supabase/supabase-js';
 import { UsuarioPerfil } from '../../types';
 
 interface MapDebugCardProps {
-  user: any;
+  user: AuthUser | null;
   perfil: UsuarioPerfil | null;
 }
 

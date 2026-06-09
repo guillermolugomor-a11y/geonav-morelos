@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { poligonosService } from '../services/poligonosService';
 import { taskService } from '../services/taskService';
 import { debugError, debugLog } from '../utils/debug';
 import { useStore } from '../store/useStore';

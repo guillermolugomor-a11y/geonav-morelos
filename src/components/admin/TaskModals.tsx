@@ -266,7 +266,7 @@ export const TaskModals: React.FC<TaskModalsProps> = ({
                       return (
                         <div key={item.id} className="relative pl-10 group">
                           <div className={`absolute left-0 top-1 w-6 h-6 rounded-full border-4 border-white shadow-md z-10 flex items-center justify-center ${
-                            item.tipo === 'cambio_estado' ? 'bg-[#BC9B73]' : 'bg-primary'
+                            item.tipo === 'cambio_estado' ? 'bg-tertiary' : 'bg-primary'
                           }`}>
                             <div className="w-1.5 h-1.5 bg-white rounded-full" />
                           </div>

@@ -526,7 +526,7 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
                     </div>
                     <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
                       tarea.status === 'completada' ? 'bg-emerald-50 text-emerald-600' :
-                      tarea.status === 'en_progreso' ? 'bg-[#8C3154]/5 text-[#8C3154]' :
+                      tarea.status === 'en_progreso' ? 'bg-primary/5 text-primary' :
                       'bg-stone-100 text-stone-500'
                     }`}>
                       {tarea.status === 'programada' ? '⏰ Programada' : tarea.status.replace('_', ' ')}
@@ -535,14 +535,14 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
 
                   <button
                     onClick={() => onNavigateToMap?.(tarea.polygon_id)}
-                    className="w-full flex items-center gap-2 p-3 bg-[#f7f3eb] rounded-2xl text-[11px] font-black text-[#8C3154] mb-4 shadow-sm active:scale-95 transition-all"
+                    className="w-full flex items-center gap-2 p-3 bg-surface-container-low rounded-2xl text-[11px] font-black text-primary mb-4 shadow-sm active:scale-95 transition-all"
                   >
                     <MapPin size={14} className="shrink-0" />
                     <TaskLocationLabel task={tarea} poligono={poligono} />
                     <ChevronRight size={14} className="ml-auto opacity-30" />
                   </button>
 
-                  <p className="text-sm text-stone-600 font-medium leading-relaxed mb-4 italic pl-4 border-l-2 border-[#f7f3eb]">
+                  <p className="text-sm text-stone-600 font-medium leading-relaxed mb-4 italic pl-4 border-l-2 border-outline-variant/20">
                     "{tarea.instruccion}"
                   </p>
 

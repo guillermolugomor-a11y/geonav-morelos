@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { AuthUser } from '@supabase/supabase-js';
 import { UsuarioPerfil } from '../types';
 
 export const authService = {
@@ -25,7 +26,7 @@ export const authService = {
    * Asegura que exista un perfil en `usuarios_perfil` para el usuario autenticado.
    * Si no existe, lo crea con rol 'field_worker'.
    */
-  async ensurePerfil(user: any): Promise<UsuarioPerfil | null> {
+  async ensurePerfil(user: AuthUser): Promise<UsuarioPerfil | null> {
     const { data: existing } = await supabase
       .from('usuarios_perfil')
       .select('*')

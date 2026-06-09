@@ -10,16 +10,15 @@ const TASK_SELECTOR = `
 
 const mapTarea = (tarea: any): Tarea | null => {
   if (!tarea) return null;
-  // Asegurar consistencia entre usuario_id y user_id
   const userId = tarea.user_id || tarea.usuario_id;
-  if (userId) {
-    tarea.user_id = userId;
-    tarea.usuario_id = userId;
-  }
-  if (tarea.tarea_colaboradores && Array.isArray(tarea.tarea_colaboradores)) {
-    tarea.collaborator_ids = tarea.tarea_colaboradores.map((c: any) => c.user_id);
-  }
-  return tarea as Tarea;
+  const collaborator_ids = Array.isArray(tarea.tarea_colaboradores)
+    ? tarea.tarea_colaboradores.map((c: any) => c.user_id)
+    : tarea.collaborator_ids;
+  return {
+    ...tarea,
+    ...(userId ? { user_id: userId, usuario_id: userId } : {}),
+    ...(collaborator_ids !== undefined ? { collaborator_ids } : {}),
+  } as Tarea;
 };
 
 const mapTareas = (data: any[] | null): Tarea[] => {

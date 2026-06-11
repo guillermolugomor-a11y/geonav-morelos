@@ -60,6 +60,7 @@ interface TaskAssignmentFormProps {
   userWorkload?: Map<string, number>;
   userExperienceMap?: Map<string, number>;
   duplicateTask?: Tarea;
+  seccionesOcupadas?: Map<number, string>;
   selectedGeometry?: any;
   seccionesCercanas?: any[];
   selectedMunicipioTrabajo: string;
@@ -117,6 +118,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
   userWorkload = new Map(),
   userExperienceMap = new Map(),
   duplicateTask,
+  seccionesOcupadas = new Map(),
   selectedGeometry
 }) => {
   const getUsername = (id: string) => usuarios.find(u => u.id === id)?.nombre || 'Desconocido';
@@ -371,9 +373,21 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                           className="w-full px-4 py-3 bg-white border border-primary/10 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-xs font-bold text-stone-600 appearance-none shadow-sm pr-10"
                         >
                           <option value="">Selecciona una sección...</option>
-                          {seccionesPadron.map(s => (
-                            <option key={s.id} value={s.id}>Sección {s.id}</option>
-                          ))}
+                          {seccionesPadron.map(s => {
+                            const ocupadaPor = seccionesOcupadas.get(Number(s.id));
+                            return (
+                              <option
+                                key={s.id}
+                                value={s.id}
+                                disabled={!!ocupadaPor}
+                                style={ocupadaPor ? { color: '#9ca3af' } : undefined}
+                              >
+                                {ocupadaPor
+                                  ? `Sección ${s.id} ⚠ En trabajo (${ocupadaPor})`
+                                  : `Sección ${s.id}`}
+                              </option>
+                            );
+                          })}
                         </select>
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
                           <ChevronDown className="w-4 h-4" />
@@ -489,18 +503,21 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                       const sectionId = Number(s.id);
                       const isExpanded = expandedSection === sectionId;
                       const isSelected = isSectionSelected(s);
+                      const ocupadaPor = seccionesOcupadas.get(sectionId);
                       const sectionManzanas = isExpanded && !isMultiSection
                         ? (manzanasPorSeccion?.get(sectionId) ?? manzanasPadron.filter((m) => Number(m.seccion) === sectionId))
                         : [];
 
                       return (
-                        <div key={s.id} className="flex flex-col">
+                        <div key={s.id} className={`flex flex-col ${ocupadaPor && !isSelected ? 'opacity-60' : ''}`}>
                           <div
-                            onClick={() => !isMultiSection && setExpandedSection(isExpanded ? null : sectionId)}
+                            onClick={() => !isMultiSection && !ocupadaPor && setExpandedSection(isExpanded ? null : sectionId)}
                             className={`p-4 transition-all flex justify-between items-center ${
                               isSelected
                                 ? 'bg-primary/5 border-l-4 border-primary'
-                                : 'hover:bg-white/40 cursor-pointer'
+                                : ocupadaPor
+                                  ? 'bg-amber-50/50 cursor-not-allowed'
+                                  : 'hover:bg-white/40 cursor-pointer'
                             }`}
                           >
                             <div className="flex items-center gap-3">
@@ -513,8 +530,19 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                                 <div className="w-7 h-7" />
                               )}
                               <div>
-                                <p className={`text-sm font-bold ${isSelected ? 'text-primary' : 'text-on-surface'}`}>Sección {s.id}</p>
-                                <p className="text-[10px] text-stone-400 uppercase font-black tracking-widest">Morelos</p>
+                                <p className={`text-sm font-bold ${isSelected ? 'text-primary' : ocupadaPor ? 'text-stone-400' : 'text-on-surface'}`}>
+                                  Sección {s.id}
+                                  {ocupadaPor && !isSelected && (
+                                    <span className="ml-1.5 text-[10px] font-semibold text-amber-600 normal-case tracking-normal">
+                                      ⚠ En trabajo
+                                    </span>
+                                  )}
+                                </p>
+                                {ocupadaPor && !isSelected ? (
+                                  <p className="text-[10px] text-amber-500 font-bold truncate max-w-[140px]">{ocupadaPor}</p>
+                                ) : (
+                                  <p className="text-[10px] text-stone-400 uppercase font-black tracking-widest">Morelos</p>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center gap-4">
@@ -525,6 +553,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                               {/* Botón Todo → ahora toggle multi-selección */}
                               <button
                                 type="button"
+                                disabled={!!ocupadaPor && !isSelected}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   toggleSection(s);
@@ -534,7 +563,9 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                                 className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
                                   isSelected
                                     ? 'bg-primary text-white'
-                                    : 'bg-white text-stone-400 hover:text-primary shadow-sm'
+                                    : ocupadaPor
+                                      ? 'bg-stone-100 text-stone-300 cursor-not-allowed'
+                                      : 'bg-white text-stone-400 hover:text-primary shadow-sm'
                                 }`}
                               >
                                 {isSelected ? '✓ Sel.' : 'Sel.'}

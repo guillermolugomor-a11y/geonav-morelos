@@ -236,6 +236,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     return map;
   }, [tareas]);
 
+  // Secciones con tareas activas: Map<sectionId, nombreUsuario>
+  const seccionesOcupadas = useMemo(() => {
+    const map = new Map<number, string>();
+    tareas.forEach(t => {
+      if (t.status === 'completada' || t.status === 'programada') return;
+      const seccionId = Number(t.seccion ?? t.clave_seccion);
+      if (!seccionId || map.has(seccionId)) return;
+      const usuario = usuarios.find(u => u.id === t.user_id);
+      map.set(seccionId, usuario?.nombre ?? 'Otro equipo');
+    });
+    return map;
+  }, [tareas, usuarios]);
+
   // Detector de duplicidad inteligente (solo aplica sobre la sección primaria)
   const duplicateTask = useMemo(() => {
     if (!selectedPoligono || selectedSections.length === 0) return null;
@@ -645,6 +658,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           userWorkload={userWorkload}
           userExperienceMap={userExperienceMap}
           duplicateTask={duplicateTask}
+          seccionesOcupadas={seccionesOcupadas}
           selectedGeometry={(() => {
             // En multi-sección mostramos la geometría de la sección primaria
             const geom = tipoCapa === 'padron'

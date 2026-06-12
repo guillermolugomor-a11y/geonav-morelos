@@ -491,59 +491,27 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                   </div>
                 </div>
 
-                {selectionMode === 'automatic' && selectedMunicipioTrabajo !== 'Todos' && (
-                  <div className="space-y-3 bg-primary/5 p-4 rounded-2xl border border-primary/10 animate-in fade-in zoom-in duration-300">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">
-                        1. Sección de Origen
-                      </label>
-                      <div className="relative">
-                        <select
-                          value={autoOriginSectionId}
-                          onChange={(e) => setAutoOriginSectionId(e.target.value)}
-                          className="w-full px-4 py-3 bg-white border border-primary/10 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-xs font-bold text-stone-600 appearance-none shadow-sm pr-10"
-                        >
-                          <option value="">Selecciona una sección...</option>
-                          {seccionesPadron.map(s => {
-                            const ocupadaPor = seccionesOcupadas.get(Number(s.id));
-                            return (
-                              <option
-                                key={s.id}
-                                value={s.id}
-                                disabled={!!ocupadaPor}
-                                style={ocupadaPor ? { color: '#9ca3af' } : undefined}
-                              >
-                                {ocupadaPor
-                                  ? `Sección ${s.id} ⚠ En trabajo (${ocupadaPor})`
-                                  : `Sección ${s.id}`}
-                              </option>
-                            );
-                          })}
-                        </select>
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
-                          <ChevronDown className="w-4 h-4" />
-                        </div>
-                      </div>
-                    </div>
-                    {autoOriginSectionId && (
-                      <div className="space-y-1 animate-in fade-in slide-in-from-top-2">
-                        <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">
-                          2. Cantidad de Secciones a Asignar
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="number"
-                            min="1"
-                            max="100"
-                            value={autoSelectionCount || ''}
-                            onChange={(e) => setAutoSelectionCount(Number(e.target.value) || 1)}
-                            className="w-full px-4 py-3 bg-white border border-primary/10 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-xs font-bold text-stone-600 shadow-sm"
-                            placeholder="Ej. 5"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                {selectionMode === 'automatic' && (
+                  <MassAssignmentPanel
+                    municipio={selectedMunicipioTrabajo}
+                    seccionesPadron={(seccionesDisponiblesMass ?? seccionesPadron).map(s => ({ ...s, id: Number(s.id) }))}
+                    totalSecciones={massTotalSecciones ?? seccionesPadron.length}
+                    usuarios={usuarios}
+                    numEquipos={massNumEquipos}
+                    setNumEquipos={setMassNumEquipos}
+                    cantidadSecciones={massCantidadSecciones}
+                    setCantidadSecciones={setMassCantidadSecciones}
+                    result={massAssignmentResult ?? null}
+                    onCalcular={onMassCalcular}
+                    onReset={onMassReset}
+                    instruccion={instruccion}
+                    setInstruccion={setInstruccion}
+                    fechaVencimiento={fechaVencimiento}
+                    setFechaVencimiento={setFechaVencimiento}
+                    onGuardar={onMassGuardar}
+                    isSaving={massIsSaving}
+                    saveMessage={massSaveMessage ?? null}
+                  />
                 )}
 
                 {selectionMode === 'manual' && (

@@ -186,12 +186,10 @@ async function startViteMiddleware() {
     }
   } else {
     app.use(express.static('dist'));
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    });
   }
-
-  // Manejar rutas de React (Fase 1) - Movido aquí para ser el final de la cadena
-  app.get('*', (_req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-  });
 }
 
 startViteMiddleware();

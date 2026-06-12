@@ -252,18 +252,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     return map;
   }, [tareas]);
 
-  // Secciones con tareas activas: Map<sectionId, nombreUsuario>
   const seccionesOcupadas = useMemo(() => {
-    const map = new Map<number, string>();
+    const map = new Map<number, { status: string; userName: string; userId: string }>();
     tareas.forEach(t => {
-      if (t.status === 'completada' || t.status === 'programada') return;
-      const seccionId = Number(t.seccion ?? t.clave_seccion);
+      if (t.status !== 'pendiente' && t.status !== 'en_progreso') return;
+      const seccionId = Number(t.seccion || t.clave_seccion);
       if (!seccionId || map.has(seccionId)) return;
-      const usuario = usuarios.find(u => u.id === t.user_id);
-      map.set(seccionId, usuario?.nombre ?? 'Otro equipo');
+      const responsable = usuarios.find(u => u.id === t.user_id);
+      map.set(seccionId, {
+        status: t.status,
+        userName: responsable?.nombre ?? 'Equipo asignado',
+        userId: t.user_id,
+      });
     });
     return map;
   }, [tareas, usuarios]);
+
+  // Secciones sin tarea activa — universo para el algoritmo de asignación masiva
+  const seccionesDisponibles = useMemo(() =>
+    seccionesFiltradas.filter(s => s.geometry && !seccionesOcupadas.has(Number(s.id))),
+    [seccionesFiltradas, seccionesOcupadas]
+  );
 
   // Detector de duplicidad inteligente (solo aplica sobre la sección primaria)
   const duplicateTask = useMemo(() => {
@@ -693,7 +702,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           userWorkload={userWorkload}
           userExperienceMap={userExperienceMap}
           duplicateTask={duplicateTask}
-          seccionesOcupadas={seccionesOcupadas}
           selectedGeometry={(() => {
             const geom = tipoCapa === 'padron'
               ? (selectedManzana?.geometry || primarySection?.geometry)

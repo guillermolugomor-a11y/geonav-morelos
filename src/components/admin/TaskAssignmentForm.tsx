@@ -68,7 +68,6 @@ interface TaskAssignmentFormProps {
   userWorkload?: Map<string, number>;
   userExperienceMap?: Map<string, number>;
   duplicateTask?: Tarea;
-  seccionesOcupadas?: Map<number, string>;
   selectedGeometry?: any;
   seccionesCercanas?: any[];
   selectedMunicipioTrabajo: string;
@@ -141,7 +140,19 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
   userExperienceMap = new Map(),
   duplicateTask,
   seccionesOcupadas = new Map(),
-  selectedGeometry
+  selectedGeometry,
+  massAssignmentResult = null,
+  massNumEquipos = 7,
+  setMassNumEquipos = () => {},
+  massCantidadSecciones = 0,
+  setMassCantidadSecciones = () => {},
+  onMassCalcular = () => {},
+  onMassReset = () => {},
+  onMassGuardar = () => {},
+  massIsSaving = false,
+  massSaveMessage = null,
+  seccionesDisponiblesMass,
+  massTotalSecciones,
 }) => {
   const isMassAutoMode = selectionMode === 'automatic';
   const getUsername = (id: string) => usuarios.find(u => u.id === id)?.nombre || 'Desconocido';
@@ -626,7 +637,8 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                       const sectionId = Number(s.id);
                       const isExpanded = expandedSection === sectionId;
                       const isSelected = isSectionSelected(s);
-                      const ocupadaPor = seccionesOcupadas.get(sectionId);
+                      const occupiedInfo = seccionesOcupadas.get(sectionId);
+                      const ocupadaPor = occupiedInfo?.userName;
                       const sectionManzanas = isExpanded && !isMultiSection
                         ? (manzanasPorSeccion?.get(sectionId) ?? manzanasPadron.filter((m) => Number(m.seccion) === sectionId))
                         : [];

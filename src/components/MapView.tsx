@@ -7,9 +7,12 @@ import { Poligono } from '../types';
 import { RouteController } from './RouteController';
 import { RoutingSidebar } from './RoutingSidebar';
 import { PadronLayer } from './layers/PadronLayer';
+import { MassAssignmentLayer } from './layers/MassAssignmentLayer';
 import { StateBoundaryLayer } from './layers/StateBoundaryLayer';
 import { NearManzanasLayer } from './layers/NearManzanasLayer';
 import { SelectionHighlightLayer } from './layers/SelectionHighlightLayer';
+import { MassFilterControl } from './admin/MassFilterControl';
+import { MapTeamFilterControl } from './MapTeamFilterControl';
 import { routeService } from '../services/routeService';
 import { useMapData } from '../hooks/useMapData';
 import { useRoutePlanner } from '../hooks/useRoutePlanner';
@@ -375,6 +378,7 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
   const mapStyle = useStore(s => s.mapStyle);
   const setMapStyle = useStore(s => s.setMapStyle);
   const storeError = useStore(s => s.error);
+  const massVisualization = useStore(s => s.massVisualization);
   const {
     routeMode,
     routeOrigin,
@@ -573,7 +577,8 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
             onReset={handleResetRoute}
           />
 
-          {visibleLayers.padron && (
+          {/* PadronLayer: base cartography. Hidden when mass assignment visualization is active */}
+          {visibleLayers.padron && !massVisualization && (
             <LayerGroup>
               <PadronLayer
                 tareas={tareas}
@@ -584,6 +589,11 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
                 padronGeojson={padronGeojson}
               />
             </LayerGroup>
+          )}
+
+          {/* MassAssignmentLayer: replaces PadronLayer when dispersal visualization is active */}
+          {massVisualization && (
+            <MassAssignmentLayer padronGeojson={padronGeojson} />
           )}
 
           {visibleLayers.nearManzanas && (
@@ -600,6 +610,12 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
 
           <SelectionHighlightLayer />
         </MapContainer>
+
+        {/* Filter by team in regular map view */}
+        <MapTeamFilterControl tareas={tareas} />
+
+        {/* Filter control for mass assignment dispersal visualization */}
+        <MassFilterControl />
 
         {/* Toggle Vista Satelital */}
         <button

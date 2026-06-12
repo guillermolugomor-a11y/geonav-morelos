@@ -1,14 +1,22 @@
 import React from 'react';
-import { ClipboardList, Map as MapIcon, MapPin, Send, User, ChevronDown, ChevronRight, Clock, Users, AlertTriangle, Info, Award, CheckSquare, X } from 'lucide-react';
+import { ClipboardList, Map as MapIcon, MapPin, Send, User, ChevronDown, ChevronRight, Clock, Users, AlertTriangle, Info, Award, CheckSquare, X, Zap, LayoutGrid, Lock } from 'lucide-react';
 import { UsuarioPerfil, Tarea } from '../../types';
 import { AdminMessage } from './AdminMessage';
 import { MiniMap } from './MiniMap';
+import { MassAssignmentPanel, TEAM_COLOR_CLASSES, getUserBlocks } from './MassAssignmentPanel';
+import { MassAssignmentResult, PopulationAwareBlock } from '../../hooks/useMassAssignment';
 
 interface SectionItem {
   id: number | string;
   total?: number;
   geometry?: any;
   distance?: number;
+}
+
+export interface SeccionOcupada {
+  status: string;
+  userName: string;
+  userId: string;
 }
 
 interface ManzanaItem {
@@ -64,6 +72,20 @@ interface TaskAssignmentFormProps {
   seccionesCercanas?: any[];
   selectedMunicipioTrabajo: string;
   setSelectedMunicipioTrabajo: (value: string) => void;
+  seccionesOcupadas?: Map<number, SeccionOcupada>;
+  // Mass assignment (flujo invertido automático)
+  massAssignmentResult?: MassAssignmentResult | null;
+  massNumEquipos?: number;
+  setMassNumEquipos?: (n: number) => void;
+  massCantidadSecciones?: number;
+  setMassCantidadSecciones?: (n: number) => void;
+  onMassCalcular?: () => void;
+  onMassReset?: () => void;
+  onMassGuardar?: () => void;
+  massIsSaving?: boolean;
+  massSaveMessage?: { type: 'success' | 'error'; text: string } | null;
+  seccionesDisponiblesMass?: SectionItem[];  // secciones sin tarea activa (para algoritmo)
+  massTotalSecciones?: number;               // total incluyendo ocupadas (para etiqueta UI)
 }
 
 const formatDistance = (meters: number): string => {
@@ -117,8 +139,22 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
   userWorkload = new Map(),
   userExperienceMap = new Map(),
   duplicateTask,
-  selectedGeometry
+  selectedGeometry,
+  massAssignmentResult = null,
+  massNumEquipos = 7,
+  setMassNumEquipos = () => {},
+  massCantidadSecciones = 0,
+  setMassCantidadSecciones = () => {},
+  onMassCalcular = () => {},
+  onMassReset = () => {},
+  onMassGuardar = () => {},
+  massIsSaving = false,
+  massSaveMessage = null,
+  seccionesOcupadas = new Map(),
+  seccionesDisponiblesMass,
+  massTotalSecciones,
 }) => {
+  const isMassAutoMode = selectionMode === 'automatic';
   const getUsername = (id: string) => usuarios.find(u => u.id === id)?.nombre || 'Desconocido';
   const [searchUserQuery, setSearchUserQuery] = React.useState('');
 
@@ -174,53 +210,148 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-4">
+            {/* ── Header del panel izquierdo ── */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-on-surface uppercase tracking-widest flex items-center gap-2 opacity-85">
-                  <User className="w-4 h-4" /> Supervisores de Campo
+                  {isMassAutoMode && massAssignmentResult ? (
+                    <>
+                      <Zap className="w-4 h-4 text-primary" />
+                      <span className="text-primary">Pre-selección Automática</span>
+                    </>
+                  ) : (
+                    <>
+                      <User className="w-4 h-4" /> Supervisores de Campo
+                    </>
+                  )}
                 </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const filteredIds = sortedAndFilteredUsuarios.map(u => u.id);
-                    const allFilteredSelected = filteredIds.every(id => selectedUsers.includes(id));
-                    if (allFilteredSelected) {
-                      setSelectedUsers(selectedUsers.filter(id => !filteredIds.includes(id)));
-                    } else {
-                      setSelectedUsers(Array.from(new Set([...selectedUsers, ...filteredIds])));
-                    }
-                  }}
-                  className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/70 transition-colors bg-primary/5 px-3 py-1.5 rounded-lg"
-                >
-                  {sortedAndFilteredUsuarios.length > 0 &&
-                  sortedAndFilteredUsuarios.every(u => selectedUsers.includes(u.id))
-                    ? 'Desmarcar Todos'
-                    : 'Seleccionar Todos'}
-                </button>
-              </div>
-
-              {/* Cuadro de búsqueda rápida */}
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Buscar supervisor..."
-                  value={searchUserQuery}
-                  onChange={(e) => setSearchUserQuery(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-surface-container-low border border-primary/5 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-xs font-bold shadow-inner"
-                />
-                {searchUserQuery && (
+                {/* "Seleccionar Todos" sólo en modo manual */}
+                {!isMassAutoMode && (
                   <button
                     type="button"
-                    onClick={() => setSearchUserQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-primary text-xs font-bold"
+                    onClick={() => {
+                      const filteredIds = sortedAndFilteredUsuarios.map(u => u.id);
+                      const allFilteredSelected = filteredIds.every(id => selectedUsers.includes(id));
+                      if (allFilteredSelected) {
+                        setSelectedUsers(selectedUsers.filter(id => !filteredIds.includes(id)));
+                      } else {
+                        setSelectedUsers(Array.from(new Set([...selectedUsers, ...filteredIds])));
+                      }
+                    }}
+                    className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/70 transition-colors bg-primary/5 px-3 py-1.5 rounded-lg"
                   >
-                    ✕
+                    {sortedAndFilteredUsuarios.length > 0 &&
+                    sortedAndFilteredUsuarios.every(u => selectedUsers.includes(u.id))
+                      ? 'Desmarcar Todos'
+                      : 'Seleccionar Todos'}
                   </button>
                 )}
               </div>
+
+              {/* Búsqueda sólo en modo manual */}
+              {!isMassAutoMode && (
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Buscar supervisor..."
+                    value={searchUserQuery}
+                    onChange={(e) => setSearchUserQuery(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-surface-container-low border border-primary/5 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-xs font-bold shadow-inner"
+                  />
+                  {searchUserQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchUserQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-primary text-xs font-bold"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-            
-            <div className="bg-surface-container-low rounded-3xl p-3 max-h-56 overflow-y-auto civic-shadow shadow-inner custom-scrollbar">
+
+            {/* ── Lista: Resultado de Pre-selección (modo automático con resultado) ── */}
+            {isMassAutoMode && massAssignmentResult ? (
+              <div className="bg-surface-container-low rounded-3xl p-3 max-h-72 overflow-y-auto shadow-inner custom-scrollbar space-y-2">
+                {/* Regla: solo operativos, ordenados Equipo 1 → Equipo 14 */}
+                {usuarios
+                  .filter(u => u.rol !== 'admin')
+                  .sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true, sensitivity: 'base' }))
+                  .map((u, idx) => {
+                    const userBlocks = getUserBlocks(u.id, massAssignmentResult.blocks) as PopulationAwareBlock[];
+                    if (userBlocks.length === 0) return null;
+
+                    // Color index: position of this block in the result
+                    const teamColorIdx = userBlocks[0].blockId % TEAM_COLOR_CLASSES.length;
+                    const colorClass = TEAM_COLOR_CLASSES[teamColorIdx];
+
+                    return (
+                      <div
+                        key={u.id}
+                        className={`flex items-start gap-3 p-3 rounded-2xl border shadow-sm animate-in fade-in slide-in-from-left-2 duration-300 ${
+                          userBlocks[0].isAugmented
+                            ? 'bg-amber-50 border-amber-200'
+                            : 'bg-white border-primary/10'
+                        }`}
+                        style={{ animationDelay: `${idx * 50}ms` }}
+                      >
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${colorClass}`}>
+                          {u.nombre.charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-black text-primary truncate">{u.nombre}</p>
+                            {userBlocks[0].isAugmented && (
+                              <span className="text-[8px] font-black bg-amber-400 text-white px-1.5 py-0.5 rounded-full shrink-0 uppercase tracking-wider">
+                                +1 sec
+                              </span>
+                            )}
+                          </div>
+                          {/* Population info */}
+                          {userBlocks[0].totalPoblacion > 0 && (
+                            <p className="text-[9px] text-stone-400 font-bold mb-0.5">
+                              {userBlocks[0].totalPoblacion.toLocaleString()} padrones
+                            </p>
+                          )}
+                          {/* Section chips */}
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            <span className="text-[9px] font-black bg-primary/10 text-primary px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
+                              <LayoutGrid className="w-2 h-2" />
+                              Bloque {userBlocks[0].blockId + 1}
+                            </span>
+                            {userBlocks[0].sections.slice(0, 5).map(s => (
+                              <span key={s.id} className="text-[9px] font-black bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded-md">
+                                S-{s.id}
+                              </span>
+                            ))}
+                            {userBlocks[0].sections.length > 5 && (
+                              <span className="text-[9px] font-bold text-stone-400 px-1 py-0.5">
+                                +{userBlocks[0].sections.length - 5} más
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            ) : isMassAutoMode ? (
+              /* Placeholder: esperando cálculo */
+              <div className="bg-surface-container-low rounded-3xl p-6 shadow-inner text-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+                  <Zap className="w-6 h-6 text-primary/50" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-on-surface/50">Distribución pendiente</p>
+                  <p className="text-[10px] text-stone-400 font-medium mt-0.5">
+                    Configura y calcula la distribución en el panel derecho.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              /* ── Lista interactiva (modo manual) ── */
+              <div className="bg-surface-container-low rounded-3xl p-3 max-h-56 overflow-y-auto civic-shadow shadow-inner custom-scrollbar">
               <div className="grid grid-cols-1 gap-2">
                 {sortedAndFilteredUsuarios.length > 0 ? (
                   sortedAndFilteredUsuarios.map((u) => {
@@ -236,8 +367,8 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                           }
                         }}
                         className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all border-2 ${
-                          isSelected 
-                            ? 'bg-white border-primary shadow-sm' 
+                          isSelected
+                            ? 'bg-white border-primary shadow-sm'
                             : 'bg-transparent border-transparent hover:bg-white/40'
                         }`}
                       >
@@ -292,14 +423,16 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                 )}
               </div>
             </div>
-            
-            {selectedUsers.length > 0 && (
+            )} {/* closes the : ( manual list branch of the outer ternary */}
+
+            {/* "X Seleccionados" only makes sense in manual mode */}
+            {!isMassAutoMode && selectedUsers.length > 0 && (
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1.5 rounded-full">
                   {selectedUsers.length} Seleccionados
                 </span>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setSelectedUsers([])}
                   className="text-[10px] font-bold text-stone-400 hover:text-red-500 transition-colors"
                 >
@@ -358,47 +491,27 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                   </div>
                 </div>
 
-                {selectionMode === 'automatic' && selectedMunicipioTrabajo !== 'Todos' && (
-                  <div className="space-y-3 bg-primary/5 p-4 rounded-2xl border border-primary/10 animate-in fade-in zoom-in duration-300">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">
-                        1. Sección de Origen
-                      </label>
-                      <div className="relative">
-                        <select
-                          value={autoOriginSectionId}
-                          onChange={(e) => setAutoOriginSectionId(e.target.value)}
-                          className="w-full px-4 py-3 bg-white border border-primary/10 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-xs font-bold text-stone-600 appearance-none shadow-sm pr-10"
-                        >
-                          <option value="">Selecciona una sección...</option>
-                          {seccionesPadron.map(s => (
-                            <option key={s.id} value={s.id}>Sección {s.id}</option>
-                          ))}
-                        </select>
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
-                          <ChevronDown className="w-4 h-4" />
-                        </div>
-                      </div>
-                    </div>
-                    {autoOriginSectionId && (
-                      <div className="space-y-1 animate-in fade-in slide-in-from-top-2">
-                        <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">
-                          2. Cantidad de Secciones a Asignar
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="number"
-                            min="1"
-                            max="100"
-                            value={autoSelectionCount || ''}
-                            onChange={(e) => setAutoSelectionCount(Number(e.target.value) || 1)}
-                            className="w-full px-4 py-3 bg-white border border-primary/10 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-xs font-bold text-stone-600 shadow-sm"
-                            placeholder="Ej. 5"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                {selectionMode === 'automatic' && (
+                  <MassAssignmentPanel
+                    municipio={selectedMunicipioTrabajo}
+                    seccionesPadron={(seccionesDisponiblesMass ?? seccionesPadron).map(s => ({ ...s, id: Number(s.id) }))}
+                    totalSecciones={massTotalSecciones ?? seccionesPadron.length}
+                    usuarios={usuarios}
+                    numEquipos={massNumEquipos}
+                    setNumEquipos={setMassNumEquipos}
+                    cantidadSecciones={massCantidadSecciones}
+                    setCantidadSecciones={setMassCantidadSecciones}
+                    result={massAssignmentResult ?? null}
+                    onCalcular={onMassCalcular}
+                    onReset={onMassReset}
+                    instruccion={instruccion}
+                    setInstruccion={setInstruccion}
+                    fechaVencimiento={fechaVencimiento}
+                    setFechaVencimiento={setFechaVencimiento}
+                    onGuardar={onMassGuardar}
+                    isSaving={massIsSaving}
+                    saveMessage={massSaveMessage ?? null}
+                  />
                 )}
 
                 {selectionMode === 'manual' && (
@@ -462,11 +575,14 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                         className="w-full px-4 py-3 bg-white rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-xs font-bold text-stone-600 appearance-none shadow-sm pr-10 border border-stone-200"
                       >
                         <option value="" disabled>Selecciona una sección cercana para añadir...</option>
-                        {seccionesCercanas.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            📍 Sección {s.id} — {formatDistance(s.distance)}
+                        {seccionesCercanas.map((s) => {
+                          const isOccupied = seccionesOcupadas.has(Number(s.id));
+                          return (
+                          <option key={s.id} value={s.id} disabled={isOccupied}>
+                            {isOccupied ? '🔒' : '📍'} Sección {s.id} — {formatDistance(s.distance)}{isOccupied ? ' (En trabajo)' : ''}
                           </option>
-                        ))}
+                          );
+                        })}
                       </select>
                       <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
                         <ChevronDown className="w-4 h-4" />
@@ -489,23 +605,43 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                       const sectionId = Number(s.id);
                       const isExpanded = expandedSection === sectionId;
                       const isSelected = isSectionSelected(s);
-                      const sectionManzanas = isExpanded && !isMultiSection
+                      const occupiedInfo = seccionesOcupadas.get(sectionId);
+                      const sectionManzanas = isExpanded && !isMultiSection && !occupiedInfo
                         ? (manzanasPorSeccion?.get(sectionId) ?? manzanasPadron.filter((m) => Number(m.seccion) === sectionId))
                         : [];
 
                       return (
                         <div key={s.id} className="flex flex-col">
                           <div
-                            onClick={() => !isMultiSection && setExpandedSection(isExpanded ? null : sectionId)}
-                            className={`p-4 transition-all flex justify-between items-center ${
-                              isSelected
+                            onClick={() => !isMultiSection && !occupiedInfo && setExpandedSection(isExpanded ? null : sectionId)}
+                            className={`p-4 transition-all flex justify-between items-center relative group ${
+                              occupiedInfo
+                                ? 'bg-stone-100/80 cursor-default'
+                                : isSelected
                                 ? 'bg-primary/5 border-l-4 border-primary'
                                 : 'hover:bg-white/40 cursor-pointer'
                             }`}
                           >
+                            {/* Tooltip de sección ocupada */}
+                            {occupiedInfo && (
+                              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 z-20 hidden group-hover:flex flex-col items-center pointer-events-none">
+                                <div className="bg-stone-800 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
+                                  <span className="block text-center">{occupiedInfo.userName}</span>
+                                  <span className={`block text-center mt-0.5 ${occupiedInfo.status === 'en_progreso' ? 'text-amber-300' : 'text-sky-300'}`}>
+                                    {occupiedInfo.status === 'en_progreso' ? 'En progreso' : 'Pendiente'}
+                                  </span>
+                                </div>
+                                <div className="w-2 h-2 bg-stone-800 rotate-45 -mt-1" />
+                              </div>
+                            )}
+
                             <div className="flex items-center gap-3">
-                              {/* Icono expand (solo para sección única) */}
-                              {!isMultiSection ? (
+                              {/* Candado si ocupada; chevron si expandible; vacío si multi */}
+                              {occupiedInfo ? (
+                                <div className="p-1.5 rounded-lg bg-stone-200 text-stone-400">
+                                  <Lock className="w-4 h-4" />
+                                </div>
+                              ) : !isMultiSection ? (
                                 <div className={`p-1.5 rounded-lg ${isExpanded ? 'bg-primary text-white' : 'bg-white text-stone-400'}`}>
                                   {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                                 </div>
@@ -513,37 +649,48 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                                 <div className="w-7 h-7" />
                               )}
                               <div>
-                                <p className={`text-sm font-bold ${isSelected ? 'text-primary' : 'text-on-surface'}`}>Sección {s.id}</p>
-                                <p className="text-[10px] text-stone-400 uppercase font-black tracking-widest">Morelos</p>
+                                <p className={`text-sm font-bold ${occupiedInfo ? 'text-stone-400' : isSelected ? 'text-primary' : 'text-on-surface'}`}>
+                                  Sección {s.id}
+                                </p>
+                                <p className={`text-[10px] uppercase font-black tracking-widest ${occupiedInfo ? 'text-stone-300' : 'text-stone-400'}`}>
+                                  {occupiedInfo ? 'En trabajo' : 'Morelos'}
+                                </p>
                               </div>
                             </div>
+
                             <div className="flex items-center gap-4">
                               <div className="text-right">
-                                <p className="text-sm font-display font-black text-primary">{s.total?.toLocaleString() ?? 0}</p>
+                                <p className={`text-sm font-display font-black ${occupiedInfo ? 'text-stone-300' : 'text-primary'}`}>
+                                  {s.total?.toLocaleString() ?? 0}
+                                </p>
                                 <p className="text-[9px] text-stone-400 font-bold uppercase tracking-widest">Pads</p>
                               </div>
-                              {/* Botón Todo → ahora toggle multi-selección */}
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleSection(s);
-                                  // Al seleccionar en modo single, expandir automáticamente
-                                  if (!isSectionSelected(s)) setExpandedSection(sectionId);
-                                }}
-                                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                                  isSelected
-                                    ? 'bg-primary text-white'
-                                    : 'bg-white text-stone-400 hover:text-primary shadow-sm'
-                                }`}
-                              >
-                                {isSelected ? '✓ Sel.' : 'Sel.'}
-                              </button>
+                              {occupiedInfo ? (
+                                <span className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest bg-stone-200 text-stone-400 flex items-center gap-1">
+                                  <Lock className="w-3 h-3" /> Ocup.
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleSection(s);
+                                    if (!isSectionSelected(s)) setExpandedSection(sectionId);
+                                  }}
+                                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                                    isSelected
+                                      ? 'bg-primary text-white'
+                                      : 'bg-white text-stone-400 hover:text-primary shadow-sm'
+                                  }`}
+                                >
+                                  {isSelected ? '✓ Sel.' : 'Sel.'}
+                                </button>
+                              )}
                             </div>
                           </div>
 
-                          {/* Manzanas: solo si 1 sección seleccionada y está expandida */}
-                          {isExpanded && !isMultiSection && (
+                          {/* Manzanas: solo si 1 sección seleccionada, expandida y no ocupada */}
+                          {isExpanded && !isMultiSection && !occupiedInfo && (
                             <div className="bg-white/20 pl-4 pr-2 pb-2 space-y-1">
                               {sectionManzanas.length > 0 ? (
                                 sectionManzanas
@@ -552,7 +699,6 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                                       key={m.id}
                                       onClick={() => {
                                         setSelectedManzana(m);
-                                        // Asegurar que esta sección es la única seleccionada
                                         const seccionObj = seccionesPadron.find(sec => Number(sec.id) === Number(m.seccion));
                                         if (seccionObj) setSelectedSections([seccionObj]);
                                         setSelectedPoligono(String(m.id));
@@ -612,6 +758,8 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
             )}
           </div>
 
+          {/* Vencimiento sólo en modo manual */}
+          {!isMassAutoMode && (
           <div className="space-y-3">
             <label className="text-xs font-bold text-on-surface uppercase tracking-widest opacity-60">Vencimiento (Opcional)</label>
             <input
@@ -621,10 +769,11 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
               className="w-full px-5 py-4 bg-surface-container-low rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-bold text-on-surface"
             />
           </div>
+          )}
         </div>
 
-        {/* ── MODO COLABORATIVO: Toggles only if > 1 user ── */}
-        <div className={`transition-all duration-500 overflow-hidden ${selectedUsers.length > 1 ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
+        {/* ── MODO COLABORATIVO: Toggles only if > 1 user (sólo modo manual) ── */}
+        <div className={`transition-all duration-500 overflow-hidden ${!isMassAutoMode && selectedUsers.length > 1 ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
           <div className={`p-6 rounded-[2.5rem] border-2 transition-all flex flex-col md:flex-row items-center justify-between gap-6 ${
             isCollaborative 
               ? 'bg-primary/5 border-primary shadow-sm' 
@@ -664,6 +813,8 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
           </div>
         </div>
 
+        {/* Instrucciones sólo en modo manual — MassAssignmentPanel tiene las suyas */}
+        {!isMassAutoMode && (
         <div className="space-y-3">
           <label className="text-xs font-bold text-on-surface uppercase tracking-widest opacity-60">Instrucciones</label>
           <textarea
@@ -674,8 +825,10 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
             required
           />
         </div>
+        )}
 
-        {/* ── SCHEDULER: Programación Automática ── */}
+        {/* ── SCHEDULER y BOTÓN: sólo en modo manual ── */}
+        {!isMassAutoMode && (<>
         <div className="p-6 bg-primary/5 rounded-[2rem] border-2 border-dashed border-primary/10 space-y-4">
           <label className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-3">
             <Clock className="w-5 h-5" /> Programar Activación (Opcional)
@@ -799,6 +952,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
             {submitting ? 'Procesando...' : scheduledAt ? 'Programar' : 'Asignar Tarea'}
           </button>
         </div>
+        </>)} {/* end !isMassAutoMode */}
       </form>
     </>
   );

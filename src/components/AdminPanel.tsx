@@ -5,16 +5,17 @@ import { taskService } from '../services/taskService';
 import { Poligono, Tarea, UsuarioPerfil } from '../types';
 import { buildTaskPayload } from '../utils/taskPayload';
 import { debugError, debugLog, debugWarn } from '../utils/debug';
-import { 
-  TaskAssignmentForm, 
-  TaskMonitorView, 
-  UserDirectoryView, 
-  UserStatsView, 
-  TaskModals 
+import {
+  TaskAssignmentForm,
+  TaskMonitorView,
+  UserDirectoryView,
+  UserStatsView,
+  TaskModals
 } from './admin';
 import { useStore } from '../store/useStore';
 import { fetchWithCache } from '../utils/cache';
 import { SECCIONES_POR_MUNICIPIO } from '../constants/seccionesMunicipios';
+import { useMassAssignment } from '../hooks/useMassAssignment';
 
 interface AdminPanelProps {
   perfil: UsuarioPerfil | null;
@@ -112,6 +113,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   const setSeccionesPadron = useStore(s => s.setSeccionesPadron);
   const manzanasPadron = useStore(s => s.manzanasPadron);
   const setManzanasPadron = useStore(s => s.setManzanasPadron);
+  const setMassVisualization = useStore(s => s.setMassVisualization);
+  const setMassVisualizationFilter = useStore(s => s.setMassVisualizationFilter);
 
   const [selectedMunicipioTrabajo, setSelectedMunicipioTrabajo] = useState('Todos');
 
@@ -133,13 +136,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     setExpandedSection(null);
     setSelectedPoligono('');
     setAutoOriginSectionId('');
+    massAssignment.reset();
+    setMassVisualization(null);
+    setMassVisualizationFilter(null);
   }, [selectedMunicipioTrabajo, selectionMode]);
+
   // Sección primaria (primera del array) para compatibilidad con memos de experiencia y duplicados
   const primarySection: PadronSection | null = selectedSections[0] ?? null;
   const [isCollaborative, setIsCollaborative] = useState(false);
 
   const [filterUser, setFilterUser] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+
+  // ── Mass assignment (flujo invertido automático) ──
+  const massAssignment = useMassAssignment();
+
+  // Sync mass assignment result to the global store so MapView can render the visualization
+  useEffect(() => {
+    setMassVisualization(massAssignment.result);
+    if (!massAssignment.result) setMassVisualizationFilter(null);
+  }, [massAssignment.result]);
 
   // Efecto para auto-selección
   useEffect(() => {
@@ -235,6 +251,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     });
     return map;
   }, [tareas]);
+
+  // ── Secciones con tareas activas (pendiente | en_progreso) ──────────────────
+  // Usado para marcar visualmente zonas "En trabajo" en el selector de secciones.
+  const seccionesOcupadas = useMemo(() => {
+    const map = new Map<number, { status: string; userName: string; userId: string }>();
+    tareas.forEach(t => {
+      if (t.status !== 'pendiente' && t.status !== 'en_progreso') return;
+      const seccionId = Number(t.seccion || t.clave_seccion);
+      if (!seccionId || map.has(seccionId)) return;
+      const responsable = usuarios.find(u => u.id === t.user_id);
+      map.set(seccionId, {
+        status: t.status,
+        userName: responsable?.nombre ?? 'Equipo asignado',
+        userId: t.user_id,
+      });
+    });
+    return map;
+  }, [tareas, usuarios]);
+
+  // Secciones sin tarea activa — único universo para el algoritmo de asignación masiva
+  const seccionesDisponibles = useMemo(() =>
+    seccionesFiltradas.filter(s => s.geometry && !seccionesOcupadas.has(Number(s.id))),
+    [seccionesFiltradas, seccionesOcupadas]
+  );
 
   // Detector de duplicidad inteligente (solo aplica sobre la sección primaria)
   const duplicateTask = useMemo(() => {
@@ -423,6 +463,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     setScheduledAt('');
     setAutoActivate(false);
     setIsCollaborative(false);
+  };
+
+  const handleMassCalcular = () => {
+    massAssignment.calcular(seccionesDisponibles, usuarios, selectedMunicipioTrabajo);
+  };
+
+  const handleMassGuardar = async () => {
+    if (!massAssignment.result) return;
+    const saved = await massAssignment.guardar(
+      massAssignment.result.blocks,
+      instruccion,
+      fechaVencimiento || null,
+      perfil?.id
+    );
+    if (saved) {
+      resetForm();
+      massAssignment.reset();
+      refreshTasks();
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -619,11 +678,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           setScheduledAt={setScheduledAt}
           autoActivate={autoActivate}
           setAutoActivate={setAutoActivate}
-          seccionesPadron={seccionesFiltradas} // Pasar secciones ya filtradas
+          seccionesPadron={seccionesFiltradas}
           searchTermPadron={searchTermPadron}
           setSearchTermPadron={setSearchTermPadron}
-          manzanasPadron={manzanasPadron} // Se mantiene para fallback pero se usará el map
-          manzanasPorSeccion={manzanasPorSeccion} // Nuevo prop para O(1)
+          manzanasPadron={manzanasPadron}
+          manzanasPorSeccion={manzanasPorSeccion}
           expandedSection={expandedSection}
           setExpandedSection={setExpandedSection}
           selectedManzana={selectedManzana}
@@ -646,7 +705,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           userExperienceMap={userExperienceMap}
           duplicateTask={duplicateTask}
           selectedGeometry={(() => {
-            // En multi-sección mostramos la geometría de la sección primaria
             const geom = tipoCapa === 'padron'
               ? (selectedManzana?.geometry || primarySection?.geometry)
               : poligonos.find(p => p.id === Number(selectedPoligono))?.geom;
@@ -656,6 +714,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           submitting={submitting}
           message={message}
           onSubmit={handleSubmit}
+          seccionesOcupadas={seccionesOcupadas}
+          massAssignmentResult={massAssignment.result}
+          massNumEquipos={massAssignment.numEquipos}
+          setMassNumEquipos={massAssignment.setNumEquipos}
+          massCantidadSecciones={massAssignment.cantidadSecciones}
+          setMassCantidadSecciones={massAssignment.setCantidadSecciones}
+          seccionesDisponiblesMass={seccionesDisponibles}
+          massTotalSecciones={seccionesFiltradas.filter(s => s.geometry).length}
+          onMassCalcular={handleMassCalcular}
+          onMassReset={massAssignment.reset}
+          onMassGuardar={handleMassGuardar}
+          massIsSaving={massAssignment.isSaving}
+          massSaveMessage={massAssignment.saveMessage}
         />
       ) : viewMode === 'monitor' ? (
         <TaskMonitorView

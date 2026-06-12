@@ -5,6 +5,7 @@ import { debugLog } from '../../utils/debug';
 import { useStore } from '../../store/useStore';
 import { isAdminUser } from '../../constants/roles';
 import { SECCIONES_POR_MUNICIPIO } from '../../constants/seccionesMunicipios';
+import { TEAM_HEX_COLORS } from '../../utils/teamColors';
 
 interface PadronLayerProps {
     tareas: any[];
@@ -23,13 +24,13 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
     manzanasPadron = [],
     padronGeojson
 }) => {
-    const { perfil, selectedPoligono, setSelectedPoligono } = useStore();
+    const { perfil, selectedPoligono, setSelectedPoligono, usuarios } = useStore();
     const selectedMunicipio = useStore(s => s.selectedMunicipio);
+    const mapTeamFilter = useStore(s => s.mapTeamFilter);
     const isAdmin = isAdminUser(perfil);
 
     const routeStateRef = useRef({ isRoutingActive });
 
-    // Lógica de Visibilidad por Zoom y Culling (recorte)
     const mapInstance = useMapEvents({
         zoomend: () => {
             setZoomLevel(mapInstance.getZoom());
@@ -46,58 +47,65 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
         routeStateRef.current = { isRoutingActive };
     }, [isRoutingActive]);
 
-    const { assignedSectionIds } = useMemo(() => {
+    // Map userId → hex color: sorted field users get a stable color index (Equipo 1 = index 0, etc.)
+    const userColorMap = useMemo(() => {
+        const map = new Map<string, string>();
+        usuarios
+            .filter(u => u.rol !== 'admin')
+            .sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true, sensitivity: 'base' }))
+            .forEach((u, idx) => {
+                map.set(u.id, TEAM_HEX_COLORS[idx % TEAM_HEX_COLORS.length]);
+            });
+        return map;
+    }, [usuarios]);
+
+    // Map sectionId → userId: first assigned team wins (handles duplicates)
+    const { assignedSectionIds, sectionToUserMap } = useMemo(() => {
         const sections = new Set<number>();
-        
+        const sToU = new Map<number, string>();
+
         tareas.forEach(t => {
             if (['padron', 'seccion', 'secciones', 'Sección'].includes(t.tipo_capa)) {
-                sections.add(Number(t.polygon_id));
+                const sid = Number(t.polygon_id);
+                sections.add(sid);
+                if (!sToU.has(sid)) sToU.set(sid, t.user_id);
             } else if (['manzana', 'manzanas'].includes(t.tipo_capa)) {
-                // También marcar la sección a la que pertenece la manzana
                 const mzInfo = manzanasPadron.find(m => Number(m.id) === Number(t.polygon_id));
                 if (mzInfo && mzInfo.seccion) {
-                    sections.add(Number(mzInfo.seccion));
+                    const sid = Number(mzInfo.seccion);
+                    sections.add(sid);
+                    if (!sToU.has(sid)) sToU.set(sid, t.user_id);
                 }
             }
         });
-        return { assignedSectionIds: sections };
+        return { assignedSectionIds: sections, sectionToUserMap: sToU };
     }, [tareas, manzanasPadron]);
 
     const filteredGeoJSON = useMemo(() => {
         if (!padronGeojson) return null;
-        
-        // Al cargar la aplicación, no mostrar automáticamente todas las secciones
+
         if (!selectedMunicipio) {
-            return {
-                ...padronGeojson,
-                features: []
-            };
+            return { ...padronGeojson, features: [] };
         }
 
         let features = padronGeojson.features;
 
-        // Filtrar por municipio si no es "Todos"
         if (selectedMunicipio !== 'Todos') {
             const allowedSections = SECCIONES_POR_MUNICIPIO[selectedMunicipio] || [];
-            features = features.filter((f: any) => 
+            features = features.filter((f: any) =>
                 allowedSections.includes(Number(f.properties.SECCION))
             );
         }
 
-        // Filtrar por asignación si no es admin
         if (!isAdmin) {
-            features = features.filter((f: any) => 
+            features = features.filter((f: any) =>
                 assignedSectionIds.has(Number(f.properties.SECCION))
             );
         }
 
-        return {
-            ...padronGeojson,
-            features
-        };
+        return { ...padronGeojson, features };
     }, [padronGeojson, selectedMunicipio, isAdmin, assignedSectionIds]);
 
-    // Auto-zoom autónomo basado en geometría real cargada
     useEffect(() => {
         if (!isAdmin && filteredGeoJSON && filteredGeoJSON.features.length > 0) {
             debugLog('PadronLayer: Ejecutando fitBounds autónomo...');
@@ -120,27 +128,23 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
                 if (routeStateRef.current.isRoutingActive) {
                     handleMapSelection({ lat: e.latlng.lat, lng: e.latlng.lng });
                 } else {
-                    // Notificar selección al Dashboard para abrir el panel lateral
                     if (feature.properties) {
                         const { SECCION, total, hombres, mujeres, fecha_actualizacion } = feature.properties;
-                        
-                        // Creamos un objeto que simule la interfaz Poligono para que sea compatible con el Sidebar
                         const syntheticPoligono = {
                             id: Number(SECCION),
                             nombre: `Sección ${SECCION}`,
-                            municipio: 'Morelos', 
+                            municipio: 'Morelos',
                             tipo: 'Sección Electoral',
                             metadata: {
                                 seccion: Number(SECCION),
-                                total: total,
-                                hombres: hombres,
-                                mujeres: mujeres,
-                                fecha_actualizacion: fecha_actualizacion,
-                                padron: true // Flag para identificar que es del padrón
+                                total,
+                                hombres,
+                                mujeres,
+                                fecha_actualizacion,
+                                padron: true
                             },
                             geom: feature.geometry
                         };
-                        
                         setSelectedPoligono(syntheticPoligono);
                     }
                 }
@@ -148,50 +152,104 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
         });
     };
 
-    const style = (feature: any) => {
-        const featureSectionId = Number(feature.properties.SECCION);
-        const isAssigned = assignedSectionIds.has(featureSectionId);
-        
-        // Determinar si esta sección está seleccionada actualmente (por búsqueda o clic)
-        const isSelected = selectedPoligono && (
-            (selectedPoligono.tipo.includes('Sección') && Number(selectedPoligono.metadata?.seccion) === featureSectionId) ||
-            (selectedPoligono.tipo.includes('Manzana') && Number(selectedPoligono.metadata?.seccion) === featureSectionId)
+    const style = (feature: any): L.PathOptions => {
+        const seccionId = Number(feature.properties.SECCION);
+        const assignedUserId = sectionToUserMap.get(seccionId);
+        const isAssigned = !!assignedUserId;
+        const teamColor = assignedUserId ? (userColorMap.get(assignedUserId) ?? '#6366f1') : null;
+        const baseWeight = zoomLevel >= 14 ? 1.5 : zoomLevel >= 13 ? 1 : 0.8;
+
+        const isSelected = !!selectedPoligono && (
+            (selectedPoligono.tipo.includes('Sección') && Number(selectedPoligono.metadata?.seccion) === seccionId) ||
+            (selectedPoligono.tipo.includes('Manzana') && Number(selectedPoligono.metadata?.seccion) === seccionId)
         );
 
-        const baseColor = isAssigned ? '#ef4444' : '#8C3154';
-        const borderColor = isAssigned ? '#b91c1c' : '#7a2a49';
-
+        // ── Prioridad 1: Sección seleccionada — borde cyan, siempre encima ──
         if (isSelected) {
             return {
-                fillColor: baseColor,
-                weight: 6,
+                fillColor: teamColor ?? '#8C3154',
+                weight: 5,
                 opacity: 1,
                 color: '#06b6d4',
-                fillOpacity: isAssigned ? 0.4 : 0.25,
+                fillOpacity: isAssigned ? 0.55 : 0.35,
             };
         }
 
+        // ── Prioridad 2: Filtro de equipo activo ──
+        if (mapTeamFilter && isAdmin) {
+            if (assignedUserId === mapTeamFilter) {
+                // 2a) Sección del equipo activo — color completo y prominente
+                const activeColor = userColorMap.get(mapTeamFilter) ?? '#3b82f6';
+                return {
+                    fillColor: activeColor,
+                    weight: 2.5,
+                    opacity: 1,
+                    color: activeColor,
+                    fillOpacity: 0.7,
+                };
+            }
+            if (isAssigned) {
+                // 2b) Otro equipo asignado — borde visible en su color, relleno muy reducido
+                // El usuario ve que la sección existe y a quién pertenece, pero no es su filtro
+                return {
+                    fillColor: teamColor!,
+                    weight: 1,
+                    opacity: 0.35,
+                    color: teamColor!,
+                    fillOpacity: 0.08,
+                };
+            }
+            // 2c) Sin asignar en modo filtro — uva apagado, sección identificable
+            return {
+                fillColor: '#8C3154',
+                weight: baseWeight,
+                opacity: 0.35,
+                color: '#7a2a49',
+                fillOpacity: 0.1,
+            };
+        }
+
+        // ── Prioridad 3: Modo "todos los equipos" (sin filtro activo) ──
+
+        if (isAssigned && isAdmin) {
+            // 3a) Sección asignada — color de equipo (admin)
+            return {
+                fillColor: teamColor!,
+                weight: zoomLevel >= 14 ? 2.5 : zoomLevel >= 13 ? 2 : 1.5,
+                opacity: 1,
+                color: teamColor!,
+                fillOpacity: selectedPoligono ? 0.2 : 0.55,
+            };
+        }
+
+        if (isAssigned && !isAdmin) {
+            // 3b) Sección asignada — vista de campo (equipo del usuario)
+            return {
+                fillColor: '#ef4444',
+                weight: 3,
+                opacity: 1,
+                color: '#b91c1c',
+                fillOpacity: 0.35,
+            };
+        }
+
+        // 3c) Sección libre / sin asignar — color uva original, claramente distinguible
         return {
-            fillColor: baseColor,
-            weight: isAssigned ? 4 : (zoomLevel >= 14 ? 3 : (zoomLevel >= 13 ? 2 : 1)),
-            opacity: 1,
-            color: borderColor, 
-            fillOpacity: selectedPoligono 
-                ? 0.02 
-                : (isAssigned ? 0.25 : (zoomLevel >= 13 ? 0.1 : 0.05)),
+            fillColor: '#8C3154',
+            weight: baseWeight,
+            opacity: 0.85,
+            color: '#7a2a49',
+            fillOpacity: selectedPoligono ? 0.1 : 0.32,
         };
     };
 
-    // Mostrar siempre para Field Worker sus áreas asignadas.
-    // Para Admin, permitir ver el padrón completo sin restricciones de zoom (Opción A).
     if (isAdmin && !padronGeojson) return null;
-
     if (!padronGeojson || !filteredGeoJSON || filteredGeoJSON.features.length === 0) return null;
 
     return (
-        <GeoJSON 
-            key={`padron-layer-${selectedMunicipio || 'none'}-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}`}
-            data={filteredGeoJSON} 
+        <GeoJSON
+            key={`padron-layer-${selectedMunicipio || 'none'}-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}-${mapTeamFilter ?? 'all'}`}
+            data={filteredGeoJSON}
             onEachFeature={onEachFeature}
             style={style}
         />

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { AuthUser } from '@supabase/supabase-js';
 import { UsuarioPerfil, Poligono, Tarea } from '../types';
+import { MassAssignmentResult } from '../hooks/useMassAssignment';
 
 interface AppState {
   // Estado
@@ -17,6 +18,13 @@ interface AppState {
   error: string | null;
   selectedMunicipio: string | null;
 
+  // Visualización de asignación masiva en el mapa
+  massVisualization: MassAssignmentResult | null;
+  massVisualizationFilter: string | null; // userId del equipo activo; null = "Todos"
+
+  // Filtro de equipo en la capa del mapa regular (PadronLayer)
+  mapTeamFilter: string | null; // userId del equipo seleccionado; null = "Todos"
+
   // Acciones
   setUser: (user: AuthUser | null) => void;
   setPerfil: (perfil: UsuarioPerfil | null) => void;
@@ -30,7 +38,10 @@ interface AppState {
   setMapStyle: (style: 'streets' | 'satellite') => void;
   setError: (error: string | null) => void;
   setSelectedMunicipio: (municipio: string | null) => void;
-  
+  setMassVisualization: (result: MassAssignmentResult | null) => void;
+  setMassVisualizationFilter: (userId: string | null) => void;
+  setMapTeamFilter: (userId: string | null) => void;
+
   // Limpieza
   logout: () => void;
 }
@@ -48,6 +59,9 @@ export const useStore = create<AppState>((set) => ({
   mapStyle: 'streets',
   error: null,
   selectedMunicipio: null,
+  massVisualization: null,
+  massVisualizationFilter: null,
+  mapTeamFilter: null,
 
   setUser: (user) => set({ user }),
   setPerfil: (perfil) => set({ perfil }),
@@ -60,19 +74,26 @@ export const useStore = create<AppState>((set) => ({
   setAppLoading: (appLoading) => set({ appLoading }),
   setMapStyle: (mapStyle) => set({ mapStyle }),
   setError: (error) => set({ error }),
-  setSelectedMunicipio: (selectedMunicipio) => set({ 
-    selectedMunicipio, 
-    selectedPoligono: null // Reset selected polygon on municipality change
+  setSelectedMunicipio: (selectedMunicipio) => set({
+    selectedMunicipio,
+    selectedPoligono: null,
+    mapTeamFilter: null,
   }),
+  setMassVisualization: (massVisualization) => set({ massVisualization }),
+  setMassVisualizationFilter: (massVisualizationFilter) => set({ massVisualizationFilter }),
+  setMapTeamFilter: (mapTeamFilter) => set({ mapTeamFilter }),
 
-  logout: () => set({ 
-    user: null, 
-    perfil: null, 
-    usuarios: [], 
-    poligonos: [], 
+  logout: () => set({
+    user: null,
+    perfil: null,
+    usuarios: [],
+    poligonos: [],
     tareas: [],
     selectedPoligono: null,
     error: null,
-    selectedMunicipio: null
+    selectedMunicipio: null,
+    massVisualization: null,
+    massVisualizationFilter: null,
+    mapTeamFilter: null,
   }),
 }));

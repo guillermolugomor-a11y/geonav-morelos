@@ -252,29 +252,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     return map;
   }, [tareas]);
 
-  // ── Secciones con tareas activas (pendiente | en_progreso) ──────────────────
-  // Usado para marcar visualmente zonas "En trabajo" en el selector de secciones.
+  // Secciones con tareas activas: Map<sectionId, nombreUsuario>
   const seccionesOcupadas = useMemo(() => {
-    const map = new Map<number, { status: string; userName: string; userId: string }>();
+    const map = new Map<number, string>();
     tareas.forEach(t => {
-      if (t.status !== 'pendiente' && t.status !== 'en_progreso') return;
-      const seccionId = Number(t.seccion || t.clave_seccion);
+      if (t.status === 'completada' || t.status === 'programada') return;
+      const seccionId = Number(t.seccion ?? t.clave_seccion);
       if (!seccionId || map.has(seccionId)) return;
-      const responsable = usuarios.find(u => u.id === t.user_id);
-      map.set(seccionId, {
-        status: t.status,
-        userName: responsable?.nombre ?? 'Equipo asignado',
-        userId: t.user_id,
-      });
+      const usuario = usuarios.find(u => u.id === t.user_id);
+      map.set(seccionId, usuario?.nombre ?? 'Otro equipo');
     });
     return map;
   }, [tareas, usuarios]);
-
-  // Secciones sin tarea activa — único universo para el algoritmo de asignación masiva
-  const seccionesDisponibles = useMemo(() =>
-    seccionesFiltradas.filter(s => s.geometry && !seccionesOcupadas.has(Number(s.id))),
-    [seccionesFiltradas, seccionesOcupadas]
-  );
 
   // Detector de duplicidad inteligente (solo aplica sobre la sección primaria)
   const duplicateTask = useMemo(() => {
@@ -704,6 +693,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           userWorkload={userWorkload}
           userExperienceMap={userExperienceMap}
           duplicateTask={duplicateTask}
+          seccionesOcupadas={seccionesOcupadas}
           selectedGeometry={(() => {
             const geom = tipoCapa === 'padron'
               ? (selectedManzana?.geometry || primarySection?.geometry)

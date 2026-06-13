@@ -15,9 +15,6 @@ export const MapTeamFilterControl: React.FC<Props> = ({ tareas }) => {
   const setMapTeamFilter = useStore(s => s.setMapTeamFilter);
   const massVisualization = useStore(s => s.massVisualization);
 
-  // Only for admins; hidden when mass-assignment visualization is active
-  if (!isAdminUser(perfil) || massVisualization) return null;
-
   // Build sorted field users list with their assigned color index
   const fieldUsers = useMemo(() =>
     usuarios
@@ -37,6 +34,9 @@ export const MapTeamFilterControl: React.FC<Props> = ({ tareas }) => {
     });
     return ids;
   }, [tareas]);
+
+  // Only for admins; hidden when mass-assignment visualization is active
+  if (!isAdminUser(perfil) || massVisualization) return null;
 
   const teamsWithWork = fieldUsers.filter(u => activeUserIds.has(u.id));
 

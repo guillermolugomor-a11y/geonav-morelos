@@ -632,7 +632,7 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
         </button>
 
         {routeResult && googleMapsUrlReal && (
-          <div className="absolute top-28 md:top-8 left-4 right-4 md:left-1/2 md:-translate-x-1/2 z-[1001] md:w-auto bg-surface/95 backdrop-blur-xl border border-primary/5 civic-shadow rounded-3xl p-4 md:p-5 flex flex-row items-center justify-between md:justify-start gap-4 md:gap-8 transition-all animate-in slide-in-from-top duration-500">
+          <div className="fixed bottom-32 left-4 right-4 md:bottom-8 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-auto z-[5500] bg-surface/95 backdrop-blur-xl border border-primary/5 civic-shadow rounded-3xl p-4 md:p-5 flex flex-row items-center justify-between md:justify-start gap-4 md:gap-8 transition-all animate-in slide-in-from-bottom duration-500">
             <div className="flex items-center gap-4 md:gap-8 flex-1 md:flex-none">
               <div className="flex flex-col">
                 <span className="text-[9px] text-on-surface-variant/40 uppercase font-black tracking-widest mb-1">Distancia</span>

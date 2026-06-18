@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { GeoJSON, useMapEvents } from 'react-leaflet';
+import { GeoJSON, Marker, Tooltip, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { useStore } from '../../store/useStore';
 import { isAdminUser } from '../../constants/roles';
@@ -115,6 +115,53 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
         }
     }, [filteredGeoJSON, isAdmin, mapInstance, tareas]);
 
+    // Todas las manzanas con rank_near === 1 en el conjunto visible
+    const rank1Features = useMemo(() => {
+        if (!filteredGeoJSON) return [];
+        return filteredGeoJSON.features.filter(
+            (f: any) => f.properties.rank_near === 1 || f.properties.rank === 1
+        );
+    }, [filteredGeoJSON]);
+
+    // Centroide de cada manzana rank 1
+    const rank1Centroids = useMemo(() => {
+        const result: { pos: [number, number]; id: number }[] = [];
+        rank1Features.forEach((f: any) => {
+            try {
+                const bounds = L.geoJSON(f).getBounds();
+                if (bounds.isValid()) {
+                    const c = bounds.getCenter();
+                    result.push({ pos: [c.lat, c.lng] as [number, number], id: f.properties.ID ?? Math.random() });
+                }
+            } catch { /* skip geometría inválida */ }
+        });
+        return result;
+    }, [rank1Features]);
+
+    // Icono SVG personalizado: globito azul en forma de pin de ubicación
+    const rank1Icon = useMemo(() => L.divIcon({
+        className: '',
+        html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 38" width="28" height="38">
+            <defs>
+                <filter id="pin-shadow" x="-40%" y="-20%" width="180%" height="180%">
+                    <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#00000050"/>
+                </filter>
+                <radialGradient id="pin-grad" cx="38%" cy="32%" r="60%">
+                    <stop offset="0%" stop-color="#60a5fa"/>
+                    <stop offset="100%" stop-color="#1d4ed8"/>
+                </radialGradient>
+            </defs>
+            <path d="M14 0 C6.268 0 0 6.268 0 14 C0 24.5 14 38 14 38 C14 38 28 24.5 28 14 C28 6.268 21.732 0 14 0 Z"
+                fill="url(#pin-grad)" stroke="#1e3a8a" stroke-width="1.5" filter="url(#pin-shadow)"/>
+            <ellipse cx="9" cy="8" rx="4.5" ry="3" fill="white" opacity="0.28"/>
+            <circle cx="14" cy="14" r="5.5" fill="white" opacity="0.92"/>
+            <circle cx="14" cy="14" r="2.8" fill="#2563eb"/>
+        </svg>`,
+        iconSize: [28, 38],
+        iconAnchor: [14, 38],
+        popupAnchor: [0, -40]
+    }), []);
+
     const style = (feature: any) => {
         const featureId = Number(feature.properties.ID);
         const featureSectionId = Number(feature.properties.SECCION);
@@ -216,11 +263,22 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
     if (!filteredGeoJSON || filteredGeoJSON.features.length === 0) return null;
 
     return (
-        <GeoJSON 
-            key={`near-manzanas-layer-${selectedMunicipio || 'none'}-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}`}
-            data={filteredGeoJSON} 
-            onEachFeature={onEachFeature}
-            style={style}
-        />
+        <>
+            <GeoJSON
+                key={`near-manzanas-layer-${selectedMunicipio || 'none'}-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}`}
+                data={filteredGeoJSON}
+                onEachFeature={onEachFeature}
+                style={style}
+            />
+            {zoomLevel >= 13 && rank1Centroids.map(({ pos, id }) => (
+                <Marker key={`rank1-pin-${id}`} position={pos} icon={rank1Icon}>
+                    <Tooltip direction="top" offset={[0, -40]} permanent={false} opacity={0.92}>
+                        <span style={{ fontWeight: 700, fontSize: 12 }}>
+                            📍 Manzana Prioritaria · Rank 1
+                        </span>
+                    </Tooltip>
+                </Marker>
+            ))}
+        </>
     );
 });

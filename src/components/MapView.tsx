@@ -525,9 +525,19 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
       <div className="flex-1 h-full w-full relative z-0">
         
         {isCartographyLoading && (
-          <div className="absolute top-24 md:top-8 left-1/2 -translate-x-1/2 z-[2000] bg-white/90 backdrop-blur-md px-6 py-3 rounded-full civic-shadow flex items-center gap-3 border border-primary/10 animate-in fade-in slide-in-from-top-4 duration-500">
-            <Loader2 className="w-5 h-5 text-primary animate-spin" />
-            <span className="text-xs font-black uppercase tracking-widest text-primary">Cargando Cartografía...</span>
+          <div
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-[2000] flex items-center gap-2.5 px-5 py-2.5 rounded-2xl border animate-in fade-in slide-in-from-top-4 duration-500"
+            style={{
+              background: 'rgba(30,0,20,0.88)',
+              backdropFilter: 'blur(16px)',
+              borderColor: 'rgba(188,155,115,0.18)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+            }}
+          >
+            <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#BC9B73' }} />
+            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#F5EDE8', opacity: 0.7 }}>
+              Cargando Cartografía
+            </span>
           </div>
         )}
 
@@ -619,14 +629,24 @@ export const MapView: React.FC<MapViewProps> = ({ focusPolygonId, onFocusHandled
         {/* Toggle Vista Satelital */}
         <button
           onClick={() => setMapStyle(mapStyle === 'streets' ? 'satellite' : 'streets')}
-          className="absolute bottom-24 md:bottom-8 right-4 md:right-10 z-[1000] bg-surface/95 backdrop-blur-xl p-3 md:p-4 rounded-3xl civic-shadow hover:bg-surface transition-all active:scale-95 group flex items-center gap-3"
+          className="absolute bottom-4 right-4 z-[1000] h-10 flex items-center gap-2.5 px-4 rounded-2xl border transition-all hover:opacity-90 active:scale-[0.97]"
+          style={{
+            background: 'rgba(30,0,20,0.88)',
+            backdropFilter: 'blur(20px)',
+            borderColor: 'rgba(188,155,115,0.18)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.12)',
+          }}
           title="Cambiar vista de mapa"
         >
-          <div className={`p-2 rounded-xl transition-all ${mapStyle === 'satellite' ? 'premium-gradient text-white shadow-lg shadow-primary/20' : 'bg-surface-container-high text-on-surface-variant/40'}`}>
-            <Globe size={20} />
-          </div>
-          <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-on-surface transition-colors group-hover:text-primary">
-            {mapStyle === 'streets' ? 'Vista Satelital' : 'Vista Mapa'}
+          <Globe
+            size={15}
+            style={{ color: mapStyle === 'satellite' ? '#BC9B73' : 'rgba(245,237,232,0.4)' }}
+          />
+          <span
+            className="text-[10px] font-black uppercase tracking-widest"
+            style={{ color: mapStyle === 'satellite' ? '#F5EDE8' : 'rgba(245,237,232,0.5)' }}
+          >
+            {mapStyle === 'streets' ? 'Satélite' : 'Mapa'}
           </span>
         </button>
 

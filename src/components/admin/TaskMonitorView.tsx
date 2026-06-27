@@ -245,59 +245,83 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
 
   return (
     <div className="flex flex-col h-full animate-in fade-in duration-700 font-sans">
-      {/* Header - Digital Curator: Editorial Authority */}
-      <div className="p-6 md:p-12 bg-surface border-b border-outline-variant/10">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 max-w-screen-xl mx-auto">
-          <div className="space-y-2">
-            <h3 className="text-3xl font-black text-on-surface flex items-center gap-4 tracking-tighter">
-              <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-ambient">
-                <ClipboardList className="w-6" />
-              </div>
-              Monitor de Tareas
-            </h3>
-            <p className="text-[14px] text-on-surface-variant font-medium opacity-60 pl-16">
-              Editorial de seguimiento institucional • <span className="italic">Personal de campo</span>
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-4 flex-wrap justify-end">
-            {/* Segmented Control: Hoy / Historial */}
-            <div className="flex bg-surface-container-low rounded-2xl p-1 gap-0.5 border border-outline-variant/10 shadow-sm">
-              <button
-                onClick={() => setMonitorMode('hoy')}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${
-                  monitorMode === 'hoy'
-                    ? 'bg-white text-primary shadow-sm'
-                    : 'text-on-surface-variant opacity-50 hover:opacity-75'
-                }`}
-              >
-                <CalendarDays className="w-3.5 h-3.5" />
-                Hoy
-              </button>
-              <button
-                onClick={() => setMonitorMode('historial')}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${
-                  monitorMode === 'historial'
-                    ? 'bg-white text-on-surface shadow-sm'
-                    : 'text-on-surface-variant opacity-50 hover:opacity-75'
-                }`}
-              >
-                <Archive className="w-3.5 h-3.5" />
-                Historial
-              </button>
+      {/* ── Mission Header ── */}
+      <div className="relative overflow-hidden" style={{ background: '#1E0014' }}>
+        <svg className="absolute inset-0 w-full h-full" aria-hidden="true">
+          <defs>
+            <pattern id="monitor-grid-minor" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#BC9B73" strokeWidth="0.4" opacity="0.08" />
+            </pattern>
+            <pattern id="monitor-grid-major" width="200" height="200" patternUnits="userSpaceOnUse">
+              <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#BC9B73" strokeWidth="0.8" opacity="0.12" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#monitor-grid-minor)" />
+          <rect width="100%" height="100%" fill="url(#monitor-grid-major)" />
+        </svg>
+        <div className="relative z-10 p-8 md:p-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 max-w-screen-xl mx-auto">
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.35em] font-black mb-4" style={{ color: '#BC9B73', opacity: 0.55 }}>
+                Panel de Administración
+              </p>
+              <h3 className="font-display font-black text-3xl md:text-4xl leading-none tracking-tight" style={{ color: '#F5EDE8' }}>
+                Monitor de
+              </h3>
+              <h3 className="font-display font-black text-3xl md:text-4xl leading-none tracking-tight" style={{ color: '#BC9B73' }}>
+                Tareas
+              </h3>
+              <p className="text-sm mt-4 max-w-md" style={{ color: '#F5EDE8', opacity: 0.35 }}>
+                Seguimiento en tiempo real de la operación de campo.
+              </p>
             </div>
 
-            {/* Export KML dropdown */}
-            <div ref={exportRef} className="relative">
-              <button
-                onClick={() => setExportOpen(v => !v)}
-                disabled={filteredTareas.length === 0}
-                className={`flex items-center justify-center gap-2.5 px-6 py-4 bg-white border text-on-surface text-[11px] font-black rounded-2xl shadow-sm uppercase tracking-[0.15em] transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
-                  exportOpen
-                    ? 'border-primary/30 text-primary bg-primary/5'
-                    : 'border-outline-variant/20 hover:bg-surface-container-low hover:border-primary/20 hover:text-primary'
-                }`}
-              >
+            <div className="flex flex-col items-start md:items-end gap-4">
+              <div className="hidden md:flex flex-col items-end gap-1">
+                <p className="text-[9px] uppercase tracking-[0.25em] font-black" style={{ color: '#BC9B73', opacity: 0.4 }}>
+                  Fecha de operación
+                </p>
+                <p className="font-display font-extralight text-2xl" style={{ color: '#F5EDE8', opacity: 0.7 }}>
+                  {new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* Segmented Control: Hoy / Historial */}
+                <div className="flex rounded-2xl p-1 gap-0.5" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <button
+                    onClick={() => setMonitorMode('hoy')}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${
+                      monitorMode === 'hoy' ? 'bg-white text-primary shadow-sm' : 'hover:bg-white/10'
+                    }`}
+                    style={monitorMode !== 'hoy' ? { color: 'rgba(255,255,255,0.5)' } : {}}
+                  >
+                    <CalendarDays className="w-3.5 h-3.5" />
+                    Hoy
+                  </button>
+                  <button
+                    onClick={() => setMonitorMode('historial')}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${
+                      monitorMode === 'historial' ? 'bg-white text-on-surface shadow-sm' : 'hover:bg-white/10'
+                    }`}
+                    style={monitorMode !== 'historial' ? { color: 'rgba(255,255,255,0.5)' } : {}}
+                  >
+                    <Archive className="w-3.5 h-3.5" />
+                    Historial
+                  </button>
+                </div>
+
+                {/* Export KML dropdown */}
+                <div ref={exportRef} className="relative">
+                  <button
+                    onClick={() => setExportOpen(v => !v)}
+                    disabled={filteredTareas.length === 0}
+                    className={`flex items-center justify-center gap-2.5 px-5 py-3 text-[11px] font-black rounded-2xl border uppercase tracking-[0.15em] transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
+                      exportOpen
+                        ? 'bg-white/20 border-white/30 text-white'
+                        : 'bg-white/10 border-white/15 text-white/80 hover:bg-white/15'
+                    }`}
+                  >
                 <Download className="w-4 h-4" />
                 Exportar KML
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${exportOpen ? 'rotate-180' : ''}`} />
@@ -427,16 +451,21 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
                 }
               }}
               id="btn-manual-activate"
-              className="flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-primary to-primary-container text-white text-[11px] font-black rounded-2xl hover:scale-[1.02] shadow-ambient uppercase tracking-[0.2em] transition-all"
+              className="flex items-center justify-center gap-3 px-6 py-3 bg-gradient-to-r from-primary to-primary-container text-white text-[11px] font-black rounded-2xl hover:scale-[1.02] shadow-ambient uppercase tracking-[0.2em] transition-all"
             >
               <Clock className="w-4 h-4" />
               Activar Programadas
             </button>
+              </div>
+            </div>
           </div>
         </div>
+        <div className="relative z-10 h-px" style={{ background: 'linear-gradient(to right, rgba(188,155,115,0.3), transparent)' }} />
+      </div>
 
-        {/* Filters & Search - Functional Elegance */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-12 max-w-screen-xl mx-auto">
+      {/* Filter bar */}
+      <div className="bg-surface border-b border-primary/5 px-6 md:px-10 py-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-screen-xl mx-auto">
           <div className="bg-white px-6 py-4 rounded-xl border border-outline-variant/15 flex items-center gap-4 shadow-sm group focus-within:ring-2 ring-primary/10 transition-all">
             <Search className="w-4 h-4 text-on-surface-variant opacity-40 group-focus-within:opacity-100 transition-opacity" />
             <input

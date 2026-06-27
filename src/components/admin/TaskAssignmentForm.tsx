@@ -6,6 +6,7 @@ import { MiniMap } from './MiniMap';
 import { MassAssignmentPanel, TEAM_COLOR_CLASSES, getUserBlocks } from './MassAssignmentPanel';
 import { MassAssignmentResult, PopulationAwareBlock } from '../../hooks/useMassAssignment';
 import { DISTRITOS } from '../../constants/seccionesDistritos';
+import { TEAM_HEX_COLORS } from '../../utils/teamColors';
 
 interface SectionItem {
   id: number | string;
@@ -169,6 +170,15 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
     );
   }, [usuarios, searchUserQuery]);
 
+  const teamColorMap = React.useMemo(() => {
+    const map = new Map<string, string>();
+    usuarios
+      .filter(u => u.rol !== 'admin')
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true, sensitivity: 'base' }))
+      .forEach((u, idx) => map.set(u.id, TEAM_HEX_COLORS[idx % TEAM_HEX_COLORS.length]));
+    return map;
+  }, [usuarios]);
+
   // Sección primaria para referencias en el combo de colindantes
   const primarySection = selectedSections[0] ?? null;
   const isMultiSection = selectedSections.length > 1;
@@ -198,21 +208,62 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
   };
   return (
     <>
-      <div className="p-6 md:p-8 bg-surface border-b border-primary/5">
-        <h2 className="text-3xl md:text-4xl font-display font-bold text-primary flex items-center gap-3 tracking-tight">
-          <ClipboardList className="w-8 h-8" />
-          Gestión de Tareas
-        </h2>
-        <p className="text-base text-stone-500 mt-2 font-medium">Asigna polígonos y tareas específicas a los supervisores de campo.</p>
+      {/* ── Mission Header ── */}
+      <div className="relative overflow-hidden" style={{ background: '#1E0014' }}>
+        <svg className="absolute inset-0 w-full h-full" aria-hidden="true">
+          <defs>
+            <pattern id="gestion-grid-minor" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#BC9B73" strokeWidth="0.4" opacity="0.08" />
+            </pattern>
+            <pattern id="gestion-grid-major" width="200" height="200" patternUnits="userSpaceOnUse">
+              <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#BC9B73" strokeWidth="0.8" opacity="0.12" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#gestion-grid-minor)" />
+          <rect width="100%" height="100%" fill="url(#gestion-grid-major)" />
+        </svg>
+        <div className="relative z-10 flex items-start justify-between p-8 md:p-10">
+          <div>
+            <p className="text-[9px] uppercase tracking-[0.35em] font-black mb-4" style={{ color: '#BC9B73', opacity: 0.55 }}>
+              Panel de Administración
+            </p>
+            <h2 className="font-display font-black text-3xl md:text-4xl leading-none tracking-tight" style={{ color: '#F5EDE8' }}>
+              Gestión de
+            </h2>
+            <h2 className="font-display font-black text-3xl md:text-4xl leading-none tracking-tight" style={{ color: '#BC9B73' }}>
+              Tareas
+            </h2>
+            <p className="text-sm mt-4 max-w-md" style={{ color: '#F5EDE8', opacity: 0.35 }}>
+              Asigna zonas de trabajo a los supervisores de campo.
+            </p>
+          </div>
+          <div className="hidden md:flex flex-col items-end gap-1 shrink-0">
+            <p className="text-[9px] uppercase tracking-[0.25em] font-black" style={{ color: '#BC9B73', opacity: 0.4 }}>
+              Fecha de operación
+            </p>
+            <p className="font-display font-extralight text-2xl" style={{ color: '#F5EDE8', opacity: 0.7 }}>
+              {new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+            </p>
+            <p className="text-[10px]" style={{ color: '#BC9B73', opacity: 0.4 }}>
+              {new Date().getFullYear()}
+            </p>
+          </div>
+        </div>
+        <div className="relative z-10 h-px" style={{ background: 'linear-gradient(to right, rgba(188,155,115,0.3), transparent)' }} />
       </div>
 
-      <form onSubmit={onSubmit} className="p-6 md:p-8 space-y-8 bg-surface">
+      <form onSubmit={onSubmit} className="p-6 md:p-10 space-y-8 bg-white">
         <AdminMessage message={message} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-4">
             {/* ── Header del panel izquierdo ── */}
             <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3 mb-1">
+                <span className="w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black text-white shrink-0" style={{ background: '#620041' }}>01</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-on-surface/60">Equipo</span>
+                <div className="flex-1 h-px" style={{ background: 'rgba(98,0,65,0.1)' }} />
+              </div>
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-on-surface uppercase tracking-widest flex items-center gap-2 opacity-85">
                   {isMassAutoMode && massAssignmentResult ? (
@@ -257,7 +308,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                     placeholder="Buscar supervisor..."
                     value={searchUserQuery}
                     onChange={(e) => setSearchUserQuery(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-surface-container-low border border-primary/5 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-xs font-bold shadow-inner"
+                    className="w-full px-4 py-2.5 bg-white border border-outline-variant/10 rounded-xl focus:ring-2 focus:ring-primary/15 outline-none transition-all text-xs font-bold shadow-sm"
                   />
                   {searchUserQuery && (
                     <button
@@ -352,11 +403,12 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
               </div>
             ) : (
               /* ── Lista interactiva (modo manual) ── */
-              <div className="bg-surface-container-low rounded-3xl p-3 max-h-56 overflow-y-auto civic-shadow shadow-inner custom-scrollbar">
-              <div className="grid grid-cols-1 gap-2">
+              <div className="bg-surface-container-lowest rounded-2xl p-3 max-h-56 overflow-y-auto shadow-inner custom-scrollbar border border-outline-variant/8">
+              <div className="grid grid-cols-1 gap-1.5">
                 {sortedAndFilteredUsuarios.length > 0 ? (
                   sortedAndFilteredUsuarios.map((u) => {
                     const isSelected = selectedUsers.includes(u.id);
+                    const teamColor = teamColorMap.get(u.id) ?? '#808080';
                     return (
                       <div
                         key={u.id}
@@ -367,15 +419,23 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                             setSelectedUsers([...selectedUsers, u.id]);
                           }
                         }}
-                        className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all border-2 ${
+                        className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all border relative overflow-hidden ${
                           isSelected
-                            ? 'bg-white border-primary shadow-sm'
-                            : 'bg-transparent border-transparent hover:bg-white/40'
+                            ? 'bg-white border-primary/20 shadow-sm'
+                            : 'bg-transparent border-transparent hover:bg-white/70'
                         }`}
                       >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs transition-all ${
-                          isSelected ? 'bg-primary text-white' : 'bg-surface-container-high text-on-surface-variant/40'
-                        }`}>
+                        <div
+                          className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl transition-opacity"
+                          style={{ background: teamColor, opacity: isSelected ? 1 : 0.2 }}
+                        />
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs transition-all shrink-0"
+                          style={{
+                            backgroundColor: isSelected ? teamColor : 'rgba(28,28,23,0.07)',
+                            color: isSelected ? 'white' : 'rgba(28,28,23,0.35)',
+                          }}
+                        >
                           {u.nombre.charAt(0)}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -444,6 +504,11 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
           </div>
 
           <div className="space-y-3">
+            <div className="flex items-center gap-3 mb-1">
+              <span className="w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black text-white shrink-0" style={{ background: '#620041' }}>02</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-on-surface/60">Zona de Trabajo</span>
+              <div className="flex-1 h-px" style={{ background: 'rgba(98,0,65,0.1)' }} />
+            </div>
             <label className="text-xs font-bold text-on-surface uppercase tracking-widest flex items-center gap-2 opacity-85">
               <MapPin className="w-4 h-4" /> Polígono (Sección/Manzana)
             </label>
@@ -518,7 +583,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                     placeholder="Buscar sección (ej: 450)..."
                     value={searchTermPadron}
                     onChange={(e) => setSearchTermPadron(e.target.value)}
-                    className="w-full px-5 py-4 bg-surface-container-low rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-bold"
+                    className="w-full px-5 py-4 bg-white border border-outline-variant/10 rounded-2xl focus:ring-2 focus:ring-primary/15 outline-none transition-all text-sm font-bold shadow-sm"
                   />
                 )}
 
@@ -598,7 +663,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                 )}
 
                 {selectionMode === 'manual' && (
-                  <div className="max-h-80 overflow-y-auto rounded-2xl bg-surface-container-low divide-y divide-white/50 shadow-inner">
+                  <div className="max-h-80 overflow-y-auto rounded-2xl bg-white border border-outline-variant/8 divide-y divide-outline-variant/5 shadow-sm">
                   {seccionesPadron.map((s) => {
                       const sectionId = Number(s.id);
                       const isExpanded = expandedSection === sectionId;
@@ -648,20 +713,14 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                                 <div className="w-7 h-7" />
                               )}
                               <div>
-                                <p className={`text-sm font-bold ${isSelected ? 'text-primary' : ocupadaPor ? 'text-stone-400' : 'text-on-surface'}`}>
-                                  Sección {s.id}
-                                  {ocupadaPor && !isSelected && (
-                                    <span className="ml-1.5 text-[10px] font-semibold text-amber-600 normal-case tracking-normal">
-                                      ⚠ En trabajo
-                                    </span>
-                                  )}
-                                </p>
-                                {ocupadaPor && !isSelected ? (
-                                  <p className="text-[10px] text-amber-500 font-bold truncate max-w-[140px]">{ocupadaPor}</p>
-                                ) : (
-                                  <p className="text-[10px] text-stone-400 uppercase font-black tracking-widest">Morelos</p>
-                                )}
-                              </div>
+                              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-on-surface-variant/30 mb-0.5">Sección</p>
+                              <p className={`font-display font-black text-xl leading-none ${isSelected ? 'text-primary' : ocupadaPor && !isSelected ? 'text-on-surface/25' : 'text-on-surface'}`}>
+                                {s.id}
+                              </p>
+                              {ocupadaPor && !isSelected && (
+                                <p className="text-[9px] text-amber-600 font-black truncate max-w-[120px] mt-0.5">{ocupadaPor}</p>
+                              )}
+                            </div>
                             </div>
 
                             <div className="flex items-center gap-4">
@@ -766,12 +825,14 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
           {/* Vencimiento sólo en modo manual */}
           {!isMassAutoMode && (
           <div className="space-y-3">
-            <label className="text-xs font-bold text-on-surface uppercase tracking-widest opacity-60">Vencimiento (Opcional)</label>
+            <label className="text-[10px] font-black uppercase tracking-[0.25em] text-on-surface-variant/40">
+              Fecha de vencimiento <span className="font-medium normal-case tracking-normal opacity-60">(opcional)</span>
+            </label>
             <input
               type="date"
               value={fechaVencimiento}
               onChange={(e) => setFechaVencimiento(e.target.value)}
-              className="w-full px-5 py-4 bg-surface-container-low rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-bold text-on-surface"
+              className="w-full px-5 py-4 bg-white border border-outline-variant/10 rounded-2xl focus:ring-2 focus:ring-primary/15 outline-none transition-all text-sm font-bold text-on-surface shadow-sm"
             />
           </div>
           )}
@@ -779,10 +840,10 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
 
         {/* ── MODO COLABORATIVO: Toggles only if > 1 user (sólo modo manual) ── */}
         <div className={`transition-all duration-500 overflow-hidden ${!isMassAutoMode && selectedUsers.length > 1 ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
-          <div className={`p-6 rounded-[2.5rem] border-2 transition-all flex flex-col md:flex-row items-center justify-between gap-6 ${
-            isCollaborative 
-              ? 'bg-primary/5 border-primary shadow-sm' 
-              : 'bg-surface-container-low border-transparent'
+          <div className={`p-6 rounded-[1.75rem] border transition-all flex flex-col md:flex-row items-center justify-between gap-6 ${
+            isCollaborative
+              ? 'bg-primary/5 border-primary/20 shadow-sm'
+              : 'bg-white border-outline-variant/8'
           }`}>
             <div className="flex items-center gap-5">
               <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-sm ${
@@ -821,30 +882,41 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
         {/* Instrucciones sólo en modo manual — MassAssignmentPanel tiene las suyas */}
         {!isMassAutoMode && (
         <div className="space-y-3">
-          <label className="text-xs font-bold text-on-surface uppercase tracking-widest opacity-60">Instrucciones</label>
-          <textarea
-            value={instruccion}
-            onChange={(e) => setInstruccion(e.target.value)}
-            placeholder="Describe la actividad a realizar..."
-            className="w-full px-6 py-5 bg-surface-container-low rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-medium min-h-[140px] text-on-surface"
-            required
-          />
+          <div className="rounded-[1.5rem] border border-outline-variant/10 overflow-hidden shadow-sm">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-outline-variant/8 bg-white">
+              <span className="w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black text-white shrink-0" style={{ background: '#620041' }}>03</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-on-surface/60">Notas de Operación</span>
+              <div className="flex-1 h-px" style={{ background: 'rgba(98,0,65,0.1)' }} />
+            </div>
+            <textarea
+              value={instruccion}
+              onChange={(e) => setInstruccion(e.target.value)}
+              placeholder="Describe la actividad a realizar en campo..."
+              className="w-full px-6 py-5 outline-none transition-all text-sm font-medium min-h-[180px] text-on-surface resize-none focus:ring-0 border-0"
+              style={{ background: '#FAFAF7' }}
+              required
+            />
+          </div>
         </div>
         )}
 
         {/* ── SCHEDULER y BOTÓN: sólo en modo manual ── */}
         {!isMassAutoMode && (<>
-        <div className="p-6 bg-primary/5 rounded-[2rem] border-2 border-dashed border-primary/10 space-y-4">
-          <label className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-3">
-            <Clock className="w-5 h-5" /> Programar Activación (Opcional)
-          </label>
+        <div className="bg-white rounded-[1.75rem] border border-outline-variant/8 overflow-hidden shadow-sm">
+          <div className="flex items-center gap-3 px-6 py-4 border-b border-outline-variant/8">
+            <Clock className="w-4 h-4 text-primary/40" />
+            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-on-surface/60">Programar Activación</span>
+            <span className="text-[9px] text-on-surface-variant/30 font-medium">(opcional)</span>
+            <div className="flex-1 h-px" style={{ background: 'rgba(98,0,65,0.08)' }} />
+          </div>
+          <div className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
             <input
               type="datetime-local"
               value={scheduledAt}
               onChange={(e) => setScheduledAt(e.target.value)}
               min={(() => { const d = new Date(Date.now() + 60000); const pad = (n: number) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; })()}
-              className="w-full px-5 py-4 bg-white rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-bold text-on-surface shadow-sm"
+              className="w-full px-5 py-4 bg-white border border-outline-variant/10 rounded-2xl focus:ring-2 focus:ring-primary/15 outline-none transition-all text-sm font-bold text-on-surface shadow-sm"
             />
             {scheduledAt && (
               <div className="flex flex-col gap-2">
@@ -864,10 +936,11 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
             )}
           </div>
           {scheduledAt && (
-            <p className="text-[10px] text-primary font-black uppercase tracking-widest bg-white/50 p-3 rounded-xl border border-primary/5">
+            <p className="text-[10px] text-primary font-black uppercase tracking-widest bg-primary/5 p-3 rounded-xl border border-primary/8">
               Estado: PROGRAMADA → Se activará el {new Date(scheduledAt).toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' })}
             </p>
           )}
+          </div>
         </div>
 
         {/* ── ALERTA DE DUPLICIDAD INTELIGENTE ── */}
@@ -947,11 +1020,35 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
           </div>
         )}
 
-        <div className="flex items-center justify-end pt-4">
+        <div className="flex items-center justify-between gap-4 p-6 rounded-[1.75rem] mt-2" style={{ background: '#1E0014' }}>
+          <div className="flex items-center gap-2 flex-wrap">
+            {selectedUsers.length > 0 && (
+              <span
+                className="text-[11px] font-black px-3 py-1.5 rounded-full"
+                style={{ background: 'rgba(188,155,115,0.18)', color: '#BC9B73' }}
+              >
+                {selectedUsers.length} {selectedUsers.length === 1 ? 'supervisor' : 'supervisores'}
+              </span>
+            )}
+            {selectedSections.length > 0 && (
+              <span
+                className="text-[11px] font-black px-3 py-1.5 rounded-full"
+                style={{ background: 'rgba(188,155,115,0.18)', color: '#BC9B73' }}
+              >
+                {selectedSections.length} {selectedSections.length === 1 ? 'sección' : 'secciones'}
+              </span>
+            )}
+            {selectedUsers.length === 0 && selectedSections.length === 0 && (
+              <span className="text-[11px] font-medium" style={{ color: 'rgba(245,237,232,0.25)' }}>
+                Selecciona equipo y zona para continuar
+              </span>
+            )}
+          </div>
           <button
             type="submit"
             disabled={submitting}
-            className="flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-primary to-primary-container text-white rounded-2xl text-sm font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-[0_8px_30px_rgb(28,28,23,0.1)] disabled:opacity-50"
+            className="flex items-center gap-3 px-10 py-5 rounded-2xl text-sm font-black uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-50 shrink-0 shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
+            style={{ background: '#BC9B73', color: '#1E0014' }}
           >
             <Send className="w-4 h-4" />
             {submitting ? 'Procesando...' : scheduledAt ? 'Programar' : 'Asignar Tarea'}

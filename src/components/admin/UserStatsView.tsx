@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
-import { BarChart3, TrendingUp, CheckCircle2, AlertCircle, User, Award } from 'lucide-react';
+import { AlertCircle, User } from 'lucide-react';
 import { Tarea, UsuarioPerfil } from '../../types';
+import { TEAM_HEX_COLORS } from '../../utils/teamColors';
 
 interface UserStatsViewProps {
   usuarios: UsuarioPerfil[];
@@ -8,11 +9,20 @@ interface UserStatsViewProps {
 }
 
 export const UserStatsView: React.FC<UserStatsViewProps> = ({ usuarios, tareas }) => {
+  const fieldWorkerColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    usuarios
+      .filter(u => u.rol !== 'admin')
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es-MX', { sensitivity: 'base' }))
+      .forEach((u, idx) => map.set(u.id, TEAM_HEX_COLORS[idx % TEAM_HEX_COLORS.length]));
+    return map;
+  }, [usuarios]);
+
   const stats = useMemo(() => {
     return usuarios
-      .filter(u => u.rol !== 'admin') // Enfocarnos en personal de campo
+      .filter(u => u.rol !== 'admin')
       .map(u => {
-        const userTasks = tareas.filter(t => 
+        const userTasks = tareas.filter(t =>
           t.user_id === u.id || (t.is_collaborative && t.collaborator_ids?.includes(u.id))
         );
         const completed = userTasks.filter(t => t.status === 'completada').length;
@@ -20,173 +30,262 @@ export const UserStatsView: React.FC<UserStatsViewProps> = ({ usuarios, tareas }
         const pending = userTasks.filter(t => t.status === 'pendiente').length;
         const total = userTasks.length;
         const efficiency = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-        return {
-          user: u,
-          total,
-          completed,
-          inProgress,
-          pending,
-          efficiency
-        };
+        return { user: u, total, completed, inProgress, pending, efficiency };
       })
       .sort((a, b) => b.efficiency - a.efficiency || b.total - a.total);
   }, [usuarios, tareas]);
 
   const globalStats = useMemo(() => {
-    // Total de tareas únicas (sin duplicar colaboraciones en el conteo global)
     const total = tareas.length;
     const completed = tareas.filter(t => t.status === 'completada').length;
-    const avgEfficiency = stats.length > 0 ? Math.round(stats.reduce((acc, curr) => acc + curr.efficiency, 0) / stats.length) : 0;
-    
+    const avgEfficiency = stats.length > 0
+      ? Math.round(stats.reduce((acc, s) => acc + s.efficiency, 0) / stats.length)
+      : 0;
     return { total, completed, avgEfficiency };
-  }, [stats]);
+  }, [stats, tareas]);
 
-  const getEfficiencyColor = (eff: number) => {
-    if (eff >= 80) return 'text-emerald-500 bg-emerald-50 border-emerald-100';
-    if (eff >= 40) return 'text-amber-500 bg-amber-50 border-amber-100';
-    return 'text-rose-500 bg-rose-50 border-rose-100';
-  };
-
-  const getProgressColor = (eff: number) => {
-    if (eff >= 80) return 'bg-emerald-500';
-    if (eff >= 40) return 'bg-amber-500';
-    return 'bg-rose-500';
-  };
+  const getInitials = (name: string) =>
+    name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12 px-4 md:px-6">
-      {/* Resumen Global */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white/50 p-4 md:p-6 rounded-[2rem] shadow-sm border border-stone-100 flex items-center gap-4 md:gap-5">
-          <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-            <BarChart3 className="w-6 h-6 md:w-7 md:h-7" />
-          </div>
+    <div className="animate-in fade-in duration-500">
+      {/* ── Mission Header ── */}
+      <div className="relative overflow-hidden rounded-[2rem] mb-6" style={{ background: '#1E0014' }}>
+        <svg className="absolute inset-0 w-full h-full" aria-hidden="true">
+          <defs>
+            <pattern id="stats-grid-minor" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#BC9B73" strokeWidth="0.4" opacity="0.08" />
+            </pattern>
+            <pattern id="stats-grid-major" width="200" height="200" patternUnits="userSpaceOnUse">
+              <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#BC9B73" strokeWidth="0.8" opacity="0.12" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#stats-grid-minor)" />
+          <rect width="100%" height="100%" fill="url(#stats-grid-major)" />
+        </svg>
+        <div className="relative z-10 p-8 md:p-10 flex items-end justify-between gap-8">
           <div>
-            <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">Total Tareas</p>
-            <p className="text-3xl font-black text-stone-900">{globalStats.total}</p>
+            <p className="text-[9px] uppercase tracking-[0.35em] font-black mb-4" style={{ color: '#BC9B73', opacity: 0.55 }}>
+              Panel de Administración
+            </p>
+            <h2 className="font-display font-black text-3xl md:text-4xl leading-none tracking-tight" style={{ color: '#F5EDE8' }}>
+              Estadísticas de
+            </h2>
+            <h2 className="font-display font-black text-3xl md:text-4xl leading-none tracking-tight" style={{ color: '#BC9B73' }}>
+              Operación
+            </h2>
+            <p className="text-sm mt-4" style={{ color: '#F5EDE8', opacity: 0.35 }}>
+              Rendimiento individual del personal de campo.
+            </p>
+          </div>
+          <div className="hidden md:flex flex-col items-end gap-1 shrink-0">
+            <p className="text-[9px] uppercase tracking-[0.25em] font-black" style={{ color: '#BC9B73', opacity: 0.4 }}>
+              Eficiencia promedio
+            </p>
+            <p className="font-display font-extralight text-4xl" style={{ color: '#F5EDE8', opacity: 0.8 }}>
+              {globalStats.avgEfficiency}%
+            </p>
           </div>
         </div>
-        
-        <div className="bg-white/50 p-4 md:p-6 rounded-[2rem] shadow-sm border border-stone-100 flex items-center gap-4 md:gap-5">
-          <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-500 shrink-0">
-            <CheckCircle2 className="w-6 h-6 md:w-7 md:h-7" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">Completadas</p>
-            <p className="text-3xl font-black text-stone-900">{globalStats.completed}</p>
-          </div>
-        </div>
+        <div className="relative z-10 h-px" style={{ background: 'linear-gradient(to right, rgba(188,155,115,0.3), transparent)' }} />
+      </div>
 
-        <div className="bg-white/50 p-4 md:p-6 rounded-[2rem] shadow-sm border border-stone-100 flex items-center gap-4 md:gap-5">
-          <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
-            <TrendingUp className="w-6 h-6 md:w-7 md:h-7" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">Eficiencia Promedio</p>
-            <p className="text-3xl font-black text-stone-900">{globalStats.avgEfficiency}%</p>
-          </div>
+      {/* ── KPI Banner ── */}
+      <div className="rounded-[2rem] mb-8 overflow-hidden" style={{ background: '#2D0020' }}>
+        <div className="grid grid-cols-3" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+          {[
+            { value: globalStats.total, label: 'Total de Tareas', sub: 'acumuladas' },
+            { value: globalStats.completed, label: 'Completadas', sub: 'finalizadas' },
+            { value: `${globalStats.avgEfficiency}%`, label: 'Eficiencia', sub: 'promedio de campo' },
+          ].map(({ value, label, sub }, i) => (
+            <div
+              key={label}
+              className="px-6 md:px-10 py-8 md:py-10 flex flex-col gap-1"
+              style={i > 0 ? { borderLeft: '1px solid rgba(255,255,255,0.05)' } : {}}
+            >
+              <p className="font-display font-black text-4xl md:text-5xl leading-none" style={{ color: '#F5EDE8' }}>
+                {value}
+              </p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] mt-3" style={{ color: '#BC9B73', opacity: 0.7 }}>
+                {label}
+              </p>
+              <p className="text-[9px] font-medium" style={{ color: '#F5EDE8', opacity: 0.2 }}>
+                {sub}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Título de Sección */}
-      <div className="flex items-center justify-between px-2">
-        <div>
-          <h2 className="text-2xl font-display font-black text-stone-900 tracking-tight">Ranking de Rendimiento</h2>
-          <p className="text-stone-500 text-sm font-medium italic">Desempeño individual del personal de campo.</p>
+      {/* ── Leaderboard ── */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 px-1">
+          <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/40">Ranking de Rendimiento</p>
+          <div className="flex-1 h-px" style={{ background: 'rgba(98,0,65,0.1)' }} />
+          <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/20">
+            {stats.length} evaluados
+          </span>
         </div>
-        <div className="bg-white px-4 py-2 rounded-xl border border-stone-100 text-xs font-bold text-stone-400 flex items-center gap-2">
-          <Award className="w-4 h-4 text-amber-500" />
-          {stats.length} Usuarios Evaluados
+
+        {/* Desktop column headers */}
+        <div
+          className="hidden md:grid items-center px-6 text-[9px] font-black uppercase tracking-[0.25em] text-on-surface-variant/30 gap-4"
+          style={{ gridTemplateColumns: '2.5rem 1fr 5rem 5rem 5rem 8rem' }}
+        >
+          <div className="text-center">#</div>
+          <div>Supervisor</div>
+          <div className="text-center">Pend.</div>
+          <div className="text-center">Prog.</div>
+          <div className="text-center">Hechas</div>
+          <div className="text-right pr-1">Eficiencia</div>
         </div>
-      </div>
 
-      {/* Ranking Header - Synchronized Columns */}
-      <div className="hidden md:flex items-center px-8 mb-4 text-[11px] font-black uppercase tracking-[0.25em] text-on-surface-variant opacity-80">
-        <div className="w-[35%] pl-4">Supervisores de Campo</div>
-        <div className="w-[15%] text-center">Pend.</div>
-        <div className="w-[15%] text-center">Prog.</div>
-        <div className="w-[15%] text-center">Hechas</div>
-        <div className="w-[20%] text-right pr-4">Eficiencia</div>
-      </div>
+        <div className="space-y-2">
+          {stats.map((s, index) => {
+            const color = fieldWorkerColorMap.get(s.user.id) ?? '#808080';
+            const isAtRisk = s.total > 0 && s.efficiency < 30;
+            const effColor = s.efficiency >= 80 ? '#10b981' : s.efficiency >= 40 ? '#f59e0b' : '#ef4444';
+            const isFirst = index === 0;
 
-      {/* Lista de Usuarios */}
-      <div className="flex flex-col gap-6">
-        {stats.map((s, index) => (
-          <div 
-            key={s.user.id} 
-            className="group bg-white/70 backdrop-blur-md p-5 rounded-[2.5rem] shadow-sm border border-stone-100 hover:shadow-ambient transition-all duration-700 relative overflow-hidden"
-          >
-            <div className="flex flex-col md:flex-row md:items-center">
-              
-              {/* Column 1: Identity (35%) */}
-              <div className="w-full md:w-[35%] flex items-center gap-5 pl-4 min-w-0">
-                <div className="relative shrink-0">
-                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-surface-container-low flex items-center justify-center text-primary font-black text-base md:text-lg border border-outline-variant/10 group-hover:bg-white transition-all duration-500">
-                    {s.user.nombre.substring(0, 2).toUpperCase()}
-                  </div>
-                  <div className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-on-surface border-4 border-white flex items-center justify-center text-[10px] font-black text-white shadow-sm">
+            return (
+              <div
+                key={s.user.id}
+                className={`group bg-white rounded-2xl relative overflow-hidden border transition-all duration-300 hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)] ${
+                  isAtRisk
+                    ? 'border-red-200 hover:border-red-300'
+                    : isFirst
+                    ? 'border-amber-200/60 hover:border-amber-300/80'
+                    : 'border-outline-variant/8 hover:border-outline-variant/20'
+                }`}
+              >
+                <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl" style={{ background: color }} />
+
+                {/* Desktop row */}
+                <div
+                  className="hidden md:grid items-center px-6 py-4 gap-4"
+                  style={{ gridTemplateColumns: '2.5rem 1fr 5rem 5rem 5rem 8rem' }}
+                >
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-[11px] font-black shrink-0 mx-auto"
+                    style={isFirst
+                      ? { background: 'rgba(251,191,36,0.15)', color: '#b45309' }
+                      : { background: 'rgba(0,0,0,0.04)', color: 'rgba(28,28,23,0.3)' }
+                    }
+                  >
                     {index + 1}
                   </div>
+
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-[11px] text-white shrink-0"
+                      style={{ backgroundColor: color }}
+                    >
+                      {getInitials(s.user.nombre)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-black text-on-surface text-[14px] tracking-tight truncate group-hover:text-primary transition-colors">
+                        {s.user.nombre}
+                      </p>
+                      {isAtRisk && (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <AlertCircle className="w-3 h-3 text-red-500 shrink-0" />
+                          <span className="text-[9px] font-black text-red-500 uppercase tracking-wider">Riesgo de rezago</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-center">
+                    <span className="text-[16px] font-black text-on-surface/25">{s.pending}</span>
+                  </div>
+                  <div className="flex justify-center">
+                    <span className="text-[16px] font-black text-blue-500">{s.inProgress}</span>
+                  </div>
+                  <div className="flex justify-center">
+                    <span className="text-[16px] font-black text-emerald-500">{s.completed}</span>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-1.5 pr-1">
+                    <span className="text-[13px] font-black" style={{ color: effColor }}>
+                      {s.efficiency}%
+                    </span>
+                    <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${s.efficiency}%`, backgroundColor: effColor }}
+                      />
+                    </div>
+                    <span className="text-[8px] font-bold text-on-surface-variant/25 uppercase tracking-widest">
+                      {s.completed}/{s.total} tareas
+                    </span>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <h3 className="text-[17px] font-black text-on-surface tracking-tight leading-tight group-hover:text-primary transition-colors truncate">{s.user.nombre}</h3>
-                  <p className="text-[12px] text-on-surface-variant font-medium tracking-tight opacity-50 italic truncate">{s.user.email || 'Sin correo'}</p>
+
+                {/* Mobile row */}
+                <div className="md:hidden px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0"
+                      style={isFirst
+                        ? { background: 'rgba(251,191,36,0.15)', color: '#b45309' }
+                        : { background: 'rgba(0,0,0,0.04)', color: 'rgba(28,28,23,0.3)' }
+                      }
+                    >
+                      {index + 1}
+                    </div>
+                    <div
+                      className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-[11px] text-white shrink-0"
+                      style={{ backgroundColor: color }}
+                    >
+                      {getInitials(s.user.nombre)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-on-surface text-[14px] tracking-tight truncate">{s.user.nombre}</p>
+                      {isAtRisk && (
+                        <div className="flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3 text-red-500 shrink-0" />
+                          <span className="text-[9px] font-black text-red-500 uppercase">Rezago</span>
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[15px] font-black shrink-0" style={{ color: effColor }}>
+                      {s.efficiency}%
+                    </span>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-outline-variant/8 flex items-center gap-4">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[8px] font-black text-on-surface-variant/30 uppercase tracking-wider">Pend</span>
+                      <span className="text-[13px] font-black text-on-surface/30">{s.pending}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[8px] font-black text-blue-400 uppercase tracking-wider">Prog</span>
+                      <span className="text-[13px] font-black text-blue-500">{s.inProgress}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[8px] font-black text-emerald-400 uppercase tracking-wider">Hech</span>
+                      <span className="text-[13px] font-black text-emerald-500">{s.completed}</span>
+                    </div>
+                    <div className="flex-1 flex items-center gap-2 ml-1">
+                      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${s.efficiency}%`, backgroundColor: effColor }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              {/* Mobile Stats Grid / Desktop Columns */}
-              <div className="flex-1 grid grid-cols-3 md:flex md:items-center mt-6 md:mt-0 border-t md:border-t-0 border-stone-100 pt-5 md:pt-0">
-                {/* Column 2: Pendientes */}
-                <div className="text-center px-1 border-r border-stone-100/50 md:border-r-0 md:w-[15%]">
-                  <span className="text-[9px] font-black text-stone-400 uppercase tracking-[0.15em] block mb-1">Pend.</span>
-                  <p className="text-lg font-black text-stone-900 opacity-30 group-hover:opacity-100 transition-opacity">{s.pending}</p>
-                </div>
-
-                {/* Column 3: Progreso */}
-                <div className="text-center px-1 border-r border-stone-100/50 md:border-r-0 md:w-[15%]">
-                  <span className="text-[9px] font-black text-stone-400 uppercase tracking-[0.15em] block mb-1">Prog.</span>
-                  <p className="text-lg font-black text-blue-600 transition-all">{s.inProgress}</p>
-                </div>
-
-                {/* Column 4: Hechas */}
-                <div className="text-center px-1 md:w-[15%]">
-                  <span className="text-[9px] font-black text-stone-400 uppercase tracking-[0.15em] block mb-1">Hechas</span>
-                  <p className="text-lg font-black text-emerald-600 transition-all">{s.completed}</p>
-                </div>
-              </div>
-
-              {/* Column 5: Eficiencia (20%) */}
-              <div className="w-full md:w-[20%] space-y-2 pr-4">
-                <div className="flex justify-between items-end mb-1">
-                  <span className="md:hidden text-[9px] font-black text-on-surface-variant/40 uppercase tracking-widest">Eficiencia</span>
-                  <span className={`text-[11px] font-black px-3 py-1 rounded-lg border shadow-sm ${getEfficiencyColor(s.efficiency)}`}>
-                    {s.efficiency}%
-                  </span>
-                </div>
-                <div className="w-full h-2 bg-surface-container-low rounded-full overflow-hidden border border-outline-variant/5">
-                  <div 
-                    className={`h-full transition-all duration-1000 ${getProgressColor(s.efficiency)}`}
-                    style={{ width: `${s.efficiency}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Alerta de Rezago (Digital Curator Style) */}
-            {s.total > 0 && s.efficiency < 30 && (
-              <div className="mt-6 flex items-center gap-3 text-rose-600 bg-rose-50/50 p-3 rounded-2xl border border-rose-100/50 animate-pulse">
-                <AlertCircle className="w-4 h-4" />
-                <span className="text-[10px] font-black uppercase tracking-wider">Usuario en riesgo de rezago institucional</span>
-              </div>
-            )}
-          </div>
-        ))}
+            );
+          })}
+        </div>
 
         {stats.length === 0 && (
-          <div className="py-20 text-center bg-stone-50 rounded-3xl border border-dashed border-stone-200">
-            <User className="w-12 h-12 text-stone-300 mx-auto mb-4" />
-            <p className="text-stone-500 font-display font-bold italic">No hay personal de campo registrado para evaluar.</p>
+          <div className="py-24 text-center bg-white rounded-2xl border border-dashed border-outline-variant/15">
+            <div className="opacity-20 flex flex-col items-center gap-4">
+              <User className="w-12 h-12 text-primary" />
+              <p className="text-[12px] font-black uppercase tracking-[0.4em] text-on-surface">Sin datos disponibles</p>
+            </div>
           </div>
         )}
       </div>

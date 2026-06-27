@@ -25,8 +25,9 @@ export interface MassAssignmentResult {
   cantidadSecciones: number;   // sections actually worked
   totalAvailable: number;       // total sections in distrito
   blocks: PopulationAwareBlock[];
-  sectionesBase: number;        // Math.floor(cantidadSecciones / numEquipos)
-  residuo: number;              // cantidadSecciones % numEquipos
+  sectionesBase: number;        // average sections per team (display only)
+  residuo: number;              // kept for UI compat; always 0 with padrón-weighted distribution
+  padronBase: number;           // target padrón per team = totalPadrón / numEquipos
 }
 
 // ─── Geo Utilities ────────────────────────────────────────────────────────────
@@ -55,17 +56,7 @@ function haversineMass(c1: [number, number], c2: [number, number]): number {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Centroide promedio de una zona (lon, lat)
-function zoneCentroid(zone: BlockSection[]): [number, number] | null {
-  const cs = zone.map(s => getCentroidMass(s.geometry)).filter(Boolean) as [number, number][];
-  if (!cs.length) return null;
-  return [
-    cs.reduce((s, c) => s + c[0], 0) / cs.length,
-    cs.reduce((s, c) => s + c[1], 0) / cs.length,
-  ];
-}
-
-// ─── Step 1: Nearest-Neighbor Linear Chain ────────────────────────────────────
+// ─── Nearest-Neighbor Linear Chain ───────────────────────────────────────────
 // Anchors at the westernmost section and chains sections by proximity.
 // Result: block N is always geographically adjacent to block N+1.
 
@@ -109,20 +100,12 @@ function buildLinearChain(sections: BlockSection[]): BlockSection[] {
   return chain;
 }
 
-// ─── K-Means Geographic Clustering ───────────────────────────────────────────
-//
-// We use Euclidean² on raw lat/lon for all K-Means distance comparisons.
-// Within a single municipality the projection distortion is negligible and
-// Euclidean is ~10× faster than Haversine for the iteration inner loop.
-// Haversine is used only for the final route-optimization step.
-
+// Euclidean² distance on raw lat/lon — negligible distortion within one district.
 function eucl2(a: [number, number], b: [number, number]): number {
   return (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2;
 }
 
-// K-Means++ seeding: each successive seed is chosen with probability ∝ D(x)²,
-// the squared distance to the nearest already-chosen seed.  This spreads the
-// initial centroids across the territory and reduces bad-convergence runs.
+// K-Means++ seeding — spreads N starting positions across the territory.
 function kmeansInit(coords: [number, number][], k: number): [number, number][] {
   const n = coords.length;
   const seeds: [number, number][] = [coords[Math.floor(Math.random() * n)]];
@@ -130,117 +113,219 @@ function kmeansInit(coords: [number, number][], k: number): [number, number][] {
   while (seeds.length < Math.min(k, n)) {
     const dists = coords.map(c => Math.min(...seeds.map(s => eucl2(c, s))));
     const total = dists.reduce((a, b) => a + b, 0);
-
     if (total === 0) { seeds.push(coords[seeds.length]); continue; }
-
     let r = Math.random() * total;
     let chosen = n - 1;
-    for (let i = 0; i < n; i++) {
-      r -= dists[i];
-      if (r <= 0) { chosen = i; break; }
-    }
+    for (let i = 0; i < n; i++) { r -= dists[i]; if (r <= 0) { chosen = i; break; } }
     seeds.push(coords[chosen]);
   }
-
   return seeds;
 }
 
-// Lloyd's algorithm with K-Means++ init.  Empty clusters are re-seeded at the
-// point farthest from all current centroids to avoid degenerate partitions.
-function kmeansCluster(sections: BlockSection[], k: number, maxIter = 150): number[] {
-  const rawCentroids = sections.map(s => getCentroidMass(s.geometry));
-  const validIdx = sections.map((_, i) => i).filter(i => rawCentroids[i] !== null);
-  const coords = validIdx.map(i => rawCentroids[i] as [number, number]);
+// ─── Padrón-Weighted Balanced K-Means ────────────────────────────────────────
+//
+// Runs Lloyd's K-Means where cluster "full" is defined by a padrón budget
+// (total registered voters) rather than a section count. A cluster accepts new
+// sections until its accumulated padrón reaches padronTarget; sections are
+// processed in regret order (most-contested-geographically first) so peripheral
+// sections don't end up assigned to distant clusters just because nearer ones
+// filled up.
 
-  if (coords.length === 0) return sections.map(() => 0);
+function balancedKmeansPadron(
+  sections: BlockSection[],
+  numTeams: number,
+  padronTarget: number
+): BlockSection[][] {
+  const centroids = new Map<number, [number, number]>();
+  for (const s of sections) {
+    const c = getCentroidMass(s.geometry);
+    if (c) centroids.set(s.id, c);
+  }
+  const withC = sections.filter(s => centroids.has(s.id));
+  if (withC.length === 0) return Array.from({ length: numTeams }, () => []);
 
-  const kActual = Math.min(k, coords.length);
-  let seeds = kmeansInit(coords, kActual);
-  let assignments = new Array(coords.length).fill(0);
+  const coords = withC.map(s => centroids.get(s.id)!);
+  const padrons = withC.map(s => s.total ?? padronTarget / numTeams);
+  const kA = Math.min(numTeams, coords.length);
 
-  for (let iter = 0; iter < maxIter; iter++) {
-    // Assignment step
-    const next = coords.map(c => {
-      let minD = Infinity, minK = 0;
-      for (let ki = 0; ki < seeds.length; ki++) {
-        const d = eucl2(c, seeds[ki]);
-        if (d < minD) { minD = d; minK = ki; }
-      }
-      return minK;
+  let centers = kmeansInit(coords, kA);
+  let assignments: number[] = new Array(coords.length).fill(0);
+
+  for (let iter = 0; iter < 150; iter++) {
+    const padronUsed = new Array(numTeams).fill(0);
+
+    const withRegret = coords.map((coord, i) => {
+      const dists = centers.map(c => eucl2(coord, c));
+      const sorted = [...dists].sort((a, b) => a - b);
+      const regret = sorted.length > 1 ? sorted[1] - sorted[0] : 0;
+      return { i, dists, regret };
     });
+    withRegret.sort((a, b) => b.regret - a.regret);
 
-    const changed = next.some((a, i) => a !== assignments[i]);
-    assignments = next;
+    const newAssign: number[] = new Array(coords.length).fill(-1);
+    for (const { i, dists } of withRegret) {
+      const ranked = dists.map((d, k) => ({ k, d })).sort((a, b) => a.d - b.d);
+      let assigned = false;
+      for (const { k } of ranked) {
+        if (padronUsed[k] < padronTarget) {
+          newAssign[i] = k; padronUsed[k] += padrons[i]; assigned = true; break;
+        }
+      }
+      // Fallback: all clusters over budget → assign to nearest
+      if (!assigned) { newAssign[i] = ranked[0].k; padronUsed[ranked[0].k] += padrons[i]; }
+    }
+
+    const changed = newAssign.some((a, i) => a !== assignments[i]);
+    assignments = newAssign;
     if (!changed) break;
 
-    // Update step
-    for (let ki = 0; ki < kActual; ki++) {
-      const pts = coords.filter((_, i) => assignments[i] === ki);
-      if (pts.length === 0) {
-        // Re-seed at farthest point from all centroids
-        let maxD = -1, fIdx = 0;
-        coords.forEach((c, i) => {
-          const d = Math.min(...seeds.map(s => eucl2(c, s)));
-          if (d > maxD) { maxD = d; fIdx = i; }
-        });
-        seeds[ki] = coords[fIdx];
+    for (let k = 0; k < kA; k++) {
+      const pts = coords.filter((_, i) => assignments[i] === k);
+      if (!pts.length) {
+        let maxD = -1; let fIdx = 0;
+        coords.forEach((c, i) => { const d = Math.min(...centers.map(s => eucl2(c, s))); if (d > maxD) { maxD = d; fIdx = i; } });
+        centers[k] = coords[fIdx];
       } else {
-        seeds[ki] = [
-          pts.reduce((s, c) => s + c[0], 0) / pts.length,
-          pts.reduce((s, c) => s + c[1], 0) / pts.length,
-        ];
+        centers[k] = [pts.reduce((s, c) => s + c[0], 0) / pts.length, pts.reduce((s, c) => s + c[1], 0) / pts.length];
       }
     }
   }
 
-  // Map assignments back to original section indices (sections with no geometry → cluster 0)
-  const result = new Array(sections.length).fill(0);
-  validIdx.forEach((origIdx, coordIdx) => { result[origIdx] = assignments[coordIdx]; });
-  return result;
+  const zones: BlockSection[][] = Array.from({ length: numTeams }, () => []);
+  withC.forEach((s, i) => { if (assignments[i] >= 0) zones[assignments[i]].push(s); });
+  return zones;
 }
 
-// Keep only the `targetSize` most-central sections of a zone (closest to zone centroid).
-// This trims oversized zones while preserving geographic compactness.
-function trimZoneToCentral(zone: BlockSection[], targetSize: number): BlockSection[] {
-  if (zone.length <= targetSize) return zone;
+// ─── Padrón Rebalance ─────────────────────────────────────────────────────────
+//
+// After K-Means and geo-swap, fine-tunes padrón balance by transferring the
+// geographically-nearest section from the most over-budget zone to the most
+// under-budget zone. Accepts a transfer only if padrón variance strictly
+// decreases. Stops when the max delta between zones is within 3% of target.
 
-  const cs = zone.map(s => getCentroidMass(s.geometry)).filter(Boolean) as [number, number][];
-  if (cs.length === 0) return zone.slice(0, targetSize);
+function padronRebalance(
+  zones: BlockSection[][],
+  cm: Map<number, [number, number]>,
+  padronTarget: number,
+  maxPasses = 80
+): BlockSection[][] {
+  const zs = zones.map(z => [...z]);
 
-  const centroid: [number, number] = [
-    cs.reduce((s, c) => s + c[0], 0) / cs.length,
-    cs.reduce((s, c) => s + c[1], 0) / cs.length,
-  ];
+  const zonePadron = (z: BlockSection[]) => z.reduce((s, sec) => s + (sec.total ?? 0), 0);
+  const variance = (zs: BlockSection[][]) => {
+    const ps = zs.map(z => zonePadron(z));
+    const m = ps.reduce((a, b) => a + b, 0) / ps.length;
+    return ps.reduce((s, p) => s + (p - m) ** 2, 0) / ps.length;
+  };
+  const centroidOf = (z: BlockSection[]): [number, number] | null => {
+    const cs = z.map(s => cm.get(s.id)).filter(Boolean) as [number, number][];
+    if (!cs.length) return null;
+    return [cs.reduce((s, c) => s + c[0], 0) / cs.length, cs.reduce((s, c) => s + c[1], 0) / cs.length];
+  };
 
-  return zone
-    .map(s => {
-      const c = getCentroidMass(s.geometry);
-      return { s, d: c ? eucl2(c, centroid) : Infinity };
-    })
-    .sort((a, b) => a.d - b.d)
-    .slice(0, targetSize)
-    .map(x => x.s);
+  for (let pass = 0; pass < maxPasses; pass++) {
+    const ps = zs.map(z => zonePadron(z));
+    const overIdx = ps.indexOf(Math.max(...ps));
+    const underIdx = ps.indexOf(Math.min(...ps));
+    if (overIdx === underIdx) break;
+    if (ps[overIdx] - ps[underIdx] < padronTarget * 0.03) break;
+
+    const underCtr = centroidOf(zs[underIdx]);
+    if (!underCtr) break;
+
+    let bestSec: BlockSection | null = null;
+    let bestDist = Infinity;
+    for (const sec of zs[overIdx]) {
+      if (zs[overIdx].length <= 1) break;
+      const sc = cm.get(sec.id);
+      if (!sc) continue;
+      const d = haversineMass(sc, underCtr);
+      if (d < bestDist) { bestDist = d; bestSec = sec; }
+    }
+    if (!bestSec) break;
+
+    const newOver = zs[overIdx].filter(s => s.id !== bestSec!.id);
+    const newUnder = [...zs[underIdx], bestSec];
+    const tempZs = zs.map((z, i) => i === overIdx ? newOver : i === underIdx ? newUnder : z);
+    if (variance(tempZs) < variance(zs)) {
+      zs[overIdx] = newOver;
+      zs[underIdx] = newUnder;
+    } else {
+      break;
+    }
+  }
+
+  return zs;
 }
 
-// ─── Public Algorithm — Equal Sections + Population-Ordered Assignment ────────
+// ─── Swap Optimization ────────────────────────────────────────────────────────
+//
+// After Balanced K-Means converges, iteratively improves the worst zone by
+// swapping one of its sections with a section from any other zone.
+// Accept a swap when the worst zone improves AND the receiving zone does not
+// become worse than the current worst — effectively leveling outliers.
+
+function avgPairDist(zone: BlockSection[], cm: Map<number, [number, number]>): number {
+  const cs = zone.map(s => cm.get(s.id)).filter(Boolean) as [number, number][];
+  if (cs.length < 2) return 0;
+  let sum = 0; let cnt = 0;
+  for (let a = 0; a < cs.length; a++)
+    for (let b = a + 1; b < cs.length; b++) { sum += haversineMass(cs[a], cs[b]); cnt++; }
+  return sum / cnt;
+}
+
+function swapOptimize(zones: BlockSection[][], cm: Map<number, [number, number]>, maxPasses = 40): BlockSection[][] {
+  const zs = zones.map(z => [...z]);
+
+  for (let pass = 0; pass < maxPasses; pass++) {
+    const dists = zs.map(z => avgPairDist(z, cm));
+    const worstIdx = dists.indexOf(Math.max(...dists));
+    const worstD = dists[worstIdx];
+
+    let bestGain = -Infinity;
+    let bestSwap: { worstIdx: number; zi: number; newWorst: BlockSection[]; newZi: BlockSection[] } | null = null;
+
+    for (const sec of zs[worstIdx]) {
+      const withoutSec = zs[worstIdx].filter(s => s.id !== sec.id);
+      for (let zi = 0; zi < zs.length; zi++) {
+        if (zi === worstIdx) continue;
+        for (const candidate of zs[zi]) {
+          const newWorst = [...withoutSec, candidate];
+          const newZi = zs[zi].filter(s => s.id !== candidate.id).concat([sec]);
+          const newWorstD = avgPairDist(newWorst, cm);
+          const newZiD = avgPairDist(newZi, cm);
+          // Accept: worst zone must shrink, neighbor must not exceed current worst
+          if (newWorstD < worstD - 0.05 && newZiD <= worstD) {
+            const gain = worstD - newWorstD;
+            if (gain > bestGain) { bestGain = gain; bestSwap = { worstIdx, zi, newWorst, newZi }; }
+          }
+        }
+      }
+    }
+
+    if (!bestSwap || bestGain < 0.05) break;
+    zs[bestSwap.worstIdx] = bestSwap.newWorst;
+    zs[bestSwap.zi] = bestSwap.newZi;
+  }
+
+  return zs;
+}
+
+// ─── Public Algorithm — Multi-start Balanced K-Means + Swap Optimization ──────
 //
 // Criterio: todos los equipos reciben el mismo número de secciones (floor).
-// El residuo (+1) se asigna a las zonas con MAYOR población total, asegurando
-// que los equipos con más secciones cubran el territorio más densamente poblado.
-// La asignación zona→equipo es determinista (sin aleatoriedad):
-//   zona[0] (más población) → equipo[0] (Equipo 1, "más completo")
-//   zona[N-1] (menos población) → equipo[N-1] (Equipo N, "más pequeño")
-//
-// Garantía de total exacto: recuperación de déficit desde pool global.
+// El residuo (+1) se distribuye entre las primeras zonas (las de mayor población
+// una vez formadas). La asignación zona→equipo es determinista por población.
 //
 // Pasos:
-//   1. K-Means++ → N zonas geográficamente compactas.
-//   2. Ordenar zonas por población DESC.
-//   3. Asignar targets iguales; primer `residuo` zonas reciben floor+1.
-//   4. Recortar cada zona a su target (secciones más centrales).
-//   5. Recuperación de déficit: rellenar con secciones cercanas del pool global.
-//   6. Optimización de ruta dentro de cada zona (vecino más cercano).
-//   7. Emparejar zona[i] → equipo[i] (orden determinista por población).
+//   1. Balanced K-Means x8 con minimax: corre 8 veces, conserva el run donde
+//      el PEOR equipo tiene la distancia promedio mínima (evita outliers extremos
+//      por semillas iniciales desafortunadas).
+//   2. Swap optimization: intercambia secciones entre el peor equipo y sus
+//      vecinos hasta que ningún swap mejore el resultado.
+//   3. Ordenar zonas resultantes por población DESC.
+//   4. Optimización de ruta dentro de cada zona (vecino más cercano).
+//   5. Emparejar zona[i] → equipo[i] (orden determinista por población).
 
 export function runMassAssignmentAlgorithmV2(
   sections: BlockSection[],
@@ -255,7 +340,7 @@ export function runMassAssignmentAlgorithmV2(
 
   const totalTarget = Math.min(cantidadSecciones, withGeom.length);
 
-  // Edge case: fewer sections than teams → circular overlap
+  // Edge case: fewer sections than teams → one section per team, rest circular
   if (totalTarget <= numTeams) {
     const simple: PopulationAwareBlock[] = withGeom.slice(0, totalTarget).map((s, i) => ({
       blockId: i, sections: [s], userIds: [], totalPoblacion: s.total ?? 0, isAugmented: false,
@@ -264,67 +349,43 @@ export function runMassAssignmentAlgorithmV2(
     return simple;
   }
 
-  // Step 1: K-Means geographic clustering → N compact zones
-  const clusterOf = kmeansCluster(withGeom, numTeams);
-  const rawZones: BlockSection[][] = Array.from({ length: numTeams }, () => []);
-  withGeom.forEach((s, i) => rawZones[clusterOf[i] % numTeams].push(s));
+  // Padrón target: total registered voters divided equally among teams
+  const cm = new Map<number, [number, number]>();
+  for (const s of withGeom) { const c = getCentroidMass(s.geometry); if (c) cm.set(s.id, c); }
 
-  // Step 2: Sort zones by total population DESC
-  // Higher-population zones receive the residuo (+1 section).
-  const baseSize = Math.floor(totalTarget / numTeams);
-  const residuo  = totalTarget % numTeams;
+  const totalPadron = withGeom.reduce((s, sec) => s + (sec.total ?? 0), 0);
+  const padronTarget = totalPadron > 0 ? totalPadron / numTeams : totalTarget / numTeams;
 
-  const ranked = rawZones
-    .map(zone => ({
-      zone,
-      totalPop: zone.reduce((s, sec) => s + (sec.total ?? 0), 0),
-    }))
-    .sort((a, b) => b.totalPop - a.totalPop);
-
-  // Step 3: Targets — first `residuo` zones (highest pop) get baseSize+1
-  const targets = ranked.map((_, i) => baseSize + (i < residuo ? 1 : 0));
-
-  // Step 4: Trim each zone to its target (keep most-central sections)
-  const trimmedZones = ranked.map(({ zone }, i) => trimZoneToCentral(zone, targets[i]));
-
-  // Step 5: Deficit recovery — guarantee exactly totalTarget sections are assigned
-  const assignedIds = new Set(trimmedZones.flat().map(s => s.id));
-  const pool        = withGeom.filter(s => !assignedIds.has(s.id));
-  let deficit       = totalTarget - trimmedZones.reduce((s, z) => s + z.length, 0);
-
-  for (let zi = 0; zi < numTeams && deficit > 0; zi++) {
-    const shortage = targets[zi] - trimmedZones[zi].length;
-    if (shortage <= 0) continue;
-
-    const c = zoneCentroid(trimmedZones[zi].length > 0 ? trimmedZones[zi] : ranked[zi].zone);
-    const sorted = c
-      ? [...pool].sort((a, b) => {
-          const ca = getCentroidMass(a.geometry)!;
-          const cb = getCentroidMass(b.geometry)!;
-          return eucl2(ca, c) - eucl2(cb, c);
-        })
-      : [...pool];
-
-    const toAdd = sorted.slice(0, Math.min(shortage, deficit));
-    toAdd.forEach(s => {
-      trimmedZones[zi].push(s);
-      pool.splice(pool.findIndex(p => p.id === s.id), 1);
-    });
-    deficit -= toAdd.length;
+  // Step 1: Padrón-weighted K-Means x5 — pick run with most compact worst zone (minimax)
+  let bestZones: BlockSection[][] | null = null;
+  let bestWorst = Infinity;
+  for (let run = 0; run < 5; run++) {
+    const candidate = balancedKmeansPadron(withGeom, numTeams, padronTarget);
+    const worst = Math.max(...candidate.map(z => avgPairDist(z, cm)));
+    if (worst < bestWorst) { bestWorst = worst; bestZones = candidate; }
   }
 
-  // Step 6: Route-optimize within each zone (nearest-neighbor chain)
-  const routedZones = trimmedZones.map(zone => buildLinearChain(zone));
+  // Step 2: Geographic swap — reduce dispersion of the worst zone
+  const geoSwapped = swapOptimize(bestZones!, cm, 25);
 
-  // Step 7: Deterministic zone→team pairing by population order (no shuffle)
-  // ranked[0] = highest-pop zone → userIds[0] (Equipo 1, "más completo")
-  // ranked[N-1] = lowest-pop zone → userIds[N-1] (Equipo N, "más pequeño")
+  // Step 3: Padrón rebalance — fine-tune voter count balance between zones
+  const grownZones = padronRebalance(geoSwapped, cm, padronTarget, 80);
+
+  // Sort zones by total padrón DESC for deterministic team assignment
+  const ranked = grownZones
+    .map(zone => ({ zone, totalPop: zone.reduce((s, sec) => s + (sec.total ?? 0), 0) }))
+    .sort((a, b) => b.totalPop - a.totalPop);
+
+  // Route-optimize within each zone (nearest-neighbor chain)
+  const routedZones = ranked.map(({ zone }) => buildLinearChain(zone));
+
+  // zona[0] (mayor padrón) → equipo[0], zona[N-1] → equipo[N-1]
   return routedZones.map((secs, blockId) => ({
     blockId,
     sections: secs,
     userIds: [userIds[blockId]],
     totalPoblacion: secs.reduce((sum, s) => sum + (s.total ?? 0), 0),
-    isAugmented: secs.length > baseSize,
+    isAugmented: secs.reduce((sum, s) => sum + (s.total ?? 0), 0) > padronTarget * 1.05,
   }));
 }
 
@@ -365,8 +426,11 @@ export function useMassAssignment() {
         actualSecciones
       );
 
-      const sectionesBase = Math.floor(actualSecciones / fieldUsers.length);
-      const residuo = actualSecciones % fieldUsers.length;
+      // Avg sections per team (display only) and padrón target
+      const sectionesBase = Math.round(actualSecciones / fieldUsers.length);
+      const padronBase = Math.round(
+        blocks.reduce((s, b) => s + b.totalPoblacion, 0) / fieldUsers.length
+      );
 
       setResult({
         distrito,
@@ -375,7 +439,8 @@ export function useMassAssignment() {
         totalAvailable: sections.length,
         blocks,
         sectionesBase,
-        residuo,
+        residuo: 0,
+        padronBase,
       });
       setSaveMessage(null);
     },

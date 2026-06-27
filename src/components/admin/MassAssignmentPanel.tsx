@@ -294,25 +294,19 @@ export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
       >
         <div className="space-y-2">
           <p className="text-[10px] text-stone-500 font-bold">
-            El tamaño de bloque se calcula automáticamente ({preview?.base ?? '—'} secciones/equipo base).
-            El algoritmo distribuye con residuo inteligente por densidad poblacional.
+            El algoritmo distribuye por <strong>padrón electoral</strong>, no por conteo de secciones.
+            Equipos en zonas densas reciben menos secciones; zonas dispersas, más.
           </p>
           <div className="grid grid-cols-2 gap-2 pt-1">
             <div className="bg-primary/5 rounded-xl p-3 text-center">
               <p className="text-lg font-black text-primary">{preview?.base ?? '—'}</p>
-              <p className="text-[9px] text-stone-400 font-bold uppercase tracking-widest">Secs. base/eq.</p>
+              <p className="text-[9px] text-stone-400 font-bold uppercase tracking-widest">Secc. aprox./eq.</p>
             </div>
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
-              <p className="text-lg font-black text-amber-600">{preview?.residuo ?? '—'}</p>
-              <p className="text-[9px] text-amber-500 font-bold uppercase tracking-widest">Residuo</p>
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
+              <p className="text-lg font-black text-emerald-600">~igual</p>
+              <p className="text-[9px] text-emerald-500 font-bold uppercase tracking-widest">Padrón/eq.</p>
             </div>
           </div>
-          {(preview?.residuo ?? 0) > 0 && (
-            <p className="text-[10px] text-amber-700 font-medium bg-amber-50 border border-amber-200 p-2.5 rounded-xl">
-              {preview?.residuo} sección(es) extra se asignarán a los {preview?.residuo} equipos
-              con <strong>menor carga poblacional</strong> para equilibrar el esfuerzo en campo.
-            </p>
-          )}
         </div>
       </AdvancedOption>
 
@@ -350,7 +344,7 @@ export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
                 <MiniStat value={result.blocks.length} label="Bloques" color="text-primary" bg="bg-primary/5" />
                 <MiniStat value={result.cantidadSecciones} label="Secciones" color="text-emerald-600" bg="bg-emerald-50" />
                 <MiniStat value={result.numEquipos} label="Equipos" color="text-violet-600" bg="bg-violet-50" />
-                <MiniStat value={result.sectionesBase} label="Base/Eq." color="text-amber-600" bg="bg-amber-50" />
+                <MiniStat value={result.padronBase ? `~${Math.round(result.padronBase / 1000)}k` : result.sectionesBase} label="Padrón/Eq." color="text-amber-600" bg="bg-amber-50" />
               </div>
             </div>
 
@@ -358,9 +352,7 @@ export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
             <div className="col-span-2 flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl">
               <TrendingUp className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span className="text-[10px] font-black text-emerald-700">
-                {result.residuo === 0
-                  ? 'Distribución perfectamente equilibrada'
-                  : `${result.residuo} equipo(s) con sección extra → asignados a zonas de menor población`}
+                Distribución por padrón electoral — cada equipo cubre ~{result.padronBase ? Math.round(result.padronBase / 1000) : '—'}k electores
               </span>
             </div>
           </div>
@@ -491,7 +483,7 @@ function MiniStat({
   color,
   bg,
 }: {
-  value: number;
+  value: number | string;
   label: string;
   color: string;
   bg: string;
@@ -547,7 +539,7 @@ function BlockCard({
             </p>
             {block.isAugmented && (
               <span className="text-[8px] font-black bg-amber-400 text-white px-1.5 py-0.5 rounded-full shrink-0 uppercase tracking-wider">
-                +1
+                alto
               </span>
             )}
           </div>
@@ -592,7 +584,7 @@ function BlockCard({
               </span>
               {block.isAugmented && (
                 <span className="text-[9px] text-amber-600 font-black bg-amber-100 px-1.5 py-0.5 rounded-full ml-auto">
-                  Zona baja densidad
+                  Padrón alto
                 </span>
               )}
             </div>

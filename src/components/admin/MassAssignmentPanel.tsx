@@ -23,7 +23,7 @@ import {
   BlockSection,
 } from '../../hooks/useMassAssignment';
 
-// ─── Team color palette (14 teams) ───────────────────────────────────────────
+// ─── Team color palette (24 teams) ───────────────────────────────────────────
 
 export const TEAM_COLOR_CLASSES: string[] = [
   'bg-blue-500 text-white',
@@ -40,6 +40,16 @@ export const TEAM_COLOR_CLASSES: string[] = [
   'bg-red-600 text-white',
   'bg-sky-500 text-white',
   'bg-fuchsia-500 text-white',
+  'bg-yellow-600 text-white',
+  'bg-green-600 text-white',
+  'bg-purple-700 text-white',
+  'bg-slate-600 text-white',
+  'bg-stone-500 text-white',
+  'bg-red-800 text-white',
+  'bg-blue-900 text-white',
+  'bg-teal-700 text-white',
+  'bg-amber-700 text-white',
+  'bg-pink-700 text-white',
 ];
 
 // Ring variants for live-counter dots
@@ -58,6 +68,16 @@ const TEAM_RING_CLASSES: string[] = [
   'ring-red-500',
   'ring-sky-400',
   'ring-fuchsia-400',
+  'ring-yellow-500',
+  'ring-green-500',
+  'ring-purple-600',
+  'ring-slate-500',
+  'ring-stone-400',
+  'ring-red-700',
+  'ring-blue-800',
+  'ring-teal-600',
+  'ring-amber-600',
+  'ring-pink-600',
 ];
 
 // ─── Public helpers (used by left panel in TaskAssignmentForm) ────────────────
@@ -116,9 +136,9 @@ export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
 }) => {
   const [expandedBlock, setExpandedBlock] = useState<number | null>(null);
 
-  // Only field workers count (same filter as algorithm)
+  // Only field workers with a registered email count toward available slots
   const fieldUsers = useMemo(
-    () => usuarios.filter(u => u.rol !== 'admin'),
+    () => usuarios.filter(u => u.rol !== 'admin' && !!u.email),
     [usuarios]
   );
 
@@ -191,9 +211,9 @@ export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
           </span>
         </div>
 
-        {/* Quick-select buttons 1–14 */}
-        <div className="grid grid-cols-7 gap-1.5">
-          {Array.from({ length: 14 }).map((_, i) => {
+        {/* Quick-select buttons 1–24 */}
+        <div className="grid grid-cols-8 gap-1.5">
+          {Array.from({ length: 24 }).map((_, i) => {
             const n = i + 1;
             const active = n === numEquipos;
             const available = n <= fieldUsers.length;

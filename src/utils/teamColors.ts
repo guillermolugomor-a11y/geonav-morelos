@@ -1,7 +1,7 @@
 import { PopulationAwareBlock } from '../hooks/useMassAssignment';
 
 // Hex equivalents of TEAM_COLOR_CLASSES in MassAssignmentPanel.tsx
-// Index 0 = Equipo 1 (blockId 0), index 13 = Equipo 14 (blockId 13)
+// Index 0 = Equipo 1 (blockId 0), index 23 = Equipo 24 (blockId 23)
 export const TEAM_HEX_COLORS: string[] = [
   '#3b82f6', // Equipo 1  — blue-500
   '#10b981', // Equipo 2  — emerald-500
@@ -17,6 +17,16 @@ export const TEAM_HEX_COLORS: string[] = [
   '#dc2626', // Equipo 12 — red-600
   '#0ea5e9', // Equipo 13 — sky-500
   '#d946ef', // Equipo 14 — fuchsia-500
+  '#ca8a04', // Equipo 15 — yellow-600
+  '#16a34a', // Equipo 16 — green-600
+  '#7e22ce', // Equipo 17 — purple-700
+  '#475569', // Equipo 18 — slate-600
+  '#78716c', // Equipo 19 — stone-500
+  '#991b1b', // Equipo 20 — red-800
+  '#1e3a8a', // Equipo 21 — blue-900
+  '#0f766e', // Equipo 22 — teal-700
+  '#b45309', // Equipo 23 — amber-700
+  '#be185d', // Equipo 24 — pink-700
 ];
 
 export function getColorPorEquipo(blockId: number): string {

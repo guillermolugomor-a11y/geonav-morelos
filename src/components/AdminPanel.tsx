@@ -745,6 +745,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           usuarios={usuarios}
           poligonos={poligonos}
           tareas={filteredTareas}
+          allTareas={tareas}
           filterUser={filterUser}
           setFilterUser={setFilterUser}
           filterStatus={filterStatus}

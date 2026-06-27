@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Users, ChevronDown, X } from 'lucide-react';
+import { Users, ChevronDown, X, MapPin } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { TEAM_HEX_COLORS } from '../utils/teamColors';
 import { isAdminUser } from '../constants/roles';
@@ -14,6 +14,8 @@ export const MapTeamFilterControl: React.FC<Props> = ({ tareas }) => {
   const mapTeamFilter = useStore(s => s.mapTeamFilter);
   const setMapTeamFilter = useStore(s => s.setMapTeamFilter);
   const massVisualization = useStore(s => s.massVisualization);
+  const showRank1Pins = useStore(s => s.showRank1Pins);
+  const setShowRank1Pins = useStore(s => s.setShowRank1Pins);
 
   // Build sorted field users list with their assigned color index
   const fieldUsers = useMemo(() =>
@@ -130,6 +132,20 @@ export const MapTeamFilterControl: React.FC<Props> = ({ tareas }) => {
           <span className="w-3 h-3 rounded-sm inline-block" style={{ background: 'linear-gradient(135deg, #3b82f6, #d946ef)' }} />
           <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Asignadas</span>
         </div>
+      </div>
+
+      {/* Rank 1 pin toggle */}
+      <div className="flex items-center justify-between gap-2 pt-1 border-t border-stone-100">
+        <div className="flex items-center gap-1.5">
+          <MapPin className="w-3 h-3 text-blue-500" />
+          <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Pines prioritarios</span>
+        </div>
+        <button
+          onClick={() => setShowRank1Pins(!showRank1Pins)}
+          className={`relative w-8 h-4 rounded-full transition-colors duration-200 shrink-0 ${showRank1Pins ? 'bg-blue-500' : 'bg-stone-200'}`}
+        >
+          <span className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all duration-200 ${showRank1Pins ? 'left-4' : 'left-0.5'}`} />
+        </button>
       </div>
     </div>
   );

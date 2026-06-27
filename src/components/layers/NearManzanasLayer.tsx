@@ -23,6 +23,7 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
 }) => {
     const { perfil, selectedPoligono, setSelectedPoligono } = useStore();
     const selectedDistrito = useStore(s => s.selectedDistrito);
+    const showRank1Pins = useStore(s => s.showRank1Pins);
     const isAdmin = isAdminUser(perfil);
 
     const vectorGridRef = useRef<any>(null);
@@ -269,7 +270,7 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
                 onEachFeature={onEachFeature}
                 style={style}
             />
-            {zoomLevel >= 13 && rank1Centroids.map(({ pos, id }) => (
+            {showRank1Pins && zoomLevel >= 13 && rank1Centroids.map(({ pos, id }) => (
                 <Marker key={`rank1-pin-${id}`} position={pos} icon={rank1Icon}>
                     <Tooltip direction="top" offset={[0, -40]} permanent={false} opacity={0.92}>
                         <span style={{ fontWeight: 700, fontSize: 12 }}>

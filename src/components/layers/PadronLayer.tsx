@@ -103,8 +103,15 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
             );
         }
 
+        // When a team filter is active, show only that team's sections
+        if (isAdmin && mapTeamFilter) {
+            features = features.filter((f: any) =>
+                sectionToUserMap.get(Number(f.properties.SECCION)) === mapTeamFilter
+            );
+        }
+
         return { ...padronGeojson, features };
-    }, [padronGeojson, selectedDistrito, isAdmin, assignedSectionIds]);
+    }, [padronGeojson, selectedDistrito, isAdmin, assignedSectionIds, mapTeamFilter, sectionToUserMap]);
 
     useEffect(() => {
         if (!isAdmin && filteredGeoJSON && filteredGeoJSON.features.length > 0) {
@@ -176,36 +183,15 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
         }
 
         // ── Prioridad 2: Filtro de equipo activo ──
+        // (solo llegan features de ese equipo; el filtro de features ya excluyó el resto)
         if (mapTeamFilter && isAdmin) {
-            if (assignedUserId === mapTeamFilter) {
-                // 2a) Sección del equipo activo — color completo y prominente
-                const activeColor = userColorMap.get(mapTeamFilter) ?? '#3b82f6';
-                return {
-                    fillColor: activeColor,
-                    weight: 2.5,
-                    opacity: 1,
-                    color: activeColor,
-                    fillOpacity: 0.7,
-                };
-            }
-            if (isAssigned) {
-                // 2b) Otro equipo asignado — borde visible en su color, relleno muy reducido
-                // El usuario ve que la sección existe y a quién pertenece, pero no es su filtro
-                return {
-                    fillColor: teamColor!,
-                    weight: 1,
-                    opacity: 0.35,
-                    color: teamColor!,
-                    fillOpacity: 0.08,
-                };
-            }
-            // 2c) Sin asignar en modo filtro — uva apagado, sección identificable
+            const activeColor = userColorMap.get(mapTeamFilter) ?? '#3b82f6';
             return {
-                fillColor: '#8C3154',
-                weight: baseWeight,
-                opacity: 0.35,
-                color: '#7a2a49',
-                fillOpacity: 0.1,
+                fillColor: activeColor,
+                weight: 2.5,
+                opacity: 1,
+                color: activeColor,
+                fillOpacity: 0.7,
             };
         }
 

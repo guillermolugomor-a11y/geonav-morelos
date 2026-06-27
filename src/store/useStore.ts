@@ -26,6 +26,9 @@ interface AppState {
   // Filtro de equipo en la capa del mapa regular (PadronLayer)
   mapTeamFilter: string | null; // userId del equipo seleccionado; null = "Todos"
 
+  // Visibilidad de pines centroides rank 1 en NearManzanasLayer
+  showRank1Pins: boolean;
+
   // Acciones
   setUser: (user: AuthUser | null) => void;
   setPerfil: (perfil: UsuarioPerfil | null) => void;
@@ -42,6 +45,7 @@ interface AppState {
   setMassVisualization: (result: MassAssignmentResult | null) => void;
   setMassVisualizationFilter: (userId: string | null) => void;
   setMapTeamFilter: (userId: string | null) => void;
+  setShowRank1Pins: (show: boolean) => void;
 
   // Limpieza
   logout: () => void;
@@ -63,6 +67,7 @@ export const useStore = create<AppState>((set) => ({
   massVisualization: null,
   massVisualizationFilter: null,
   mapTeamFilter: null,
+  showRank1Pins: false,
 
   setUser: (user) => set({ user }),
   setPerfil: (perfil) => set({ perfil }),
@@ -83,6 +88,7 @@ export const useStore = create<AppState>((set) => ({
   setMassVisualization: (massVisualization) => set({ massVisualization }),
   setMassVisualizationFilter: (massVisualizationFilter) => set({ massVisualizationFilter }),
   setMapTeamFilter: (mapTeamFilter) => set({ mapTeamFilter }),
+  setShowRank1Pins: (showRank1Pins) => set({ showRank1Pins }),
 
   logout: () => set({
     user: null,

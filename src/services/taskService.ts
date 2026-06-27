@@ -130,6 +130,7 @@ export const taskService = {
       status: tarea.status || undefined,
       scheduledAt: tarea.scheduled_at || null,
       autoActivate: tarea.auto_activate ?? false,
+      fechaOperacion: tarea.fecha_operacion || null,
     });
 
     const payload = {
@@ -145,6 +146,7 @@ export const taskService = {
       clave_manzana: normalized.clave_manzana,
       scheduled_at: normalized.scheduled_at ?? null,
       auto_activate: normalized.auto_activate ?? false,
+      fecha_operacion: normalized.fecha_operacion,
     };
 
     if (!payload.instruccion) {
@@ -189,6 +191,7 @@ export const taskService = {
     }
 
     try {
+      const hoy = new Date().toISOString().split('T')[0];
       const cleanPayloads = payloads.map((payload) => ({
         polygon_id: Number(payload.polygon_id),
         user_id: payload.user_id,
@@ -199,7 +202,8 @@ export const taskService = {
         seccion: payload.seccion || null,
         manzana: payload.manzana || null,
         clave_seccion: payload.clave_seccion || payload.seccion || null,
-        clave_manzana: payload.clave_manzana || payload.manzana || null
+        clave_manzana: payload.clave_manzana || payload.manzana || null,
+        fecha_operacion: payload.fecha_operacion || hoy,
       }));
 
       const { data, error } = await supabase
@@ -244,6 +248,7 @@ export const taskService = {
         status: tarea.status || undefined,
         scheduledAt: tarea.scheduled_at || null,
         autoActivate: tarea.auto_activate ?? false,
+        fechaOperacion: tarea.fecha_operacion || null,
       });
 
       const payload = {
@@ -388,6 +393,14 @@ export const taskService = {
 
   async deleteTareas(tareaIds: string[]): Promise<{ error: any }> {
     const { error } = await supabase.from('tareas').delete().in('id', tareaIds);
+    return { error };
+  },
+
+  async updateTareasFechaOperacion(tareaIds: string[], fechaOperacion: string): Promise<{ error: any }> {
+    const { error } = await supabase
+      .from('tareas')
+      .update({ fecha_operacion: fechaOperacion })
+      .in('id', tareaIds);
     return { error };
   },
 

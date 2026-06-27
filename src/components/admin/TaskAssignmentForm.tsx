@@ -5,6 +5,7 @@ import { AdminMessage } from './AdminMessage';
 import { MiniMap } from './MiniMap';
 import { MassAssignmentPanel, TEAM_COLOR_CLASSES, getUserBlocks } from './MassAssignmentPanel';
 import { MassAssignmentResult, PopulationAwareBlock } from '../../hooks/useMassAssignment';
+import { DISTRITOS } from '../../constants/seccionesDistritos';
 
 interface SectionItem {
   id: number | string;
@@ -70,8 +71,8 @@ interface TaskAssignmentFormProps {
   duplicateTask?: Tarea;
   selectedGeometry?: any;
   seccionesCercanas?: any[];
-  selectedMunicipioTrabajo: string;
-  setSelectedMunicipioTrabajo: (value: string) => void;
+  selectedDistritoTrabajo: number | null;
+  setSelectedDistritoTrabajo: (value: number | null) => void;
   seccionesOcupadas?: Map<number, SeccionOcupada>;
   // Mass assignment (flujo invertido automático)
   massAssignmentResult?: MassAssignmentResult | null;
@@ -129,8 +130,8 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
   autoSelectionCount,
   setAutoSelectionCount,
   seccionesCercanas = [],
-  selectedMunicipioTrabajo,
-  setSelectedMunicipioTrabajo,
+  selectedDistritoTrabajo,
+  setSelectedDistritoTrabajo,
   tipoCapa,
   submitting,
   message,
@@ -466,24 +467,21 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                   </button>
                 </div>
 
-                {/* Municipio de Trabajo Selector */}
+                {/* Distrito de Trabajo Selector */}
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest ml-1 opacity-70">
-                    Municipio de trabajo
+                    Distrito de trabajo
                   </label>
                   <div className="relative">
                     <select
-                      value={selectedMunicipioTrabajo}
-                      onChange={(e) => setSelectedMunicipioTrabajo(e.target.value)}
+                      value={selectedDistritoTrabajo ?? ''}
+                      onChange={(e) => setSelectedDistritoTrabajo(e.target.value === '' ? null : Number(e.target.value))}
                       className="w-full px-4 py-3 bg-surface-container-low border border-primary/5 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-xs font-bold text-stone-600 appearance-none shadow-sm pr-10"
                     >
-                      <option value="Todos">Todos</option>
-                      <option value="Cuernavaca">Cuernavaca</option>
-                      <option value="Jiutepec">Jiutepec</option>
-                      <option value="Cuautla">Cuautla</option>
-                      <option value="Ayala">Ayala</option>
-                      <option value="Temixco">Temixco</option>
-                      <option value="Yautepec">Yautepec</option>
+                      <option value="">Todos los distritos</option>
+                      {DISTRITOS.map(d => (
+                        <option key={d} value={d}>Distrito {d}</option>
+                      ))}
                     </select>
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
                       <ChevronDown className="w-4 h-4" />
@@ -493,7 +491,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
 
                 {selectionMode === 'automatic' && (
                   <MassAssignmentPanel
-                    municipio={selectedMunicipioTrabajo}
+                    distrito={selectedDistritoTrabajo}
                     seccionesPadron={(seccionesDisponiblesMass ?? seccionesPadron).map(s => ({ ...s, id: Number(s.id) }))}
                     totalSecciones={massTotalSecciones ?? seccionesPadron.length}
                     usuarios={usuarios}

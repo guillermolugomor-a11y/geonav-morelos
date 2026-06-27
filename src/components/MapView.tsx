@@ -18,7 +18,7 @@ import { useMapData } from '../hooks/useMapData';
 import { useRoutePlanner } from '../hooks/useRoutePlanner';
 import { useStore } from '../store/useStore';
 import { isAdminUser } from '../constants/roles';
-import { SECCIONES_POR_MUNICIPIO } from '../constants/seccionesMunicipios';
+import { SECCIONES_POR_DISTRITO } from '../constants/seccionesDistritos';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { debugLog } from '../utils/debug';
@@ -59,10 +59,10 @@ const MapController: React.FC<MapControllerProps> = ({
   const map = useMap();
   const lastProcessedZoomRef = useRef<number | null>(null);
   const hasInitialCentered = useRef(false);
-  const { setSelectedPoligono, selectedMunicipio, setSelectedMunicipio, perfil } = useStore();
+  const { setSelectedPoligono, selectedDistrito, setSelectedDistrito, perfil } = useStore();
   const isAdmin = isAdminUser(perfil);
 
-  const lastSelectedMunicipioRef = useRef<string | null>(null);
+  const lastSelectedDistritoRef = useRef<number | null | undefined>(undefined);
 
   useEffect(() => {
     // Zoom inicial a Morelos si no hay tareas ni enfoque activo
@@ -135,22 +135,21 @@ const MapController: React.FC<MapControllerProps> = ({
   }, [focusPolygon, map, onFocusHandled, poligonos]);
 
 
-  // Enfoque automático al cambiar de municipio seleccionado
+  // Enfoque automático al cambiar de distrito seleccionado
   useEffect(() => {
-    if (selectedMunicipio === lastSelectedMunicipioRef.current) return;
-    lastSelectedMunicipioRef.current = selectedMunicipio;
+    if (selectedDistrito === lastSelectedDistritoRef.current) return;
+    lastSelectedDistritoRef.current = selectedDistrito;
 
-    if (!selectedMunicipio) return;
+    if (selectedDistrito === null) return;
 
-    if (selectedMunicipio !== 'Todos') {
-      const allowedSections = SECCIONES_POR_MUNICIPIO[selectedMunicipio];
+    if (selectedDistrito !== 0) {
+      const allowedSections = SECCIONES_POR_DISTRITO[selectedDistrito];
       if (allowedSections && allowedSections.length > 0) {
         let matchingPoligons = poligonos.filter(
           (p) => p.tipo === 'Sección' && allowedSections.includes(Number(p.id))
         );
 
         if (!isAdmin) {
-          // Filtrar para mostrar solo las asignadas
           const assignedSections = new Set<number>();
           tareas.forEach(t => {
             if (['padron', 'seccion', 'secciones', 'Sección'].includes(t.tipo_capa)) {
@@ -173,16 +172,16 @@ const MapController: React.FC<MapControllerProps> = ({
               map.flyToBounds(bounds, { padding: [50, 50], duration: 1.5 });
             }
           } catch (err) {
-            console.error('Error fitting bounds for municipality:', err);
+            console.error('Error fitting bounds for district:', err);
           }
         }
       }
     } else {
-      // Si es "Todos", centrar en Morelos
+      // Todos los distritos → centrar en Morelos
       const morelosBounds = L.latLngBounds([18.3344, -99.4923], [19.0844, -98.6366]);
       map.flyToBounds(morelosBounds, { padding: [20, 20], duration: 1.5 });
     }
-  }, [selectedMunicipio, poligonos, map, isAdmin, tareas, manzanasPadron]);
+  }, [selectedDistrito, poligonos, map, isAdmin, tareas, manzanasPadron]);
 
   const performSearch = useCallback((query: string) => {
     const cleanQuery = query.toString().trim();
@@ -198,12 +197,12 @@ const MapController: React.FC<MapControllerProps> = ({
       : Number(cleanQuery);
 
     if (!isNaN(sectionNum) && sectionNum > 0) {
-      const matchedMuni = Object.keys(SECCIONES_POR_MUNICIPIO).find((muni) =>
-        SECCIONES_POR_MUNICIPIO[muni].includes(sectionNum)
+      const matchedDistrito = Object.keys(SECCIONES_POR_DISTRITO).find((d) =>
+        SECCIONES_POR_DISTRITO[Number(d)].includes(sectionNum)
       );
-      if (matchedMuni) {
-        debugLog('🔍 MapView: Búsqueda asoció sección a municipio:', matchedMuni);
-        setSelectedMunicipio(matchedMuni);
+      if (matchedDistrito) {
+        debugLog('🔍 MapView: Búsqueda asoció sección a distrito:', matchedDistrito);
+        setSelectedDistrito(Number(matchedDistrito));
       }
     }
 
@@ -296,7 +295,7 @@ const MapController: React.FC<MapControllerProps> = ({
     } catch (err) {
       console.error('🔍 MapView: Error al procesar zoom de búsqueda:', err);
     }
-  }, [map, poligonos, manzanasPadron, setSelectedPoligono, setSelectedMunicipio]);
+  }, [map, poligonos, manzanasPadron, setSelectedPoligono, setSelectedDistrito]);
 
   useEffect(() => {
     if (!searchTerm) return;

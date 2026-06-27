@@ -12,6 +12,7 @@ export interface TaskPayloadInput {
   status?: Tarea['status'];
   scheduledAt?: string | null;    // fecha ISO para programación
   autoActivate?: boolean;           // activar automáticamente
+  fechaOperacion?: string | null;   // fecha del ciclo de asignación (YYYY-MM-DD)
 }
 
 const nullableString = (value?: string | null) => {
@@ -32,6 +33,7 @@ export const buildTaskPayload = ({
   status,
   scheduledAt,
   autoActivate = false,
+  fechaOperacion,
 }: TaskPayloadInput) => {
   const seccion =
     selectedManzana?.seccion ??
@@ -94,6 +96,7 @@ export const buildTaskPayload = ({
     clave_manzana: manzana ? String(manzana) : null,
     scheduled_at: toMexicoUTC(scheduledAt),
     auto_activate: autoActivate,
+    fecha_operacion: fechaOperacion ?? new Date().toISOString().split('T')[0],
   };
 };
 

@@ -20,10 +20,10 @@ export interface PopulationAwareBlock {
 }
 
 export interface MassAssignmentResult {
-  municipio: string;
+  distrito: number;
   numEquipos: number;
   cantidadSecciones: number;   // sections actually worked
-  totalAvailable: number;       // total sections in municipality
+  totalAvailable: number;       // total sections in distrito
   blocks: PopulationAwareBlock[];
   sectionesBase: number;        // Math.floor(cantidadSecciones / numEquipos)
   residuo: number;              // cantidadSecciones % numEquipos
@@ -342,7 +342,7 @@ export function useMassAssignment() {
   } | null>(null);
 
   const calcular = useCallback(
-    (sections: BlockSection[], usuarios: UsuarioPerfil[], municipio: string) => {
+    (sections: BlockSection[], usuarios: UsuarioPerfil[], distrito: number) => {
       if (!sections.length || !usuarios.length) return;
 
       // Business rule: exclude admin/test accounts — only field teams, sorted 1→14
@@ -369,7 +369,7 @@ export function useMassAssignment() {
       const residuo = actualSecciones % fieldUsers.length;
 
       setResult({
-        municipio,
+        distrito,
         numEquipos: fieldUsers.length,
         cantidadSecciones: actualSecciones,
         totalAvailable: sections.length,
@@ -387,7 +387,8 @@ export function useMassAssignment() {
       blocks: PopulationAwareBlock[],
       instruccion: string,
       fechaLimite: string | null,
-      adminId?: string
+      adminId?: string,
+      fechaOperacion?: string
     ): Promise<boolean> => {
       if (!instruccion.trim()) {
         setSaveMessage({ type: 'error', text: 'Escribe las instrucciones antes de guardar.' });
@@ -397,6 +398,7 @@ export function useMassAssignment() {
       setIsSaving(true);
       setSaveMessage(null);
 
+      const operacion = fechaOperacion || new Date().toISOString().split('T')[0];
       const payloads: any[] = [];
       for (const block of blocks) {
         for (const userId of block.userIds) {
@@ -409,6 +411,7 @@ export function useMassAssignment() {
                 tipoCapa: 'padron',
                 fechaLimite: fechaLimite || null,
                 selectedSection: { id: section.id },
+                fechaOperacion: operacion,
               })
             );
           }

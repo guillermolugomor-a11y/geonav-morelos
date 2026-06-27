@@ -4,7 +4,7 @@ import L from 'leaflet';
 import { useStore } from '../../store/useStore';
 import { MassAssignmentResult } from '../../hooks/useMassAssignment';
 import { buildSectionColorMap, buildUserColorMap } from '../../utils/teamColors';
-import { SECCIONES_POR_MUNICIPIO } from '../../constants/seccionesMunicipios';
+import { SECCIONES_POR_DISTRITO } from '../../constants/seccionesDistritos';
 
 interface Props {
   padronGeojson: any;
@@ -41,10 +41,9 @@ const MassAssignmentLayerInner: React.FC<Props & { massVisualization: MassAssign
     ? (userColorMap.get(massVisualizationFilter) ?? '#3b82f6')
     : null;
 
-  // GeoJSON filtered to the municipality of this assignment
-  const municipioGeoJSON = useMemo(() => {
-    const allowedSections =
-      (SECCIONES_POR_MUNICIPIO as Record<string, number[]>)[massVisualization.municipio] ?? [];
+  // GeoJSON filtered to the district of this assignment
+  const distritoGeoJSON = useMemo(() => {
+    const allowedSections = SECCIONES_POR_DISTRITO[massVisualization.distrito] ?? [];
     if (!allowedSections.length) return padronGeojson;
     return {
       ...padronGeojson,
@@ -52,7 +51,7 @@ const MassAssignmentLayerInner: React.FC<Props & { massVisualization: MassAssign
         allowedSections.includes(Number(f.properties.SECCION))
       ),
     };
-  }, [padronGeojson, massVisualization.municipio]);
+  }, [padronGeojson, massVisualization.distrito]);
 
   // Style function — extracted so setStyle() can reuse the same logic
   const computeStyle = useCallback(
@@ -105,7 +104,7 @@ const MassAssignmentLayerInner: React.FC<Props & { massVisualization: MassAssign
           setSelectedPoligono({
             id: Number(SECCION),
             nombre: `Sección ${SECCION}`,
-            municipio: massVisualization.municipio,
+            municipio: `Distrito ${massVisualization.distrito}`,
             tipo: 'Sección Electoral',
             metadata: {
               seccion: Number(SECCION),
@@ -120,15 +119,15 @@ const MassAssignmentLayerInner: React.FC<Props & { massVisualization: MassAssign
         },
       });
     },
-    [setSelectedPoligono, massVisualization.municipio]
+    [setSelectedPoligono, massVisualization.distrito]
   );
 
   return (
     <Pane name="mass-assignment-pane" style={{ zIndex: 450 }}>
       <GeoJSON
         ref={geoJsonRef}
-        key={`mass-${massVisualization.municipio}-${massVisualization.numEquipos}-${massVisualization.cantidadSecciones}`}
-        data={municipioGeoJSON}
+        key={`mass-d${massVisualization.distrito}-${massVisualization.numEquipos}-${massVisualization.cantidadSecciones}`}
+        data={distritoGeoJSON}
         style={computeStyle}
         onEachFeature={onEachFeature}
       />

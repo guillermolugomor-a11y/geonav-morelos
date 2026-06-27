@@ -72,8 +72,8 @@ export function getUserBlocks(
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface MassAssignmentPanelProps {
-  municipio: string;
-  seccionesPadron: BlockSection[];    // pre-filtered to municipio
+  distrito: number | null;
+  seccionesPadron: BlockSection[];    // pre-filtered to distrito
   usuarios: UsuarioPerfil[];           // all users (admin filter applied internally)
   numEquipos: number;
   setNumEquipos: (n: number) => void;
@@ -89,13 +89,13 @@ interface MassAssignmentPanelProps {
   onGuardar: () => void;
   isSaving: boolean;
   saveMessage: { type: 'success' | 'error'; text: string } | null;
-  totalSecciones?: number;  // total del municipio incluyendo ocupadas
+  totalSecciones?: number;  // total del distrito incluyendo ocupadas
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
-  municipio,
+  distrito,
   seccionesPadron,
   usuarios,
   numEquipos,
@@ -141,7 +141,7 @@ export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
   }, [efectivaSecciones, numEquipos, fieldUsers.length]);
 
   const canCalculate =
-    municipio !== 'Todos' &&
+    distrito !== null &&
     totalAvailable > 0 &&
     numEquipos >= 1 &&
     fieldUsers.length > 0;
@@ -167,17 +167,17 @@ export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
         </div>
       </div>
 
-      {/* ── Step 1: Municipio (read-only) ── */}
+      {/* ── Step 1: Distrito (read-only) ── */}
       <div className="space-y-1.5">
-        <StepLabel step="1" label="Municipio de trabajo" />
+        <StepLabel step="1" label="Distrito de trabajo" />
         <div className="flex items-center gap-2 px-4 py-3 bg-surface-container-low border border-primary/5 rounded-xl">
           <MapPin className="w-4 h-4 text-primary shrink-0" />
-          {municipio === 'Todos' ? (
+          {distrito === null ? (
             <span className="text-xs font-bold text-amber-600">
-              Selecciona un municipio específico en el selector de arriba
+              Selecciona un distrito específico en el selector de arriba
             </span>
           ) : (
-            <span className="text-sm font-black text-primary">{municipio}</span>
+            <span className="text-sm font-black text-primary">Distrito {distrito}</span>
           )}
         </div>
       </div>
@@ -244,7 +244,7 @@ export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
               const v = Math.min(totalAvailable, Math.max(numEquipos, Number(e.target.value) || numEquipos));
               setCantidadSecciones(v === totalAvailable ? 0 : v);
             }}
-            disabled={municipio === 'Todos'}
+            disabled={distrito === null}
             className="w-full pl-10 pr-4 py-3 bg-surface-container-low border border-primary/5 rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm font-black text-stone-700 shadow-inner disabled:opacity-50"
           />
         </div>
@@ -297,7 +297,7 @@ export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
       </AdvancedOption>
 
       {/* ── Live Preview Stats (before Calcular) ── */}
-      {!result && preview && municipio !== 'Todos' && (
+      {!result && preview && distrito !== null && (
         <div className="grid grid-cols-4 gap-1.5 animate-in fade-in duration-200">
           <MiniStat value={preview.bloques} label="Bloques" color="text-primary" bg="bg-primary/5" />
           <MiniStat value={preview.n} label="Secciones" color="text-emerald-600" bg="bg-emerald-50" />

@@ -14,7 +14,7 @@ import {
 } from './admin';
 import { useStore } from '../store/useStore';
 import { fetchWithCache } from '../utils/cache';
-import { SECCIONES_POR_MUNICIPIO } from '../constants/seccionesMunicipios';
+import { SECCIONES_POR_DISTRITO } from '../constants/seccionesDistritos';
 import { useMassAssignment } from '../hooks/useMassAssignment';
 
 interface AdminPanelProps {
@@ -116,7 +116,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   const setMassVisualization = useStore(s => s.setMassVisualization);
   const setMassVisualizationFilter = useStore(s => s.setMassVisualizationFilter);
 
-  const [selectedMunicipioTrabajo, setSelectedMunicipioTrabajo] = useState('Todos');
+  const [selectedDistritoTrabajo, setSelectedDistritoTrabajo] = useState<number | null>(null);
 
   const [searchTermPadron, setSearchTermPadron] = useState('');
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
@@ -139,7 +139,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     massAssignment.reset();
     setMassVisualization(null);
     setMassVisualizationFilter(null);
-  }, [selectedMunicipioTrabajo, selectionMode]);
+  }, [selectedDistritoTrabajo, selectionMode]);
 
   // Sección primaria (primera del array) para compatibilidad con memos de experiencia y duplicados
   const primarySection: PadronSection | null = selectedSections[0] ?? null;
@@ -147,6 +147,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
 
   const [filterUser, setFilterUser] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterDate, setFilterDate] = useState('');
 
   // ── Mass assignment (flujo invertido automático) ──
   const massAssignment = useMassAssignment();
@@ -172,18 +173,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
          return;
       }
 
-      let allowedSectionsInMuni: number[] = [];
-      if (selectedMunicipioTrabajo !== 'Todos') {
-        allowedSectionsInMuni = SECCIONES_POR_MUNICIPIO[selectedMunicipioTrabajo] || [];
+      let allowedSectionsInDistrito: number[] = [];
+      if (selectedDistritoTrabajo !== null) {
+        allowedSectionsInDistrito = SECCIONES_POR_DISTRITO[selectedDistritoTrabajo] || [];
       } else {
-        const muni = Object.keys(SECCIONES_POR_MUNICIPIO).find(muni => 
-          SECCIONES_POR_MUNICIPIO[muni].includes(Number(origin.id))
+        const distKey = Object.keys(SECCIONES_POR_DISTRITO).find(d =>
+          SECCIONES_POR_DISTRITO[Number(d)].includes(Number(origin.id))
         );
-        allowedSectionsInMuni = muni ? SECCIONES_POR_MUNICIPIO[muni] : [];
+        allowedSectionsInDistrito = distKey ? SECCIONES_POR_DISTRITO[Number(distKey)] : [];
       }
 
       const distances = seccionesPadron
-        .filter(s => allowedSectionsInMuni.includes(Number(s.id)))
+        .filter(s => allowedSectionsInDistrito.includes(Number(s.id)))
         .map(s => {
           const centroid = getCentroid(s.geometry);
           const distance = centroid ? getHaversineDistance(originCentroid, centroid) : Infinity;
@@ -197,7 +198,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
       setSelectedPoligono(String(autoSelected[0]?.id || ''));
       setSelectedManzana(null);
     }
-  }, [selectionMode, autoOriginSectionId, autoSelectionCount, seccionesPadron, selectedMunicipioTrabajo]);
+  }, [selectionMode, autoOriginSectionId, autoSelectionCount, seccionesPadron, selectedDistritoTrabajo]);
 
   // OPTIMIZACIÓN: Agrupar manzanas por sección una sola vez (O(n))
   const manzanasPorSeccion = useMemo(() => {
@@ -217,25 +218,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     return map;
   }, [manzanasPadron]);
 
-  // Memoizar secciones filtradas por municipio de trabajo y término de búsqueda
+  // Memoizar secciones filtradas por distrito de trabajo y término de búsqueda
   const seccionesFiltradas = useMemo(() => {
     let list = seccionesPadron;
-    if (selectedMunicipioTrabajo !== 'Todos') {
-      const allowedSections = SECCIONES_POR_MUNICIPIO[selectedMunicipioTrabajo] || [];
+    if (selectedDistritoTrabajo !== null) {
+      const allowedSections = SECCIONES_POR_DISTRITO[selectedDistritoTrabajo] || [];
       list = list.filter(s => allowedSections.includes(Number(s.id)));
     }
     if (!searchTermPadron) return list;
     const term = searchTermPadron.toLowerCase();
     return list.filter(s => s.id.toString().includes(term));
-  }, [seccionesPadron, selectedMunicipioTrabajo, searchTermPadron]);
+  }, [seccionesPadron, selectedDistritoTrabajo, searchTermPadron]);
 
   const filteredTareas = useMemo(() => {
     return tareas.filter((task) => {
       const matchUser = !filterUser || (task.user_id === filterUser || (task.is_collaborative && task.collaborator_ids?.includes(filterUser)));
       const matchStatus = !filterStatus || task.status === filterStatus;
-      return matchUser && matchStatus;
+      const matchDate = !filterDate || task.fecha_operacion === filterDate;
+      return matchUser && matchStatus && matchDate;
     });
-  }, [filterStatus, filterUser, tareas]);
+  }, [filterStatus, filterUser, filterDate, tareas]);
 
   const userWorkload = useMemo(() => {
     const map = new Map<string, number>();
@@ -253,9 +255,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   }, [tareas]);
 
   const seccionesOcupadas = useMemo(() => {
+    // Solo las tareas de la operación de HOY bloquean reasignaciones.
+    // Tareas de días anteriores se conservan como historial pero no impiden
+    // crear nuevas asignaciones, eliminando así la necesidad de borrar registros.
+    const hoy = new Date().toISOString().split('T')[0];
     const map = new Map<number, { status: string; userName: string; userId: string }>();
     tareas.forEach(t => {
       if (t.status !== 'pendiente' && t.status !== 'en_progreso') return;
+      if (t.fecha_operacion && t.fecha_operacion !== hoy) return;
       const seccionId = Number(t.seccion || t.clave_seccion);
       if (!seccionId || map.has(seccionId)) return;
       const responsable = usuarios.find(u => u.id === t.user_id);
@@ -464,16 +471,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   };
 
   const handleMassCalcular = () => {
-    massAssignment.calcular(seccionesDisponibles, usuarios, selectedMunicipioTrabajo);
+    if (selectedDistritoTrabajo === null) return;
+    massAssignment.calcular(seccionesDisponibles, usuarios, selectedDistritoTrabajo);
   };
 
   const handleMassGuardar = async () => {
     if (!massAssignment.result) return;
+    const fechaOperacionHoy = new Date().toISOString().split('T')[0];
     const saved = await massAssignment.guardar(
       massAssignment.result.blocks,
       instruccion,
       fechaVencimiento || null,
-      perfil?.id
+      perfil?.id,
+      fechaOperacionHoy
     );
     if (saved) {
       resetForm();
@@ -498,6 +508,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     const tipoCapa = efectivaManzana ? 'manzana' : 'padron';
 
     try {
+      const fechaOperacionHoy = new Date().toISOString().split('T')[0];
+
       if (isCollaborative && !isMultiSection) {
         // ── Colaborativa de sección única ──
         debugLog('Enviando tarea colaborativa (1 sección):', selectedUsers);
@@ -510,7 +522,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           manzana: efectivaManzana?.manzana,
           seccion: efectivaManzana?.seccion ?? sec.id,
           scheduled_at: scheduledAt || null,
-          auto_activate: autoActivate
+          auto_activate: autoActivate,
+          fecha_operacion: fechaOperacionHoy,
         }, selectedUsers, perfil?.id);
         if (error) throw error;
         setMessage({ type: 'success', text: `Tarea colaborativa asignada a ${selectedUsers.length} supervisores de campo en Sección ${sec.id}.` });
@@ -531,6 +544,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
               selectedSection: { id: sec.id },
               scheduledAt: scheduledAt || null,
               autoActivate,
+              fechaOperacion: fechaOperacionHoy,
             }));
           }
         }
@@ -600,14 +614,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   const seccionesCercanas = useMemo(() => {
     if (!primarySection || !seccionesPadron.length) return [];
 
-    // Encontrar el municipio de la sección seleccionada
-    const currentSectionMuni = Object.keys(SECCIONES_POR_MUNICIPIO).find(muni => 
-      SECCIONES_POR_MUNICIPIO[muni].includes(Number(primarySection.id))
+    // Encontrar el distrito de la sección seleccionada
+    const currentSectionDistKey = Object.keys(SECCIONES_POR_DISTRITO).find(d =>
+      SECCIONES_POR_DISTRITO[Number(d)].includes(Number(primarySection.id))
     );
-    
-    if (!currentSectionMuni) return [];
-    
-    const allowedSectionsInMuni = SECCIONES_POR_MUNICIPIO[currentSectionMuni] || [];
+
+    if (!currentSectionDistKey) return [];
+
+    const allowedSectionsInDistrito = SECCIONES_POR_DISTRITO[Number(currentSectionDistKey)] || [];
     
     const originCentroid = getCentroid(primarySection.geometry);
     if (!originCentroid) return [];
@@ -617,8 +631,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
 
     return seccionesPadron
       .filter(s => 
-        !selectedIds.has(Number(s.id)) && 
-        allowedSectionsInMuni.includes(Number(s.id))
+        !selectedIds.has(Number(s.id)) &&
+        allowedSectionsInDistrito.includes(Number(s.id))
       )
       .map(s => {
         const centroid = getCentroid(s.geometry);
@@ -694,8 +708,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           autoSelectionCount={autoSelectionCount}
           setAutoSelectionCount={setAutoSelectionCount}
           seccionesCercanas={seccionesCercanas}
-          selectedMunicipioTrabajo={selectedMunicipioTrabajo}
-          setSelectedMunicipioTrabajo={setSelectedMunicipioTrabajo}
+          selectedDistritoTrabajo={selectedDistritoTrabajo}
+          setSelectedDistritoTrabajo={setSelectedDistritoTrabajo}
           tipoCapa={tipoCapa}
           isCollaborative={isCollaborative}
           setIsCollaborative={setIsCollaborative}
@@ -735,6 +749,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           setFilterUser={setFilterUser}
           filterStatus={filterStatus}
           setFilterStatus={setFilterStatus}
+          filterDate={filterDate}
+          setFilterDate={setFilterDate}
           onNavigateToMap={onNavigateToMap}
           onView={openViewModal}
           onEdit={openEditModal}

@@ -16,7 +16,8 @@ interface AppState {
   appLoading: boolean;
   mapStyle: 'streets' | 'satellite';
   error: string | null;
-  selectedMunicipio: string | null;
+  // null = nada seleccionado (mapa vacío), 0 = Todos, 1-12 = distrito específico
+  selectedDistrito: number | null;
 
   // Visualización de asignación masiva en el mapa
   massVisualization: MassAssignmentResult | null;
@@ -37,7 +38,7 @@ interface AppState {
   setAppLoading: (loading: boolean) => void;
   setMapStyle: (style: 'streets' | 'satellite') => void;
   setError: (error: string | null) => void;
-  setSelectedMunicipio: (municipio: string | null) => void;
+  setSelectedDistrito: (distrito: number | null) => void;
   setMassVisualization: (result: MassAssignmentResult | null) => void;
   setMassVisualizationFilter: (userId: string | null) => void;
   setMapTeamFilter: (userId: string | null) => void;
@@ -58,7 +59,7 @@ export const useStore = create<AppState>((set) => ({
   appLoading: true,
   mapStyle: 'streets',
   error: null,
-  selectedMunicipio: null,
+  selectedDistrito: null,
   massVisualization: null,
   massVisualizationFilter: null,
   mapTeamFilter: null,
@@ -74,8 +75,8 @@ export const useStore = create<AppState>((set) => ({
   setAppLoading: (appLoading) => set({ appLoading }),
   setMapStyle: (mapStyle) => set({ mapStyle }),
   setError: (error) => set({ error }),
-  setSelectedMunicipio: (selectedMunicipio) => set({
-    selectedMunicipio,
+  setSelectedDistrito: (selectedDistrito) => set({
+    selectedDistrito,
     selectedPoligono: null,
     mapTeamFilter: null,
   }),
@@ -91,7 +92,7 @@ export const useStore = create<AppState>((set) => ({
     tareas: [],
     selectedPoligono: null,
     error: null,
-    selectedMunicipio: null,
+    selectedDistrito: null,
     massVisualization: null,
     massVisualizationFilter: null,
     mapTeamFilter: null,

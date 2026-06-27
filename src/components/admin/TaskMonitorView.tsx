@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertCircle, ClipboardList, Clock, Edit2, Eye, MapPin, Trash2, User, X, CheckCircle2, RotateCcw, Search, ChevronRight, ChevronLeft, Users, Camera } from 'lucide-react';
+import { AlertCircle, CalendarDays, ClipboardList, Clock, Edit2, Eye, MapPin, Trash2, User, X, CheckCircle2, RotateCcw, Search, ChevronRight, ChevronLeft, Users, Camera } from 'lucide-react';
 import { Poligono, Tarea, UsuarioPerfil } from '../../types';
 import { TaskLocationLabel } from '../tasks/TaskLocationLabel';
 import { useNotifications } from '../notifications/NotificationContext';
@@ -15,6 +15,8 @@ interface TaskMonitorViewProps {
   setFilterUser: (value: string) => void;
   filterStatus: string;
   setFilterStatus: (value: string) => void;
+  filterDate: string;
+  setFilterDate: (value: string) => void;
   onNavigateToMap?: (polygonId: number) => void;
   onView: (tarea: Tarea) => void;
   onEdit: (tarea: Tarea) => void;
@@ -30,6 +32,8 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
   setFilterUser,
   filterStatus,
   setFilterStatus,
+  filterDate,
+  setFilterDate,
   onNavigateToMap,
   onView,
   onEdit,
@@ -41,6 +45,7 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [galleryPreview, setGalleryPreview] = useState<{ urls: string[], index: number } | null>(null);
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [bulkDate, setBulkDate] = useState('');
 
   const userMap = useMemo(() => {
     const map = new Map<string, UsuarioPerfil>();
@@ -94,6 +99,26 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
       newSelected.add(id);
     }
     setSelectedTaskIds(newSelected);
+  };
+
+  const handleBulkFecha = async () => {
+    if (!bulkDate) return;
+    if (!window.confirm(`¿Cambiar la fecha de operación de ${selectedTaskIds.size} tareas a ${bulkDate}?`)) return;
+    setProcessingId('bulk-fecha');
+    try {
+      const { error } = await taskService.updateTareasFechaOperacion(Array.from(selectedTaskIds), bulkDate);
+      if (error) {
+        alert(`Error al actualizar fecha: ${error.message}`);
+      } else {
+        setSelectedTaskIds(new Set());
+        setBulkDate('');
+        if (onRefresh) onRefresh();
+      }
+    } catch (err: any) {
+      alert(`Error inesperado: ${err.message}`);
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const handleBulkDelete = async () => {
@@ -198,7 +223,7 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
         </div>
 
         {/* Filters & Search - Functional Elegance */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 max-w-screen-xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-12 max-w-screen-xl mx-auto">
           <div className="bg-white px-6 py-4 rounded-xl border border-outline-variant/15 flex items-center gap-4 shadow-sm group focus-within:ring-2 ring-primary/10 transition-all">
             <Search className="w-4 h-4 text-on-surface-variant opacity-40 group-focus-within:opacity-100 transition-opacity" />
             <input
@@ -238,6 +263,26 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
               <option value="programada">Programada</option>
             </select>
           </div>
+
+          <div className="bg-white px-6 py-4 rounded-xl border border-outline-variant/15 flex items-center gap-4 shadow-sm group focus-within:ring-2 ring-primary/10 transition-all">
+            <CalendarDays className="w-4 h-4 text-on-surface-variant opacity-40 shrink-0" />
+            <input
+              type="date"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              title="Filtrar por fecha de operación"
+              className="bg-transparent border-none outline-none text-[13px] font-medium w-full text-on-surface cursor-pointer"
+            />
+            {filterDate && (
+              <button
+                onClick={() => setFilterDate('')}
+                className="text-on-surface-variant opacity-40 hover:opacity-100 transition-opacity shrink-0"
+                title="Limpiar filtro de fecha"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -247,13 +292,31 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
         
         {/* Bulk operations bar */}
         {selectedTaskIds.size > 0 && (
-          <div className="max-w-screen-xl mx-auto mb-8 bg-red-50 border border-red-100 py-4 px-6 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-3xl animate-in slide-in-from-top-4 duration-300">
+          <div className="max-w-screen-xl mx-auto mb-8 bg-stone-50 border border-stone-200 py-4 px-6 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-3xl animate-in slide-in-from-top-4 duration-300">
             <div className="flex items-center gap-3">
-              <span className="text-xs font-black text-red-800 uppercase tracking-wider">
-                {selectedTaskIds.size} {selectedTaskIds.size === 1 ? 'tarea seleccionada' : 'tareas seleccionadas'} para eliminación
+              <span className="text-xs font-black text-stone-700 uppercase tracking-wider">
+                {selectedTaskIds.size} {selectedTaskIds.size === 1 ? 'tarea seleccionada' : 'tareas seleccionadas'}
               </span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Cambiar fecha de operación */}
+              <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-xl px-3 py-2 shadow-sm">
+                <CalendarDays className="w-3.5 h-3.5 text-primary opacity-60 shrink-0" />
+                <input
+                  type="date"
+                  value={bulkDate}
+                  onChange={(e) => setBulkDate(e.target.value)}
+                  className="text-[11px] font-bold text-on-surface bg-transparent border-none outline-none cursor-pointer"
+                />
+              </div>
+              <button
+                onClick={handleBulkFecha}
+                disabled={!bulkDate || processingId === 'bulk-fecha'}
+                className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary/90 text-white text-[10px] font-black rounded-xl uppercase tracking-widest transition-all shadow-md disabled:opacity-40 active:scale-[0.98]"
+              >
+                {processingId === 'bulk-fecha' ? 'Aplicando...' : 'Cambiar Fecha'}
+              </button>
+              <div className="w-px h-6 bg-stone-200" />
               <button
                 onClick={() => setSelectedTaskIds(new Set())}
                 className="text-[10px] font-black uppercase tracking-widest text-stone-500 hover:text-stone-700 transition-colors bg-white px-4 py-2.5 rounded-xl border border-stone-200 shadow-sm"
@@ -265,7 +328,7 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
                 disabled={processingId === 'bulk-delete'}
                 className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black rounded-xl uppercase tracking-widest transition-all shadow-md disabled:opacity-50 active:scale-[0.98]"
               >
-                {processingId === 'bulk-delete' ? 'Eliminando...' : 'Eliminar Seleccionadas'}
+                {processingId === 'bulk-delete' ? 'Eliminando...' : 'Eliminar'}
               </button>
             </div>
           </div>
@@ -293,7 +356,7 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
             <div className="w-[15%] px-2">Ubicación</div>
             <div className="w-[20%] px-2">Instrucción</div>
             <div className="w-[15%] text-center">Estado</div>
-            <div className="w-[10%] text-center">Fecha</div>
+            <div className="w-[10%] text-center">Operación</div>
             <div className="w-[15%] text-right pr-4">Gestión</div>
           </div>
 
@@ -425,10 +488,15 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
                         </div>
                       </div>
 
-                      {/* Column 5: Fecha (10%) */}
-                      <div className="w-[10%] text-center min-w-0">
-                        <span className="text-[12px] font-black text-on-surface-variant opacity-40 uppercase tracking-widest truncate">
-                          {tarea.created_at ? new Date(tarea.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '—'}
+                      {/* Column 5: Fecha operación (10%) */}
+                      <div className="w-[10%] text-center min-w-0 flex flex-col items-center gap-0.5">
+                        <span className="text-[12px] font-black text-primary/70 tracking-tight truncate">
+                          {tarea.fecha_operacion
+                            ? new Date(tarea.fecha_operacion + 'T12:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' })
+                            : '—'}
+                        </span>
+                        <span className="text-[10px] text-on-surface-variant opacity-30 tracking-tight truncate uppercase">
+                          operación
                         </span>
                       </div>
 

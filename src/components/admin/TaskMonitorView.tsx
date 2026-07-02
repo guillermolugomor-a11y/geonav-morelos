@@ -246,19 +246,21 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
   return (
     <div className="flex flex-col h-full animate-in fade-in duration-700 font-sans">
       {/* ── Mission Header ── */}
-      <div className="relative overflow-hidden" style={{ background: '#1E0014' }}>
-        <svg className="absolute inset-0 w-full h-full" aria-hidden="true">
-          <defs>
-            <pattern id="monitor-grid-minor" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#BC9B73" strokeWidth="0.4" opacity="0.08" />
-            </pattern>
-            <pattern id="monitor-grid-major" width="200" height="200" patternUnits="userSpaceOnUse">
-              <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#BC9B73" strokeWidth="0.8" opacity="0.12" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#monitor-grid-minor)" />
-          <rect width="100%" height="100%" fill="url(#monitor-grid-major)" />
-        </svg>
+      <div className="relative" style={{ background: '#1E0014' }}>
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <svg className="absolute inset-0 w-full h-full" aria-hidden="true">
+            <defs>
+              <pattern id="monitor-grid-minor" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#BC9B73" strokeWidth="0.4" opacity="0.08" />
+              </pattern>
+              <pattern id="monitor-grid-major" width="200" height="200" patternUnits="userSpaceOnUse">
+                <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#BC9B73" strokeWidth="0.8" opacity="0.12" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#monitor-grid-minor)" />
+            <rect width="100%" height="100%" fill="url(#monitor-grid-major)" />
+          </svg>
+        </div>
         <div className="relative z-10 p-8 md:p-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 max-w-screen-xl mx-auto">
             <div>

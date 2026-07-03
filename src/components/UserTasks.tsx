@@ -459,6 +459,21 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                             <p className="text-xs text-on-surface leading-relaxed">
                               {item.mensaje}
                             </p>
+                            {((item.evidencia_urls && item.evidencia_urls.length > 0) || item.evidencia_url) && (
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {(item.evidencia_urls && item.evidencia_urls.length > 0 ? item.evidencia_urls : [item.evidencia_url!]).map((url, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-12 h-12 rounded-lg overflow-hidden border border-outline-variant/20 shadow-sm hover:scale-105 transition-transform"
+                                  >
+                                    <img src={url} alt="Documento de soporte" className="w-full h-full object-cover" />
+                                  </a>
+                                ))}
+                              </div>
+                            )}
                             {item.estado_snapshot && (
                               <div className="mt-2 text-[9px] font-bold text-on-surface-variant/50 uppercase tracking-tighter">
                                 Estado: <span className="text-tertiary">{item.estado_snapshot}</span>

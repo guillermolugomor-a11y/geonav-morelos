@@ -68,6 +68,8 @@ export interface TareaHistorial {
   estado_snapshot?: string | null;
   tipo: 'comentario' | 'avance' | 'cambio_estado' | 'sistema';
   created_at: string;
+  evidencia_url?: string | null;
+  evidencia_urls?: string[] | null;
   perfil?: {
     nombre: string;
   };

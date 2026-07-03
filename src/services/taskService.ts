@@ -365,21 +365,25 @@ export const taskService = {
       await this.addTareaHistorial({
         tarea_id: tareaId,
         user_id: userId,
-        mensaje: hasEvidence 
-          ? `${comentarios} (Evidencia fotográfica adjunta)` 
+        mensaje: hasEvidence
+          ? `${comentarios} (Evidencia fotográfica adjunta)`
           : comentarios,
         estado_snapshot: status,
-        tipo: 'avance'
+        tipo: 'avance',
+        evidencia_url: evidenciaUrl,
+        evidencia_urls: evidenciaUrls
       });
     } else if (userId) {
        await this.addTareaHistorial({
         tarea_id: tareaId,
         user_id: userId,
-        mensaje: evidenciaUrl 
-          ? `La tarea cambió de estado a "${status}" y se adjuntó evidencia.` 
+        mensaje: evidenciaUrl
+          ? `La tarea cambió de estado a "${status}" y se adjuntó evidencia.`
           : `La tarea cambió de estado a "${status}"`,
         estado_snapshot: status,
-        tipo: 'cambio_estado'
+        tipo: 'cambio_estado',
+        evidencia_url: evidenciaUrl,
+        evidencia_urls: evidenciaUrls
       });
     }
 

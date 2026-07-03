@@ -284,6 +284,21 @@ export const TaskModals: React.FC<TaskModalsProps> = ({
                             <p className="text-sm text-stone-600 font-medium leading-relaxed">
                               {item.mensaje}
                             </p>
+                            {((item.evidencia_urls && item.evidencia_urls.length > 0) || item.evidencia_url) && (
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {(item.evidencia_urls && item.evidencia_urls.length > 0 ? item.evidencia_urls : [item.evidencia_url!]).map((url, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-14 h-14 rounded-xl overflow-hidden border border-stone-100 shadow-sm hover:scale-105 transition-transform"
+                                  >
+                                    <img src={url} alt="Documento de soporte" className="w-full h-full object-cover" />
+                                  </a>
+                                ))}
+                              </div>
+                            )}
                             {item.estado_snapshot && (
                               <div className="mt-3">
                                 <span className="inline-block px-2 py-1 bg-surface-container-low rounded-lg text-[9px] font-black text-primary uppercase tracking-widest">

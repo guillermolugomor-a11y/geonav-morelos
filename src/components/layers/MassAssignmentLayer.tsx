@@ -5,6 +5,7 @@ import { useStore } from '../../store/useStore';
 import { MassAssignmentResult } from '../../hooks/useMassAssignment';
 import { buildSectionColorMap, buildUserColorMap } from '../../utils/teamColors';
 import { SECCIONES_POR_DISTRITO } from '../../constants/seccionesDistritos';
+import { SECCIONES_POR_MUNICIPIO } from '../../constants/seccionesMunicipios';
 
 interface Props {
   padronGeojson: any;
@@ -41,9 +42,13 @@ const MassAssignmentLayerInner: React.FC<Props & { massVisualization: MassAssign
     ? (userColorMap.get(massVisualizationFilter) ?? '#3b82f6')
     : null;
 
-  // GeoJSON filtered to the district of this assignment
+  // GeoJSON filtered to la zona (distrito o municipio) de este assignment
   const distritoGeoJSON = useMemo(() => {
-    const allowedSections = SECCIONES_POR_DISTRITO[massVisualization.distrito] ?? [];
+    const allowedSections = (
+      typeof massVisualization.distrito === 'string'
+        ? SECCIONES_POR_MUNICIPIO[massVisualization.distrito]
+        : SECCIONES_POR_DISTRITO[massVisualization.distrito]
+    ) ?? [];
     if (!allowedSections.length) return padronGeojson;
     return {
       ...padronGeojson,
@@ -104,7 +109,9 @@ const MassAssignmentLayerInner: React.FC<Props & { massVisualization: MassAssign
           setSelectedPoligono({
             id: Number(SECCION),
             nombre: `Sección ${SECCION}`,
-            municipio: `Distrito ${massVisualization.distrito}`,
+            municipio: typeof massVisualization.distrito === 'string'
+              ? massVisualization.distrito
+              : `Distrito ${massVisualization.distrito}`,
             tipo: 'Sección Electoral',
             metadata: {
               seccion: Number(SECCION),

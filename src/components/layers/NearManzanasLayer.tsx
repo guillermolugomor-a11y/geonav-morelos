@@ -5,6 +5,7 @@ import { useStore } from '../../store/useStore';
 import { isAdminUser } from '../../constants/roles';
 import { debugError, debugLog } from '../../utils/debug';
 import { SECCIONES_POR_DISTRITO } from '../../constants/seccionesDistritos';
+import { SECCIONES_POR_MUNICIPIO } from '../../constants/seccionesMunicipios';
 
 interface NearManzanasLayerProps {
     tareas: any[];
@@ -23,6 +24,8 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
 }) => {
     const { perfil, selectedPoligono, setSelectedPoligono } = useStore();
     const selectedDistrito = useStore(s => s.selectedDistrito);
+    const selectedMunicipio = useStore(s => s.selectedMunicipio);
+    const mapZonaTipo = useStore(s => s.mapZonaTipo);
     const showRank1Pins = useStore(s => s.showRank1Pins);
     const isAdmin = isAdminUser(perfil);
 
@@ -62,8 +65,11 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
     const filteredGeoJSON = useMemo(() => {
         if (!manzanasGeojson) return null;
 
+        const isMunicipioMode = mapZonaTipo === 'municipio';
+        const zonaValue = isMunicipioMode ? selectedMunicipio : selectedDistrito;
+
         // Al cargar la aplicación, no mostrar automáticamente todas las manzanas
-        if (selectedDistrito === null) {
+        if (zonaValue === null) {
             return {
                 ...manzanasGeojson,
                 features: []
@@ -72,8 +78,11 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
 
         let features = manzanasGeojson.features;
 
-        if (selectedDistrito !== 0) {
-            const allowedSections = SECCIONES_POR_DISTRITO[selectedDistrito] || [];
+        const isTodos = isMunicipioMode ? zonaValue === 'ALL' : zonaValue === 0;
+        if (!isTodos) {
+            const allowedSections = isMunicipioMode
+                ? (SECCIONES_POR_MUNICIPIO[zonaValue as string] || [])
+                : (SECCIONES_POR_DISTRITO[zonaValue as number] || []);
             features = features.filter((f: any) =>
                 allowedSections.includes(Number(f.properties.SECCION))
             );
@@ -92,7 +101,7 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
             ...manzanasGeojson,
             features
         };
-    }, [manzanasGeojson, selectedDistrito, isAdmin, assignedManzanaIds, assignedSectionIds]);
+    }, [manzanasGeojson, selectedDistrito, selectedMunicipio, mapZonaTipo, isAdmin, assignedManzanaIds, assignedSectionIds]);
 
     // Auto-zoom autónomo para manzanas (Prioridad sobre secciones)
     useEffect(() => {
@@ -265,7 +274,7 @@ export const NearManzanasLayer: React.FC<NearManzanasLayerProps> = React.memo(({
     return (
         <>
             <GeoJSON
-                key={`near-manzanas-layer-${selectedDistrito || 'none'}-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}`}
+                key={`near-manzanas-layer-${mapZonaTipo}-${(mapZonaTipo === 'municipio' ? selectedMunicipio : selectedDistrito) || 'none'}-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}`}
                 data={filteredGeoJSON}
                 onEachFeature={onEachFeature}
                 style={style}

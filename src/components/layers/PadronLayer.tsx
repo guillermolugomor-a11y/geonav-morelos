@@ -5,6 +5,7 @@ import { debugLog } from '../../utils/debug';
 import { useStore } from '../../store/useStore';
 import { isAdminUser } from '../../constants/roles';
 import { SECCIONES_POR_DISTRITO } from '../../constants/seccionesDistritos';
+import { SECCIONES_POR_MUNICIPIO } from '../../constants/seccionesMunicipios';
 import { TEAM_HEX_COLORS } from '../../utils/teamColors';
 
 interface PadronLayerProps {
@@ -26,6 +27,8 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
 }) => {
     const { perfil, selectedPoligono, setSelectedPoligono, usuarios } = useStore();
     const selectedDistrito = useStore(s => s.selectedDistrito);
+    const selectedMunicipio = useStore(s => s.selectedMunicipio);
+    const mapZonaTipo = useStore(s => s.mapZonaTipo);
     const mapTeamFilter = useStore(s => s.mapTeamFilter);
     const isAdmin = isAdminUser(perfil);
 
@@ -84,14 +87,20 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
     const filteredGeoJSON = useMemo(() => {
         if (!padronGeojson) return null;
 
-        if (selectedDistrito === null) {
+        const isMunicipioMode = mapZonaTipo === 'municipio';
+        const zonaValue = isMunicipioMode ? selectedMunicipio : selectedDistrito;
+
+        if (zonaValue === null) {
             return { ...padronGeojson, features: [] };
         }
 
         let features = padronGeojson.features;
 
-        if (selectedDistrito !== 0) {
-            const allowedSections = SECCIONES_POR_DISTRITO[selectedDistrito] || [];
+        const isTodos = isMunicipioMode ? zonaValue === 'ALL' : zonaValue === 0;
+        if (!isTodos) {
+            const allowedSections = isMunicipioMode
+                ? (SECCIONES_POR_MUNICIPIO[zonaValue as string] || [])
+                : (SECCIONES_POR_DISTRITO[zonaValue as number] || []);
             features = features.filter((f: any) =>
                 allowedSections.includes(Number(f.properties.SECCION))
             );
@@ -111,7 +120,7 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
         }
 
         return { ...padronGeojson, features };
-    }, [padronGeojson, selectedDistrito, isAdmin, assignedSectionIds, mapTeamFilter, sectionToUserMap]);
+    }, [padronGeojson, selectedDistrito, selectedMunicipio, mapZonaTipo, isAdmin, assignedSectionIds, mapTeamFilter, sectionToUserMap]);
 
     useEffect(() => {
         if (!isAdmin && filteredGeoJSON && filteredGeoJSON.features.length > 0) {
@@ -234,7 +243,7 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
 
     return (
         <GeoJSON
-            key={`padron-layer-${selectedDistrito || 'none'}-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}-${mapTeamFilter ?? 'all'}`}
+            key={`padron-layer-${mapZonaTipo}-${(mapZonaTipo === 'municipio' ? selectedMunicipio : selectedDistrito) || 'none'}-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}-${mapTeamFilter ?? 'all'}`}
             data={filteredGeoJSON}
             onEachFeature={onEachFeature}
             style={style}

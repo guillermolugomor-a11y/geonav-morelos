@@ -6,6 +6,7 @@ import { MiniMap } from './MiniMap';
 import { MassAssignmentPanel, TEAM_COLOR_CLASSES, getUserBlocks } from './MassAssignmentPanel';
 import { MassAssignmentResult, PopulationAwareBlock } from '../../hooks/useMassAssignment';
 import { DISTRITOS } from '../../constants/seccionesDistritos';
+import { MUNICIPIOS } from '../../constants/seccionesMunicipios';
 import { TEAM_HEX_COLORS } from '../../utils/teamColors';
 
 interface SectionItem {
@@ -74,6 +75,10 @@ interface TaskAssignmentFormProps {
   seccionesCercanas?: any[];
   selectedDistritoTrabajo: number | null;
   setSelectedDistritoTrabajo: (value: number | null) => void;
+  zonaTrabajoTipo: 'distrito' | 'municipio';
+  setZonaTrabajoTipo: (value: 'distrito' | 'municipio') => void;
+  selectedMunicipioTrabajo: string | null;
+  setSelectedMunicipioTrabajo: (value: string | null) => void;
   seccionesOcupadas?: Map<number, SeccionOcupada>;
   // Mass assignment (flujo invertido automático)
   massAssignmentResult?: MassAssignmentResult | null;
@@ -133,6 +138,10 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
   seccionesCercanas = [],
   selectedDistritoTrabajo,
   setSelectedDistritoTrabajo,
+  zonaTrabajoTipo,
+  setZonaTrabajoTipo,
+  selectedMunicipioTrabajo,
+  setSelectedMunicipioTrabajo,
   tipoCapa,
   submitting,
   message,
@@ -532,31 +541,81 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                   </button>
                 </div>
 
-                {/* Distrito de Trabajo Selector */}
+                {/* Tipo de Zona: Distrito o Municipio */}
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest ml-1 opacity-70">
-                    Distrito de trabajo
+                    Trabajar por
                   </label>
-                  <div className="relative">
-                    <select
-                      value={selectedDistritoTrabajo ?? ''}
-                      onChange={(e) => setSelectedDistritoTrabajo(e.target.value === '' ? null : Number(e.target.value))}
-                      className="w-full px-4 py-3 bg-surface-container-low border border-primary/5 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-xs font-bold text-stone-600 appearance-none shadow-sm pr-10"
+                  <div className="flex items-center gap-2 bg-surface-container-low p-1.5 rounded-2xl shadow-inner">
+                    <button
+                      type="button"
+                      onClick={() => setZonaTrabajoTipo('distrito')}
+                      className={`flex-1 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${zonaTrabajoTipo === 'distrito' ? 'bg-primary text-white shadow-sm' : 'text-stone-500 hover:text-primary hover:bg-white/50'}`}
                     >
-                      <option value="">Todos los distritos</option>
-                      {DISTRITOS.map(d => (
-                        <option key={d} value={d}>Distrito {d}</option>
-                      ))}
-                    </select>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
-                      <ChevronDown className="w-4 h-4" />
-                    </div>
+                      Distrito
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setZonaTrabajoTipo('municipio')}
+                      className={`flex-1 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${zonaTrabajoTipo === 'municipio' ? 'bg-primary text-white shadow-sm' : 'text-stone-500 hover:text-primary hover:bg-white/50'}`}
+                    >
+                      Municipio
+                    </button>
                   </div>
                 </div>
 
+                {/* Distrito de Trabajo Selector */}
+                {zonaTrabajoTipo === 'distrito' && (
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest ml-1 opacity-70">
+                      Distrito de trabajo
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={selectedDistritoTrabajo ?? ''}
+                        onChange={(e) => setSelectedDistritoTrabajo(e.target.value === '' ? null : Number(e.target.value))}
+                        className="w-full px-4 py-3 bg-surface-container-low border border-primary/5 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-xs font-bold text-stone-600 appearance-none shadow-sm pr-10"
+                      >
+                        <option value="">Todos los distritos</option>
+                        {DISTRITOS.map(d => (
+                          <option key={d} value={d}>Distrito {d}</option>
+                        ))}
+                      </select>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
+                        <ChevronDown className="w-4 h-4" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Municipio de Trabajo Selector */}
+                {zonaTrabajoTipo === 'municipio' && (
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest ml-1 opacity-70">
+                      Municipio de trabajo
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={selectedMunicipioTrabajo ?? ''}
+                        onChange={(e) => setSelectedMunicipioTrabajo(e.target.value === '' ? null : e.target.value)}
+                        className="w-full px-4 py-3 bg-surface-container-low border border-primary/5 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-xs font-bold text-stone-600 appearance-none shadow-sm pr-10"
+                      >
+                        <option value="">Todos los municipios</option>
+                        {MUNICIPIOS.map(m => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
+                        <ChevronDown className="w-4 h-4" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {selectionMode === 'automatic' && (
                   <MassAssignmentPanel
-                    distrito={selectedDistritoTrabajo}
+                    distrito={zonaTrabajoTipo === 'municipio' ? selectedMunicipioTrabajo : selectedDistritoTrabajo}
+                    zonaLabel={zonaTrabajoTipo === 'municipio' ? 'Municipio' : 'Distrito'}
                     seccionesPadron={(seccionesDisponiblesMass ?? seccionesPadron).map(s => ({ ...s, id: Number(s.id) }))}
                     totalSecciones={massTotalSecciones ?? seccionesPadron.length}
                     usuarios={usuarios}

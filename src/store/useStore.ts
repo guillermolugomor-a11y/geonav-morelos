@@ -18,6 +18,10 @@ interface AppState {
   error: string | null;
   // null = nada seleccionado (mapa vacío), 0 = Todos, 1-12 = distrito específico
   selectedDistrito: number | null;
+  // null = nada seleccionado, 'ALL' = Todos, nombre de municipio = municipio específico
+  selectedMunicipio: string | null;
+  // Tipo de zona activa en el filtro principal del mapa
+  mapZonaTipo: 'distrito' | 'municipio';
 
   // Visualización de asignación masiva en el mapa
   massVisualization: MassAssignmentResult | null;
@@ -42,6 +46,8 @@ interface AppState {
   setMapStyle: (style: 'streets' | 'satellite') => void;
   setError: (error: string | null) => void;
   setSelectedDistrito: (distrito: number | null) => void;
+  setSelectedMunicipio: (municipio: string | null) => void;
+  setMapZonaTipo: (tipo: 'distrito' | 'municipio') => void;
   setMassVisualization: (result: MassAssignmentResult | null) => void;
   setMassVisualizationFilter: (userId: string | null) => void;
   setMapTeamFilter: (userId: string | null) => void;
@@ -64,6 +70,8 @@ export const useStore = create<AppState>((set) => ({
   mapStyle: 'streets',
   error: null,
   selectedDistrito: null,
+  selectedMunicipio: null,
+  mapZonaTipo: 'distrito',
   massVisualization: null,
   massVisualizationFilter: null,
   mapTeamFilter: null,
@@ -85,6 +93,18 @@ export const useStore = create<AppState>((set) => ({
     selectedPoligono: null,
     mapTeamFilter: null,
   }),
+  setSelectedMunicipio: (selectedMunicipio) => set({
+    selectedMunicipio,
+    selectedPoligono: null,
+    mapTeamFilter: null,
+  }),
+  setMapZonaTipo: (mapZonaTipo) => set({
+    mapZonaTipo,
+    selectedDistrito: null,
+    selectedMunicipio: null,
+    selectedPoligono: null,
+    mapTeamFilter: null,
+  }),
   setMassVisualization: (massVisualization) => set({ massVisualization }),
   setMassVisualizationFilter: (massVisualizationFilter) => set({ massVisualizationFilter }),
   setMapTeamFilter: (mapTeamFilter) => set({ mapTeamFilter }),
@@ -99,6 +119,8 @@ export const useStore = create<AppState>((set) => ({
     selectedPoligono: null,
     error: null,
     selectedDistrito: null,
+    selectedMunicipio: null,
+    mapZonaTipo: 'distrito',
     massVisualization: null,
     massVisualizationFilter: null,
     mapTeamFilter: null,

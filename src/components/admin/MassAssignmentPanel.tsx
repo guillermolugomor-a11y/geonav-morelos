@@ -92,8 +92,9 @@ export function getUserBlocks(
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface MassAssignmentPanelProps {
-  distrito: number | null;
-  seccionesPadron: BlockSection[];    // pre-filtered to distrito
+  distrito: number | string | null;
+  zonaLabel?: string;                 // "Distrito" | "Municipio" — etiqueta del selector activo
+  seccionesPadron: BlockSection[];    // pre-filtered to distrito/municipio
   usuarios: UsuarioPerfil[];           // all users (admin filter applied internally)
   numEquipos: number;
   setNumEquipos: (n: number) => void;
@@ -116,6 +117,7 @@ interface MassAssignmentPanelProps {
 
 export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
   distrito,
+  zonaLabel = 'Distrito',
   seccionesPadron,
   usuarios,
   numEquipos,
@@ -187,17 +189,17 @@ export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
         </div>
       </div>
 
-      {/* ── Step 1: Distrito (read-only) ── */}
+      {/* ── Step 1: Zona de trabajo (read-only) ── */}
       <div className="space-y-1.5">
-        <StepLabel step="1" label="Distrito de trabajo" />
+        <StepLabel step="1" label={`${zonaLabel} de trabajo`} />
         <div className="flex items-center gap-2 px-4 py-3 bg-surface-container-low border border-primary/5 rounded-xl">
           <MapPin className="w-4 h-4 text-primary shrink-0" />
           {distrito === null ? (
             <span className="text-xs font-bold text-amber-600">
-              Selecciona un distrito específico en el selector de arriba
+              Selecciona un {zonaLabel.toLowerCase()} específico en el selector de arriba
             </span>
           ) : (
-            <span className="text-sm font-black text-primary">Distrito {distrito}</span>
+            <span className="text-sm font-black text-primary">{zonaLabel} {distrito}</span>
           )}
         </div>
       </div>
@@ -294,17 +296,18 @@ export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
       >
         <div className="space-y-2">
           <p className="text-[10px] text-stone-500 font-bold">
-            El algoritmo distribuye por <strong>padrón electoral</strong>, no por conteo de secciones.
-            Equipos en zonas densas reciben menos secciones; zonas dispersas, más.
+            El algoritmo reparte <strong>la misma cantidad de secciones</strong> a cada equipo,
+            manteniéndolas geográficamente juntas. Si la cantidad es impar, algunos equipos
+            reciben una sección de más.
           </p>
           <div className="grid grid-cols-2 gap-2 pt-1">
             <div className="bg-primary/5 rounded-xl p-3 text-center">
               <p className="text-lg font-black text-primary">{preview?.base ?? '—'}</p>
-              <p className="text-[9px] text-stone-400 font-bold uppercase tracking-widest">Secc. aprox./eq.</p>
+              <p className="text-[9px] text-stone-400 font-bold uppercase tracking-widest">Secc. base/eq.</p>
             </div>
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
-              <p className="text-lg font-black text-emerald-600">~igual</p>
-              <p className="text-[9px] text-emerald-500 font-bold uppercase tracking-widest">Padrón/eq.</p>
+              <p className="text-lg font-black text-emerald-600">{preview?.residuo ? `+1 ×${preview.residuo}` : '—'}</p>
+              <p className="text-[9px] text-emerald-500 font-bold uppercase tracking-widest">Equipos con extra</p>
             </div>
           </div>
         </div>
@@ -344,15 +347,17 @@ export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
                 <MiniStat value={result.blocks.length} label="Bloques" color="text-primary" bg="bg-primary/5" />
                 <MiniStat value={result.cantidadSecciones} label="Secciones" color="text-emerald-600" bg="bg-emerald-50" />
                 <MiniStat value={result.numEquipos} label="Equipos" color="text-violet-600" bg="bg-violet-50" />
-                <MiniStat value={result.padronBase ? `~${Math.round(result.padronBase / 1000)}k` : result.sectionesBase} label="Padrón/Eq." color="text-amber-600" bg="bg-amber-50" />
+                <MiniStat value={result.sectionesBase} label="Secc. base/Eq." color="text-amber-600" bg="bg-amber-50" />
               </div>
             </div>
 
-            {/* Population balance indicator */}
+            {/* Section-count balance indicator */}
             <div className="col-span-2 flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl">
               <TrendingUp className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span className="text-[10px] font-black text-emerald-700">
-                Distribución por padrón electoral — cada equipo cubre ~{result.padronBase ? Math.round(result.padronBase / 1000) : '—'}k electores
+                {result.residuo > 0
+                  ? `Reparto por secciones — ${result.sectionesBase} por equipo (${result.residuo} equipo${result.residuo !== 1 ? 's' : ''} con 1 extra) · ~${result.padronBase.toLocaleString()} padrones/eq.`
+                  : `Reparto por secciones — ${result.sectionesBase} por equipo · ~${result.padronBase.toLocaleString()} padrones/eq.`}
               </span>
             </div>
           </div>
@@ -539,7 +544,7 @@ function BlockCard({
             </p>
             {block.isAugmented && (
               <span className="text-[8px] font-black bg-amber-400 text-white px-1.5 py-0.5 rounded-full shrink-0 uppercase tracking-wider">
-                alto
+                +1 sec
               </span>
             )}
           </div>
@@ -584,7 +589,7 @@ function BlockCard({
               </span>
               {block.isAugmented && (
                 <span className="text-[9px] text-amber-600 font-black bg-amber-100 px-1.5 py-0.5 rounded-full ml-auto">
-                  Padrón alto
+                  +1 sección extra
                 </span>
               )}
             </div>

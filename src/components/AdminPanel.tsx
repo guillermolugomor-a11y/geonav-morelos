@@ -15,6 +15,7 @@ import {
 import { useStore } from '../store/useStore';
 import { fetchWithCache } from '../utils/cache';
 import { SECCIONES_POR_DISTRITO } from '../constants/seccionesDistritos';
+import { SECCIONES_POR_MUNICIPIO } from '../constants/seccionesMunicipios';
 import { useMassAssignment } from '../hooks/useMassAssignment';
 
 interface AdminPanelProps {
@@ -117,6 +118,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   const setMassVisualizationFilter = useStore(s => s.setMassVisualizationFilter);
 
   const [selectedDistritoTrabajo, setSelectedDistritoTrabajo] = useState<number | null>(null);
+  const [zonaTrabajoTipo, setZonaTrabajoTipo] = useState<'distrito' | 'municipio'>('distrito');
+  const [selectedMunicipioTrabajo, setSelectedMunicipioTrabajo] = useState<string | null>(null);
 
   const [searchTermPadron, setSearchTermPadron] = useState('');
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
@@ -130,7 +133,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   const [autoSelectionCount, setAutoSelectionCount] = useState<number>(5);
 
   useEffect(() => {
-    // Limpiar selección previa al cambiar el municipio de trabajo o el modo
+    // Limpiar selección previa al cambiar el distrito/municipio de trabajo o el modo
     setSelectedSections([]);
     setSelectedManzana(null);
     setExpandedSection(null);
@@ -139,7 +142,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     massAssignment.reset();
     setMassVisualization(null);
     setMassVisualizationFilter(null);
-  }, [selectedDistritoTrabajo, selectionMode]);
+  }, [selectedDistritoTrabajo, selectedMunicipioTrabajo, zonaTrabajoTipo, selectionMode]);
+
+  // Al alternar entre Distrito y Municipio, limpiar la selección de la zona anterior
+  useEffect(() => {
+    setSelectedDistritoTrabajo(null);
+    setSelectedMunicipioTrabajo(null);
+  }, [zonaTrabajoTipo]);
 
   // Sección primaria (primera del array) para compatibilidad con memos de experiencia y duplicados
   const primarySection: PadronSection | null = selectedSections[0] ?? null;
@@ -158,6 +167,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     if (!massAssignment.result) setMassVisualizationFilter(null);
   }, [massAssignment.result]);
 
+  // Secciones permitidas por la zona de trabajo activa (distrito o municipio).
+  // null = sin filtro (todas las secciones).
+  const allowedSectionsZona = useMemo<number[] | null>(() => {
+    if (zonaTrabajoTipo === 'municipio') {
+      return selectedMunicipioTrabajo !== null
+        ? (SECCIONES_POR_MUNICIPIO[selectedMunicipioTrabajo] || [])
+        : null;
+    }
+    return selectedDistritoTrabajo !== null
+      ? (SECCIONES_POR_DISTRITO[selectedDistritoTrabajo] || [])
+      : null;
+  }, [zonaTrabajoTipo, selectedDistritoTrabajo, selectedMunicipioTrabajo]);
+
+  // Encuentra las secciones de la zona (distrito o municipio) que contiene una sección dada,
+  // usado cuando no hay zona explícitamente seleccionada (ej. origen de auto-selección).
+  const findZonaSectionsFor = (sectionId: number): number[] => {
+    if (zonaTrabajoTipo === 'municipio') {
+      const munKey = Object.keys(SECCIONES_POR_MUNICIPIO).find(m =>
+        SECCIONES_POR_MUNICIPIO[m].includes(sectionId)
+      );
+      return munKey ? SECCIONES_POR_MUNICIPIO[munKey] : [];
+    }
+    const distKey = Object.keys(SECCIONES_POR_DISTRITO).find(d =>
+      SECCIONES_POR_DISTRITO[Number(d)].includes(sectionId)
+    );
+    return distKey ? SECCIONES_POR_DISTRITO[Number(distKey)] : [];
+  };
+
   // Efecto para auto-selección
   useEffect(() => {
     if (selectionMode === 'automatic' && autoOriginSectionId && seccionesPadron.length > 0) {
@@ -173,18 +210,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
          return;
       }
 
-      let allowedSectionsInDistrito: number[] = [];
-      if (selectedDistritoTrabajo !== null) {
-        allowedSectionsInDistrito = SECCIONES_POR_DISTRITO[selectedDistritoTrabajo] || [];
-      } else {
-        const distKey = Object.keys(SECCIONES_POR_DISTRITO).find(d =>
-          SECCIONES_POR_DISTRITO[Number(d)].includes(Number(origin.id))
-        );
-        allowedSectionsInDistrito = distKey ? SECCIONES_POR_DISTRITO[Number(distKey)] : [];
-      }
+      const allowedSectionsInZona = allowedSectionsZona !== null
+        ? allowedSectionsZona
+        : findZonaSectionsFor(Number(origin.id));
 
       const distances = seccionesPadron
-        .filter(s => allowedSectionsInDistrito.includes(Number(s.id)))
+        .filter(s => allowedSectionsInZona.includes(Number(s.id)))
         .map(s => {
           const centroid = getCentroid(s.geometry);
           const distance = centroid ? getHaversineDistance(originCentroid, centroid) : Infinity;
@@ -198,7 +229,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
       setSelectedPoligono(String(autoSelected[0]?.id || ''));
       setSelectedManzana(null);
     }
-  }, [selectionMode, autoOriginSectionId, autoSelectionCount, seccionesPadron, selectedDistritoTrabajo]);
+  }, [selectionMode, autoOriginSectionId, autoSelectionCount, seccionesPadron, allowedSectionsZona, zonaTrabajoTipo]);
 
   // OPTIMIZACIÓN: Agrupar manzanas por sección una sola vez (O(n))
   const manzanasPorSeccion = useMemo(() => {
@@ -218,17 +249,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     return map;
   }, [manzanasPadron]);
 
-  // Memoizar secciones filtradas por distrito de trabajo y término de búsqueda
+  // Memoizar secciones filtradas por zona de trabajo (distrito/municipio) y término de búsqueda
   const seccionesFiltradas = useMemo(() => {
     let list = seccionesPadron;
-    if (selectedDistritoTrabajo !== null) {
-      const allowedSections = SECCIONES_POR_DISTRITO[selectedDistritoTrabajo] || [];
-      list = list.filter(s => allowedSections.includes(Number(s.id)));
+    if (allowedSectionsZona !== null) {
+      list = list.filter(s => allowedSectionsZona.includes(Number(s.id)));
     }
     if (!searchTermPadron) return list;
     const term = searchTermPadron.toLowerCase();
     return list.filter(s => s.id.toString().includes(term));
-  }, [seccionesPadron, selectedDistritoTrabajo, searchTermPadron]);
+  }, [seccionesPadron, allowedSectionsZona, searchTermPadron]);
 
   const filteredTareas = useMemo(() => {
     return tareas.filter((task) => {
@@ -471,8 +501,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   };
 
   const handleMassCalcular = () => {
-    if (selectedDistritoTrabajo === null) return;
-    massAssignment.calcular(seccionesDisponibles, usuarios, selectedDistritoTrabajo);
+    const zonaId = zonaTrabajoTipo === 'municipio' ? selectedMunicipioTrabajo : selectedDistritoTrabajo;
+    if (zonaId === null) return;
+    massAssignment.calcular(seccionesDisponibles, usuarios, zonaId);
   };
 
   const handleMassGuardar = async () => {
@@ -614,15 +645,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   const seccionesCercanas = useMemo(() => {
     if (!primarySection || !seccionesPadron.length) return [];
 
-    // Encontrar el distrito de la sección seleccionada
-    const currentSectionDistKey = Object.keys(SECCIONES_POR_DISTRITO).find(d =>
-      SECCIONES_POR_DISTRITO[Number(d)].includes(Number(primarySection.id))
-    );
+    // Encontrar la zona (distrito o municipio) de la sección seleccionada
+    const allowedSectionsInZona = findZonaSectionsFor(Number(primarySection.id));
+    if (allowedSectionsInZona.length === 0) return [];
 
-    if (!currentSectionDistKey) return [];
-
-    const allowedSectionsInDistrito = SECCIONES_POR_DISTRITO[Number(currentSectionDistKey)] || [];
-    
     const originCentroid = getCentroid(primarySection.geometry);
     if (!originCentroid) return [];
 
@@ -630,9 +656,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     const selectedIds = new Set(selectedSections.map(s => Number(s.id)));
 
     return seccionesPadron
-      .filter(s => 
+      .filter(s =>
         !selectedIds.has(Number(s.id)) &&
-        allowedSectionsInDistrito.includes(Number(s.id))
+        allowedSectionsInZona.includes(Number(s.id))
       )
       .map(s => {
         const centroid = getCentroid(s.geometry);
@@ -642,7 +668,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
       .filter(s => s.distance !== Infinity)
       .sort((a, b) => a.distance - b.distance)
       .slice(0, 9);
-  }, [primarySection, selectedSections, seccionesPadron]);
+  }, [primarySection, selectedSections, seccionesPadron, zonaTrabajoTipo]);
 
   const openDeleteModal = (tarea: Tarea) => {
     setSelectedTarea(tarea);
@@ -710,6 +736,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           seccionesCercanas={seccionesCercanas}
           selectedDistritoTrabajo={selectedDistritoTrabajo}
           setSelectedDistritoTrabajo={setSelectedDistritoTrabajo}
+          zonaTrabajoTipo={zonaTrabajoTipo}
+          setZonaTrabajoTipo={setZonaTrabajoTipo}
+          selectedMunicipioTrabajo={selectedMunicipioTrabajo}
+          setSelectedMunicipioTrabajo={setSelectedMunicipioTrabajo}
           tipoCapa={tipoCapa}
           isCollaborative={isCollaborative}
           setIsCollaborative={setIsCollaborative}

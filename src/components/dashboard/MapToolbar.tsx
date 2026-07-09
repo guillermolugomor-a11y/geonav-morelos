@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Search, MapPin, RotateCcw, Map, X } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { DISTRITOS } from '../../constants/seccionesDistritos';
+import { MUNICIPIOS } from '../../constants/seccionesMunicipios';
 
 interface MapToolbarProps {
   searchTerm: string;
@@ -11,8 +12,14 @@ interface MapToolbarProps {
 export const MapToolbar: React.FC<MapToolbarProps> = ({ searchTerm, setSearchTerm }) => {
   const selectedDistrito = useStore(s => s.selectedDistrito);
   const setSelectedDistrito = useStore(s => s.setSelectedDistrito);
+  const selectedMunicipio = useStore(s => s.selectedMunicipio);
+  const setSelectedMunicipio = useStore(s => s.setSelectedMunicipio);
+  const mapZonaTipo = useStore(s => s.mapZonaTipo);
+  const setMapZonaTipo = useStore(s => s.setMapZonaTipo);
   const [searchFocused, setSearchFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const isMunicipioMode = mapZonaTipo === 'municipio';
 
   const handleDistritoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
@@ -20,15 +27,62 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({ searchTerm, setSearchTer
     else setSelectedDistrito(Number(val));
   };
 
+  const handleMunicipioChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setSelectedMunicipio(val === '' ? null : val);
+  };
+
   const districtLabel =
     selectedDistrito === null ? 'Distrito' :
     selectedDistrito === 0 ? 'Todos' :
     `D-${selectedDistrito}`;
 
+  const municipioLabel =
+    selectedMunicipio === null ? 'Municipio' :
+    selectedMunicipio === 'ALL' ? 'Todos' :
+    selectedMunicipio;
+
   const districtActive = selectedDistrito !== null && selectedDistrito !== 0;
+  const municipioActive = selectedMunicipio !== null && selectedMunicipio !== 'ALL';
+  const zonaActive = isMunicipioMode ? municipioActive : districtActive;
+  const zonaLabel = isMunicipioMode ? municipioLabel : districtLabel;
 
   return (
     <div className="absolute top-4 right-4 z-[800] flex flex-col items-end gap-2">
+      {/* ── Zona type toggle ── */}
+      <div
+        className="flex items-center h-8 rounded-xl border overflow-hidden"
+        style={{
+          background: 'rgba(255,255,255,0.97)',
+          backdropFilter: 'blur(20px)',
+          borderColor: 'rgba(255,255,255,0.6)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setMapZonaTipo('distrito')}
+          className="px-3 h-full text-[10px] font-black uppercase tracking-widest transition-all"
+          style={{
+            background: !isMunicipioMode ? 'rgba(98,0,65,0.1)' : 'transparent',
+            color: !isMunicipioMode ? '#620041' : 'rgba(74,69,62,0.4)',
+          }}
+        >
+          Distrito
+        </button>
+        <button
+          type="button"
+          onClick={() => setMapZonaTipo('municipio')}
+          className="px-3 h-full text-[10px] font-black uppercase tracking-widest transition-all"
+          style={{
+            background: isMunicipioMode ? 'rgba(98,0,65,0.1)' : 'transparent',
+            color: isMunicipioMode ? '#620041' : 'rgba(74,69,62,0.4)',
+          }}
+        >
+          Municipio
+        </button>
+      </div>
+
       {/* ── Main HUD bar ── */}
       <div
         className="flex items-center h-12 rounded-2xl border transition-all duration-300"
@@ -41,32 +95,47 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({ searchTerm, setSearchTer
             : '0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05)',
         }}
       >
-        {/* District selector */}
+        {/* Zona selector (Distrito o Municipio) */}
         <div className="relative flex items-center h-full">
           <div
             className="flex items-center gap-2 px-4 h-full pointer-events-none select-none"
-            style={{ color: districtActive ? '#620041' : 'rgba(74,69,62,0.5)' }}
+            style={{ color: zonaActive ? '#620041' : 'rgba(74,69,62,0.5)' }}
           >
             <Map className="w-3.5 h-3.5 shrink-0" />
             <span className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap">
-              {districtLabel}
+              {zonaLabel}
             </span>
-            {districtActive && (
+            {zonaActive && (
               <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#620041' }} />
             )}
           </div>
-          <select
-            value={selectedDistrito === null ? '' : selectedDistrito}
-            onChange={handleDistritoChange}
-            className="absolute inset-0 opacity-0 cursor-pointer w-full"
-            aria-label="Seleccionar distrito"
-          >
-            <option value="">Seleccionar...</option>
-            <option value={0}>Todos los distritos</option>
-            {DISTRITOS.map(d => (
-              <option key={d} value={d}>Distrito {d}</option>
-            ))}
-          </select>
+          {isMunicipioMode ? (
+            <select
+              value={selectedMunicipio === null ? '' : selectedMunicipio}
+              onChange={handleMunicipioChange}
+              className="absolute inset-0 opacity-0 cursor-pointer w-full"
+              aria-label="Seleccionar municipio"
+            >
+              <option value="">Seleccionar...</option>
+              <option value="ALL">Todos los municipios</option>
+              {MUNICIPIOS.map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          ) : (
+            <select
+              value={selectedDistrito === null ? '' : selectedDistrito}
+              onChange={handleDistritoChange}
+              className="absolute inset-0 opacity-0 cursor-pointer w-full"
+              aria-label="Seleccionar distrito"
+            >
+              <option value="">Seleccionar...</option>
+              <option value={0}>Todos los distritos</option>
+              {DISTRITOS.map(d => (
+                <option key={d} value={d}>Distrito {d}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* Divider */}
@@ -128,8 +197,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({ searchTerm, setSearchTer
         </div>
       </div>
 
-      {/* Active district chip */}
-      {districtActive && (
+      {/* Active zona chip */}
+      {zonaActive && (
         <div
           className="flex items-center gap-2 px-3 py-1.5 rounded-xl border animate-in fade-in slide-in-from-top-2 duration-200"
           style={{
@@ -140,13 +209,13 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({ searchTerm, setSearchTer
           }}
         >
           <span className="text-[9px] font-black uppercase tracking-[0.25em]" style={{ color: '#620041' }}>
-            Distrito {selectedDistrito} activo
+            {isMunicipioMode ? `Municipio ${selectedMunicipio} activo` : `Distrito ${selectedDistrito} activo`}
           </span>
           <button
-            onClick={() => setSelectedDistrito(null)}
+            onClick={() => isMunicipioMode ? setSelectedMunicipio(null) : setSelectedDistrito(null)}
             className="transition-opacity hover:opacity-70"
             style={{ color: 'rgba(74,69,62,0.4)' }}
-            aria-label="Quitar filtro de distrito"
+            aria-label={isMunicipioMode ? 'Quitar filtro de municipio' : 'Quitar filtro de distrito'}
           >
             <X className="w-3 h-3" />
           </button>

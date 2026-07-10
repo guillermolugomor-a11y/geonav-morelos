@@ -1,5 +1,6 @@
 import { Poligono, Tarea, UsuarioPerfil } from '../types';
 import { TEAM_HEX_COLORS } from './teamColors';
+import { getMunicipioBySeccion } from '../constants/seccionesMunicipios';
 
 // KML color format: aabbggrr (alpha, blue, green, red)
 function hexToKmlColor(hex: string, alpha: number): string {
@@ -320,7 +321,7 @@ export function exportTareasCsv(
 
   // ── Build rows ────────────────────────────────────────────────────────────────
   const HEADER = [
-    'Operativo', 'Tipo', 'Sección', 'Manzana', 'Nombre',
+    'Operativo', 'Tipo', 'Municipio', 'Sección', 'Manzana', 'Nombre',
     'Estado', 'Instrucción', 'Fecha Operación',
     'Centroide Longitud', 'Centroide Latitud',
   ];
@@ -344,7 +345,7 @@ export function exportTareasCsv(
       const centroid  = computeCentroid(geom);
 
       rows.push(csvRow([
-        userName, 'Manzana', seccionNum, manzanaNum, label,
+        userName, 'Manzana', getMunicipioBySeccion(seccionNum), seccionNum, manzanaNum, label,
         status, tarea.instruccion, tarea.fecha_operacion ?? '',
         centroid?.[0] ?? '', centroid?.[1] ?? '',
       ]));
@@ -356,7 +357,7 @@ export function exportTareasCsv(
       const centroid  = computeCentroid(geom);
 
       rows.push(csvRow([
-        userName, 'Sección', tarea.polygon_id, '', label,
+        userName, 'Sección', getMunicipioBySeccion(tarea.polygon_id), tarea.polygon_id, '', label,
         status, tarea.instruccion, tarea.fecha_operacion ?? '',
         centroid?.[0] ?? '', centroid?.[1] ?? '',
       ]));
@@ -366,7 +367,7 @@ export function exportTareasCsv(
         const mzLabel   = `Manzana ${m.manzana} · Secc. ${m.seccion}`;
         const mzCentroid = computeCentroid(m.geom);
         rows.push(csvRow([
-          userName, 'Manzana', m.seccion, m.manzana, mzLabel,
+          userName, 'Manzana', getMunicipioBySeccion(m.seccion), m.seccion, m.manzana, mzLabel,
           '', '', '',
           mzCentroid?.[0] ?? '', mzCentroid?.[1] ?? '',
         ]));

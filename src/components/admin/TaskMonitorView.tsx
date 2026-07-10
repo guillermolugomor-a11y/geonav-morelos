@@ -9,6 +9,7 @@ import { useNotifications } from '../notifications/NotificationContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { NotificationIndicator } from '../notifications/NotificationIndicator';
 import { taskService } from '../../services/taskService';
+import { MUNICIPIOS, getMunicipioBySeccion } from '../../constants/seccionesMunicipios';
 
 interface TaskMonitorViewProps {
   usuarios: UsuarioPerfil[];
@@ -21,6 +22,8 @@ interface TaskMonitorViewProps {
   setFilterStatus: (value: string) => void;
   filterDate: string;
   setFilterDate: (value: string) => void;
+  filterMunicipio: string;
+  setFilterMunicipio: (value: string) => void;
   onNavigateToMap?: (polygonId: number) => void;
   onView: (tarea: Tarea) => void;
   onEdit: (tarea: Tarea) => void;
@@ -39,6 +42,8 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
   setFilterStatus,
   filterDate,
   setFilterDate,
+  filterMunicipio,
+  setFilterMunicipio,
   onNavigateToMap,
   onView,
   onEdit,
@@ -103,6 +108,15 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
     return () => document.removeEventListener('mousedown', handler);
   }, [exportOpen]);
 
+  // Sección de una tarea: la propia si es de tipo Sección, o la de su manzana si es de tipo Manzana
+  const getTareaSeccion = (t: Tarea): number | null => {
+    const isManzana = ['manzana', 'manzanas'].includes(t.tipo_capa);
+    if (!isManzana) return t.polygon_id;
+    const mzRecord = manzanasPadron.find((m: any) => Number(m.id) === Number(t.polygon_id));
+    const seccion = mzRecord?.seccion ?? t.seccion;
+    return seccion != null ? Number(seccion) : null;
+  };
+
   const filteredTareas = useMemo(() => {
     if (monitorMode === 'historial') {
       return allTareas
@@ -112,22 +126,24 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
           if (!isPast && !isCompleted) return false;
           const matchUser = !filterUser || (t.user_id === filterUser || (t.is_collaborative && t.collaborator_ids?.includes(filterUser)));
           const matchStatus = !filterStatus || t.status === filterStatus;
+          const matchMunicipio = !filterMunicipio || getMunicipioBySeccion(getTareaSeccion(t)) === filterMunicipio;
           const usuario = userMap.get(t.user_id);
           const searchMatch = !searchTerm ||
             usuario?.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
             t.instruccion.toLowerCase().includes(searchTerm.toLowerCase());
-          return matchUser && matchStatus && searchMatch;
+          return matchUser && matchStatus && matchMunicipio && searchMatch;
         })
         .sort((a, b) => (b.fecha_operacion || '').localeCompare(a.fecha_operacion || ''));
     }
     return tareas.filter(t => {
+      const matchMunicipio = !filterMunicipio || getMunicipioBySeccion(getTareaSeccion(t)) === filterMunicipio;
       const usuario = userMap.get(t.user_id);
       const searchMatch = !searchTerm ||
         usuario?.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
         t.instruccion.toLowerCase().includes(searchTerm.toLowerCase());
-      return searchMatch;
+      return matchMunicipio && searchMatch;
     });
-  }, [tareas, allTareas, userMap, searchTerm, monitorMode, filterUser, filterStatus, todayStr]);
+  }, [tareas, allTareas, userMap, searchTerm, monitorMode, filterUser, filterStatus, filterMunicipio, todayStr, manzanasPadron]);
 
   // Users that have at least one task in the current filtered view
   const usersWithTasks = useMemo(() => {
@@ -467,7 +483,7 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
 
       {/* Filter bar */}
       <div className="bg-surface border-b border-primary/5 px-6 md:px-10 py-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-screen-xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 max-w-screen-xl mx-auto">
           <div className="bg-white px-6 py-4 rounded-xl border border-outline-variant/15 flex items-center gap-4 shadow-sm group focus-within:ring-2 ring-primary/10 transition-all">
             <Search className="w-4 h-4 text-on-surface-variant opacity-40 group-focus-within:opacity-100 transition-opacity" />
             <input
@@ -484,7 +500,7 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
             <select
               value={filterUser}
               onChange={(e) => setFilterUser(e.target.value)}
-              className="bg-transparent border-none outline-none text-[13px] font-medium w-full text-on-surface cursor-pointer"
+              className="bg-transparent border-none outline-none text-[13px] font-medium w-full text-on-surface cursor-pointer truncate pr-8"
             >
               <option value="">Filtro: Todo el Personal</option>
               {usuarios.map((u) => (
@@ -498,13 +514,27 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="bg-transparent border-none outline-none text-[13px] font-medium w-full text-on-surface cursor-pointer"
+              className="bg-transparent border-none outline-none text-[13px] font-medium w-full text-on-surface cursor-pointer truncate pr-8"
             >
               <option value="">Filtro: Cualquier Estado</option>
               <option value="pendiente">Pendiente</option>
               <option value="en_progreso">En Progreso</option>
               <option value="completada">Completada</option>
               <option value="programada">Programada</option>
+            </select>
+          </div>
+
+          <div className="bg-white px-6 py-4 rounded-xl border border-outline-variant/15 flex items-center gap-4 shadow-sm group focus-within:ring-2 ring-primary/10 transition-all">
+            <MapPin className="w-4 h-4 text-on-surface-variant opacity-40 shrink-0" />
+            <select
+              value={filterMunicipio}
+              onChange={(e) => setFilterMunicipio(e.target.value)}
+              className="bg-transparent border-none outline-none text-[13px] font-medium w-full text-on-surface cursor-pointer truncate pr-8"
+            >
+              <option value="">Filtro: Todo Municipio</option>
+              {MUNICIPIOS.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
             </select>
           </div>
 

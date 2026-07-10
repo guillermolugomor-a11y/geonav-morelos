@@ -34,3 +34,15 @@ export const SECCIONES_POR_MUNICIPIO: Record<string, number[]> = {
 };
 
 export const MUNICIPIOS = Object.keys(SECCIONES_POR_MUNICIPIO);
+
+const SECCION_A_MUNICIPIO = new Map<number, string>();
+MUNICIPIOS.forEach(municipio => {
+  SECCIONES_POR_MUNICIPIO[municipio].forEach(seccion => {
+    SECCION_A_MUNICIPIO.set(seccion, municipio);
+  });
+});
+
+export function getMunicipioBySeccion(seccion: number | string | null | undefined): string {
+  if (seccion == null) return '';
+  return SECCION_A_MUNICIPIO.get(Number(seccion)) ?? '';
+}

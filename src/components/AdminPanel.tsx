@@ -15,7 +15,7 @@ import {
 import { useStore } from '../store/useStore';
 import { fetchWithCache } from '../utils/cache';
 import { SECCIONES_POR_DISTRITO } from '../constants/seccionesDistritos';
-import { SECCIONES_POR_MUNICIPIO } from '../constants/seccionesMunicipios';
+import { SECCIONES_POR_MUNICIPIO, getMunicipioBySeccion } from '../constants/seccionesMunicipios';
 import { useMassAssignment } from '../hooks/useMassAssignment';
 
 interface AdminPanelProps {
@@ -157,6 +157,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   const [filterUser, setFilterUser] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterDate, setFilterDate] = useState('');
+  const [filterMunicipio, setFilterMunicipio] = useState('');
 
   // ── Mass assignment (flujo invertido automático) ──
   const massAssignment = useMassAssignment();
@@ -260,14 +261,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     return list.filter(s => s.id.toString().includes(term));
   }, [seccionesPadron, allowedSectionsZona, searchTermPadron]);
 
+  // Sección de una tarea: la propia si es de tipo Sección, o la de su manzana si es de tipo Manzana
+  const getTareaSeccion = (task: Tarea): number | null => {
+    const isManzana = ['manzana', 'manzanas'].includes(task.tipo_capa);
+    if (!isManzana) return task.polygon_id;
+    const mzRecord = manzanasPadron.find((m: any) => Number(m.id) === Number(task.polygon_id));
+    const seccion = mzRecord?.seccion ?? task.seccion;
+    return seccion != null ? Number(seccion) : null;
+  };
+
   const filteredTareas = useMemo(() => {
     return tareas.filter((task) => {
       const matchUser = !filterUser || (task.user_id === filterUser || (task.is_collaborative && task.collaborator_ids?.includes(filterUser)));
       const matchStatus = !filterStatus || task.status === filterStatus;
       const matchDate = !filterDate || task.fecha_operacion === filterDate;
-      return matchUser && matchStatus && matchDate;
+      const matchMunicipio = !filterMunicipio || getMunicipioBySeccion(getTareaSeccion(task)) === filterMunicipio;
+      return matchUser && matchStatus && matchDate && matchMunicipio;
     });
-  }, [filterStatus, filterUser, filterDate, tareas]);
+  }, [filterStatus, filterUser, filterDate, filterMunicipio, tareas, manzanasPadron]);
 
   const userWorkload = useMemo(() => {
     const map = new Map<string, number>();
@@ -782,6 +793,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           setFilterStatus={setFilterStatus}
           filterDate={filterDate}
           setFilterDate={setFilterDate}
+          filterMunicipio={filterMunicipio}
+          setFilterMunicipio={setFilterMunicipio}
           onNavigateToMap={onNavigateToMap}
           onView={openViewModal}
           onEdit={openEditModal}

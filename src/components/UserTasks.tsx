@@ -264,30 +264,32 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {tareas.map(tarea => (
                   <div key={tarea.id} className="bg-surface-container-low border border-outline-variant/15 rounded-2xl p-5 flex flex-col hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
-                    <div className="flex justify-between items-start mb-4">
-                      <TaskStatusBadge status={tarea.status as any} />
-                      {tarea.is_collaborative && (
-                        <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary flex items-center gap-1.5 animate-pulse">
-                          <Users className="w-3 h-3" /> Colaborativa
-                        </span>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-on-surface-variant/50 bg-surface-container-lowest px-2 py-1 rounded-md border border-outline-variant/15">
-                          <TaskLocationLabel task={tarea} compact />
-                        </span>
-                        <button
-                          onClick={() => handleEditClick(tarea)}
-                          className="p-1 text-on-surface-variant/40 hover:text-primary hover:bg-surface-container-low rounded-md transition-colors relative"
-                          title="Documentar tarea"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                          <NotificationIndicator 
-                            hasUnread={tareasConNotificaciones.has(tarea.id)}
-                            size="sm"
-                            className="absolute -top-1 -right-1"
-                          />
-                        </button>
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <TaskStatusBadge status={tarea.status as any} />
+                        {tarea.is_collaborative && (
+                          <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary flex items-center gap-1.5 animate-pulse">
+                            <Users className="w-3 h-3" /> Colaborativa
+                          </span>
+                        )}
                       </div>
+                      
+                      <button
+                        onClick={() => handleEditClick(tarea)}
+                        className="p-1.5 text-on-surface-variant/40 hover:text-primary hover:bg-surface-container-low rounded-md transition-colors relative"
+                        title="Documentar tarea"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                        <NotificationIndicator 
+                          hasUnread={tareasConNotificaciones.has(tarea.id)}
+                          size="sm"
+                          className="absolute -top-1 -right-1"
+                        />
+                      </button>
+                    </div>
+
+                    <div className="mb-3 pb-3 border-b border-outline-variant/10">
+                      <TaskLocationLabel task={tarea} />
                     </div>
 
                     <p className="text-sm text-on-surface font-medium mb-4 flex-1">

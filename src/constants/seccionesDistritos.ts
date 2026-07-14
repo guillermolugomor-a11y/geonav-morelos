@@ -17,3 +17,15 @@ export const SECCIONES_POR_DISTRITO: Record<number, number[]> = {
 
 export const NUM_DISTRITOS = 12;
 export const DISTRITOS = Array.from({ length: NUM_DISTRITOS }, (_, i) => i + 1);
+
+const SECCION_A_DISTRITO = new Map<number, number>();
+Object.entries(SECCIONES_POR_DISTRITO).forEach(([distrito, secciones]) => {
+  secciones.forEach(seccion => {
+    SECCION_A_DISTRITO.set(seccion, Number(distrito));
+  });
+});
+
+export function getDistritoBySeccion(seccion: number | string | null | undefined): number | null {
+  if (seccion == null) return null;
+  return SECCION_A_DISTRITO.get(Number(seccion)) ?? null;
+}

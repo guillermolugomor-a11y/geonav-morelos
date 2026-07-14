@@ -28,7 +28,7 @@ interface AppState {
   massVisualizationFilter: string | null; // userId del equipo activo; null = "Todos"
 
   // Filtro de equipo en la capa del mapa regular (PadronLayer)
-  mapTeamFilter: string | null; // userId del equipo seleccionado; null = "Todos"
+  mapTeamFilter: string[]; // array of userIds; [] = "Todos"
 
   // Visibilidad de pines centroides rank 1 en NearManzanasLayer
   showRank1Pins: boolean;
@@ -50,7 +50,7 @@ interface AppState {
   setMapZonaTipo: (tipo: 'distrito' | 'municipio') => void;
   setMassVisualization: (result: MassAssignmentResult | null) => void;
   setMassVisualizationFilter: (userId: string | null) => void;
-  setMapTeamFilter: (userId: string | null) => void;
+  setMapTeamFilter: (userIds: string[]) => void;
   setShowRank1Pins: (show: boolean) => void;
 
   // Limpieza
@@ -74,7 +74,7 @@ export const useStore = create<AppState>((set) => ({
   mapZonaTipo: 'distrito',
   massVisualization: null,
   massVisualizationFilter: null,
-  mapTeamFilter: null,
+  mapTeamFilter: [],
   showRank1Pins: false,
 
   setUser: (user) => set({ user }),
@@ -91,19 +91,19 @@ export const useStore = create<AppState>((set) => ({
   setSelectedDistrito: (selectedDistrito) => set({
     selectedDistrito,
     selectedPoligono: null,
-    mapTeamFilter: null,
+    mapTeamFilter: [],
   }),
   setSelectedMunicipio: (selectedMunicipio) => set({
     selectedMunicipio,
     selectedPoligono: null,
-    mapTeamFilter: null,
+    mapTeamFilter: [],
   }),
   setMapZonaTipo: (mapZonaTipo) => set({
     mapZonaTipo,
     selectedDistrito: null,
     selectedMunicipio: null,
     selectedPoligono: null,
-    mapTeamFilter: null,
+    mapTeamFilter: [],
   }),
   setMassVisualization: (massVisualization) => set({ massVisualization }),
   setMassVisualizationFilter: (massVisualizationFilter) => set({ massVisualizationFilter }),
@@ -123,6 +123,6 @@ export const useStore = create<AppState>((set) => ({
     mapZonaTipo: 'distrito',
     massVisualization: null,
     massVisualizationFilter: null,
-    mapTeamFilter: null,
+    mapTeamFilter: [],
   }),
 }));

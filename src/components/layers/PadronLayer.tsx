@@ -113,10 +113,11 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
         }
 
         // When a team filter is active, show only that team's sections
-        if (isAdmin && mapTeamFilter) {
-            features = features.filter((f: any) =>
-                sectionToUserMap.get(Number(f.properties.SECCION)) === mapTeamFilter
-            );
+        if (isAdmin && mapTeamFilter.length > 0) {
+            features = features.filter((f: any) => {
+                const team = sectionToUserMap.get(Number(f.properties.SECCION));
+                return team && mapTeamFilter.includes(team);
+            });
         }
 
         return { ...padronGeojson, features };
@@ -192,9 +193,9 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
         }
 
         // ── Prioridad 2: Filtro de equipo activo ──
-        // (solo llegan features de ese equipo; el filtro de features ya excluyó el resto)
-        if (mapTeamFilter && isAdmin) {
-            const activeColor = userColorMap.get(mapTeamFilter) ?? '#3b82f6';
+        // (solo llegan features de esos equipos; el filtro de features ya excluyó el resto)
+        if (mapTeamFilter.length > 0 && isAdmin) {
+            const activeColor = teamColor ?? '#3b82f6';
             return {
                 fillColor: activeColor,
                 weight: 2.5,
@@ -243,7 +244,7 @@ export const PadronLayer: React.FC<PadronLayerProps> = React.memo(({
 
     return (
         <GeoJSON
-            key={`padron-layer-${mapZonaTipo}-${(mapZonaTipo === 'municipio' ? selectedMunicipio : selectedDistrito) || 'none'}-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}-${mapTeamFilter ?? 'all'}`}
+            key={`padron-layer-${mapZonaTipo}-${(mapZonaTipo === 'municipio' ? selectedMunicipio : selectedDistrito) || 'none'}-${tasksUpdateKey}-${isRoutingActive}-${isAdmin}-${selectedPoligono?.id || 'none'}-${mapTeamFilter.join(',') || 'all'}`}
             data={filteredGeoJSON}
             onEachFeature={onEachFeature}
             style={style}

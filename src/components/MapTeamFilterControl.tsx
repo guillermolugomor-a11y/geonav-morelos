@@ -80,9 +80,9 @@ export const MapTeamFilterControl: React.FC<Props> = ({ tareas }) => {
                 className="w-2.5 h-2.5 rounded-full shrink-0 transition-all"
                 style={{
                   backgroundColor: u.color,
-                  opacity: mapTeamFilter && mapTeamFilter !== u.id ? 0.25 : 1,
-                  transform: mapTeamFilter === u.id ? 'scale(1.4)' : undefined,
-                  outline: mapTeamFilter === u.id ? `1.5px solid ${u.color}` : undefined,
+                  opacity: mapTeamFilter.length > 0 && !mapTeamFilter.includes(u.id) ? 0.25 : 1,
+                  transform: mapTeamFilter.includes(u.id) ? 'scale(1.4)' : undefined,
+                  outline: mapTeamFilter.includes(u.id) ? `1.5px solid ${u.color}` : undefined,
                   outlineOffset: '1.5px',
                 }}
               />
@@ -139,45 +139,51 @@ export const MapTeamFilterControl: React.FC<Props> = ({ tareas }) => {
           <div className="max-h-56 overflow-y-auto py-1.5 px-1.5 space-y-0.5 custom-scrollbar">
             {/* All teams row */}
             <button
-              onClick={() => setMapTeamFilter(null)}
+              onClick={() => setMapTeamFilter([])}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left"
               style={{
-                background: mapTeamFilter === null ? 'rgba(188,155,115,0.14)' : 'transparent',
+                background: mapTeamFilter.length === 0 ? 'rgba(188,155,115,0.14)' : 'transparent',
               }}
             >
               <div
                 className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
                 style={{
-                  background: mapTeamFilter === null ? 'rgba(188,155,115,0.25)' : 'rgba(255,255,255,0.06)',
+                  background: mapTeamFilter.length === 0 ? 'rgba(188,155,115,0.25)' : 'rgba(255,255,255,0.06)',
                 }}
               >
                 <Users
                   className="w-3 h-3"
-                  style={{ color: mapTeamFilter === null ? GOLD : `${CREAM}40` }}
+                  style={{ color: mapTeamFilter.length === 0 ? GOLD : `${CREAM}40` }}
                 />
               </div>
               <span
                 className="text-[11px] font-black flex-1 text-left"
-                style={{ color: mapTeamFilter === null ? CREAM : `${CREAM}55` }}
+                style={{ color: mapTeamFilter.length === 0 ? CREAM : `${CREAM}55` }}
               >
                 Todos los equipos
               </span>
-              {mapTeamFilter === null && (
+              {mapTeamFilter.length === 0 && (
                 <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: GOLD }} />
               )}
             </button>
 
             {/* Individual team rows */}
             {teamsWithWork.map(u => {
-              const isActive = mapTeamFilter === u.id;
+              const isActive = mapTeamFilter.includes(u.id);
               return (
                 <button
                   key={u.id}
-                  onClick={() => setMapTeamFilter(isActive ? null : u.id)}
+                  onClick={() => {
+                    if (isActive) {
+                      setMapTeamFilter(mapTeamFilter.filter(id => id !== u.id));
+                    } else {
+                      setMapTeamFilter([...mapTeamFilter, u.id]);
+                    }
+                  }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left"
                   style={{
                     background: isActive ? `${u.color}20` : 'transparent',
-                    opacity: mapTeamFilter && !isActive ? 0.4 : 1,
+                    opacity: mapTeamFilter.length > 0 && !isActive ? 0.4 : 1,
                   }}
                 >
                   <div

@@ -85,7 +85,7 @@ export const PolygonSidebar: React.FC<PolygonSidebarProps> = ({
       initial={{ x: -400 }}
       animate={{ x: 0 }}
       exit={{ x: -400 }}
-      className="absolute md:left-[340px] left-4 top-4 bottom-4 w-80 bg-surface-container-lowest z-20 rounded-2xl shadow-2xl border border-outline-variant/10 flex flex-col overflow-hidden"
+      className="absolute md:left-[340px] left-4 top-4 bottom-4 w-80 bg-surface-container-lowest z-[900] rounded-2xl shadow-2xl border border-outline-variant/10 flex flex-col overflow-hidden"
     >
       <div className="p-5 premium-gradient text-white flex items-center justify-between">
         <div>

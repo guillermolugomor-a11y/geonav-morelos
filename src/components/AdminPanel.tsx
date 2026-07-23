@@ -302,7 +302,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     const hoy = new Date().toISOString().split('T')[0];
     const map = new Map<number, { status: string; userName: string; userId: string }>();
     tareas.forEach(t => {
-      if (t.status !== 'pendiente' && t.status !== 'en_progreso') return;
+      // Se eliminó el filtro de estatus para bloquear cualquier sección registrada
       if (t.fecha_operacion && t.fecha_operacion !== hoy) return;
       const seccionId = Number(t.seccion || t.clave_seccion);
       if (!seccionId || map.has(seccionId)) return;
@@ -771,6 +771,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           massAssignmentResult={massAssignment.result}
           massNumEquipos={massAssignment.numEquipos}
           setMassNumEquipos={massAssignment.setNumEquipos}
+          massEquipoInicio={massAssignment.equipoInicio}
+          setMassEquipoInicio={massAssignment.setEquipoInicio}
           massCantidadSecciones={massAssignment.cantidadSecciones}
           setMassCantidadSecciones={massAssignment.setCantidadSecciones}
           seccionesDisponiblesMass={seccionesDisponibles}

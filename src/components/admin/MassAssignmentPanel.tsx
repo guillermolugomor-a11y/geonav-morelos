@@ -98,6 +98,8 @@ interface MassAssignmentPanelProps {
   usuarios: UsuarioPerfil[];           // all users (admin filter applied internally)
   numEquipos: number;
   setNumEquipos: (n: number) => void;
+  equipoInicio: number;
+  setEquipoInicio: (n: number) => void;
   cantidadSecciones: number;           // 0 = all
   setCantidadSecciones: (n: number) => void;
   result: MassAssignmentResult | null;
@@ -122,6 +124,8 @@ export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
   usuarios,
   numEquipos,
   setNumEquipos,
+  equipoInicio,
+  setEquipoInicio,
   cantidadSecciones,
   setCantidadSecciones,
   result,
@@ -151,21 +155,27 @@ export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
       ? Math.min(cantidadSecciones, totalAvailable)
       : totalAvailable;
 
+  // Rango de equipos [equipoDesde, equipoHasta] — 1-indexado sobre fieldUsers
+  const maxTeams = fieldUsers.length;
+  const equipoDesde = Math.min(Math.max(1, equipoInicio), Math.max(1, maxTeams));
+  const equipoHasta = Math.min(equipoDesde + numEquipos - 1, maxTeams);
+  const rangeCount = Math.max(0, equipoHasta - equipoDesde + 1);
+
   // Live preview stats — update instantly as inputs change, before Calcular
   const preview = useMemo(() => {
     const n = efectivaSecciones;
-    const t = Math.min(numEquipos, fieldUsers.length);
+    const t = rangeCount;
     if (t === 0) return null;
     const base = Math.floor(n / t);
     const residuo = n % t;
     const bloques = t;
     return { n, t, base, residuo, bloques };
-  }, [efectivaSecciones, numEquipos, fieldUsers.length]);
+  }, [efectivaSecciones, rangeCount]);
 
   const canCalculate =
     distrito !== null &&
     totalAvailable > 0 &&
-    numEquipos >= 1 &&
+    rangeCount >= 1 &&
     fieldUsers.length > 0;
 
   return (
@@ -204,49 +214,57 @@ export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
         </div>
       </div>
 
-      {/* ── Step 2: Número de equipos (button grid 1-14) ── */}
+      {/* ── Step 2: Rango de equipos (desde–hasta) ── */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between ml-1">
-          <StepLabel step="2" label="Equipos en la jornada" />
+          <StepLabel step="2" label="Rango de equipos" />
           <span className="text-[10px] font-bold text-stone-400">
-            {Math.min(numEquipos, fieldUsers.length)} de {fieldUsers.length} operativos
+            {rangeCount} de {maxTeams} operativos
           </span>
         </div>
 
-        {/* Quick-select buttons 1–24 */}
-        <div className="grid grid-cols-8 gap-1.5">
-          {Array.from({ length: 24 }).map((_, i) => {
-            const n = i + 1;
-            const active = n === numEquipos;
-            const available = n <= fieldUsers.length;
-            return (
-              <button
-                key={n}
-                type="button"
-                disabled={!available}
-                onClick={() => setNumEquipos(n)}
-                className={`py-2 rounded-xl text-[11px] font-black transition-all ring-2 ring-offset-1 ${
-                  active
-                    ? `${TEAM_COLOR_CLASSES[(n - 1) % TEAM_COLOR_CLASSES.length]} ${TEAM_RING_CLASSES[(n - 1) % TEAM_RING_CLASSES.length]} scale-105`
-                    : available
-                      ? 'bg-surface-container-low text-stone-600 ring-transparent hover:ring-primary/30 hover:bg-white/60'
-                      : 'bg-surface-container-low text-stone-300 ring-transparent cursor-not-allowed opacity-40'
-                }`}
-              >
-                {n}
-              </button>
-            );
-          })}
+        {/* Desde / Hasta selectors */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-1">
+              Equipo desde
+            </label>
+            <select
+              value={equipoDesde}
+              disabled={maxTeams === 0}
+              onChange={e => setEquipoInicio(Number(e.target.value))}
+              className="w-full px-3 py-2.5 bg-surface-container-low border border-primary/5 rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm font-black text-stone-700 shadow-inner disabled:opacity-50"
+            >
+              {Array.from({ length: maxTeams }, (_, i) => i + 1).map(n => (
+                <option key={n} value={n}>Equipo {n}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest ml-1">
+              Equipo hasta
+            </label>
+            <select
+              value={equipoHasta}
+              disabled={maxTeams === 0}
+              onChange={e => setNumEquipos(Math.max(1, Number(e.target.value) - equipoDesde + 1))}
+              className="w-full px-3 py-2.5 bg-surface-container-low border border-primary/5 rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm font-black text-stone-700 shadow-inner disabled:opacity-50"
+            >
+              {Array.from({ length: Math.max(0, maxTeams - equipoDesde + 1) }, (_, i) => equipoDesde + i).map(n => (
+                <option key={n} value={n}>Equipo {n}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Team dots */}
         <div className="flex gap-1.5 flex-wrap pt-0.5 pl-0.5">
-          {Array.from({ length: Math.min(numEquipos, fieldUsers.length) }).map((_, i) => (
+          {Array.from({ length: rangeCount }).map((_, i) => (
             <div
               key={i}
               className={`w-5 h-5 rounded-full text-[9px] font-black flex items-center justify-center ring-2 ring-offset-1 ${TEAM_COLOR_CLASSES[i % TEAM_COLOR_CLASSES.length]} ${TEAM_RING_CLASSES[i % TEAM_RING_CLASSES.length]}`}
             >
-              {i + 1}
+              {equipoDesde + i}
             </div>
           ))}
         </div>
@@ -259,11 +277,11 @@ export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
           <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
           <input
             type="number"
-            min={numEquipos}
+            min={rangeCount}
             max={totalAvailable}
             value={cantidadSecciones > 0 ? cantidadSecciones : totalAvailable}
             onChange={e => {
-              const v = Math.min(totalAvailable, Math.max(numEquipos, Number(e.target.value) || numEquipos));
+              const v = Math.min(totalAvailable, Math.max(rangeCount, Number(e.target.value) || rangeCount));
               setCantidadSecciones(v === totalAvailable ? 0 : v);
             }}
             disabled={distrito === null}
@@ -272,7 +290,7 @@ export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
         </div>
         <div className="flex items-center justify-between px-1">
           <span className="text-[10px] text-stone-400 font-medium">
-            mín: {numEquipos} · máx: {totalAvailable} disponibles
+            mín: {rangeCount} · máx: {totalAvailable} disponibles
           </span>
           {efectivaSecciones < totalAvailable && cantidadSecciones > 0 && (
             <span className="text-[10px] font-black text-amber-600 flex items-center gap-1">

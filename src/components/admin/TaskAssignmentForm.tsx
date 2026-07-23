@@ -84,6 +84,8 @@ interface TaskAssignmentFormProps {
   massAssignmentResult?: MassAssignmentResult | null;
   massNumEquipos?: number;
   setMassNumEquipos?: (n: number) => void;
+  massEquipoInicio?: number;
+  setMassEquipoInicio?: (n: number) => void;
   massCantidadSecciones?: number;
   setMassCantidadSecciones?: (n: number) => void;
   onMassCalcular?: () => void;
@@ -155,6 +157,8 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
   massAssignmentResult = null,
   massNumEquipos = 7,
   setMassNumEquipos = () => {},
+  massEquipoInicio = 1,
+  setMassEquipoInicio = () => {},
   massCantidadSecciones = 0,
   setMassCantidadSecciones = () => {},
   onMassCalcular = () => {},
@@ -621,6 +625,8 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                     usuarios={usuarios}
                     numEquipos={massNumEquipos}
                     setNumEquipos={setMassNumEquipos}
+                    equipoInicio={massEquipoInicio}
+                    setEquipoInicio={setMassEquipoInicio}
                     cantidadSecciones={massCantidadSecciones}
                     setCantidadSecciones={setMassCantidadSecciones}
                     result={massAssignmentResult ?? null}

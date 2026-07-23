@@ -229,6 +229,9 @@ export function runMassAssignmentAlgorithmV2(
 
 export function useMassAssignment() {
   const [numEquipos, setNumEquipos] = useState<number>(7);
+  // Equipo (1-indexado, tras ordenar alfabéticamente) desde el cual empezar
+  // a repartir — permite saltar equipos ya ocupados en otra jornada.
+  const [equipoInicio, setEquipoInicio] = useState<number>(1);
   // 0 = "use all available sections"
   const [cantidadSecciones, setCantidadSecciones] = useState<number>(0);
   const [result, setResult] = useState<MassAssignmentResult | null>(null);
@@ -242,11 +245,16 @@ export function useMassAssignment() {
     (sections: BlockSection[], usuarios: UsuarioPerfil[], distrito: number | string) => {
       if (!sections.length || !usuarios.length) return;
 
-      // Business rule: exclude admin/test accounts — only field teams, sorted 1→14
-      const fieldUsers = usuarios
+      // Business rule: exclude admin/test accounts — only field teams, sorted 1→N
+      const allFieldUsers = usuarios
         .filter(u => u.rol !== 'admin')
-        .sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true, sensitivity: 'base' }))
-        .slice(0, numEquipos);
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true, sensitivity: 'base' }));
+
+      // Rango [equipoInicio, equipoInicio + numEquipos - 1] — permite arrancar
+      // el reparto en un equipo distinto al #1 (p. ej. para no tocar equipos
+      // ya asignados en otra jornada del mismo día).
+      const startIdx = Math.min(Math.max(equipoInicio - 1, 0), Math.max(allFieldUsers.length - 1, 0));
+      const fieldUsers = allFieldUsers.slice(startIdx, startIdx + numEquipos);
 
       if (fieldUsers.length === 0) return;
 
@@ -282,7 +290,7 @@ export function useMassAssignment() {
       });
       setSaveMessage(null);
     },
-    [numEquipos, cantidadSecciones]
+    [numEquipos, equipoInicio, cantidadSecciones]
   );
 
   const guardar = useCallback(
@@ -347,6 +355,8 @@ export function useMassAssignment() {
   return {
     numEquipos,
     setNumEquipos,
+    equipoInicio,
+    setEquipoInicio,
     cantidadSecciones,
     setCantidadSecciones,
     result,

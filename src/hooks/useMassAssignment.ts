@@ -3,6 +3,12 @@ import { UsuarioPerfil } from '../types';
 import { taskService } from '../services/taskService';
 import { buildTaskPayload } from '../utils/taskPayload';
 
+// Cuentas de prueba/demo (p. ej. "prueba", "prueba2", "test") no deben
+// recibir tareas reales en el reparto automático.
+export function isTestUser(u: UsuarioPerfil): boolean {
+  return /prueba|test|demo/i.test(u.nombre);
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface BlockSection {
@@ -247,7 +253,7 @@ export function useMassAssignment() {
 
       // Business rule: exclude admin/test accounts — only field teams, sorted 1→N
       const allFieldUsers = usuarios
-        .filter(u => u.rol !== 'admin')
+        .filter(u => u.rol !== 'admin' && !isTestUser(u))
         .sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true, sensitivity: 'base' }));
 
       // Rango [equipoInicio, equipoInicio + numEquipos - 1] — permite arrancar

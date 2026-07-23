@@ -21,6 +21,7 @@ import {
   PopulationAwareBlock,
   MassAssignmentResult,
   BlockSection,
+  isTestUser,
 } from '../../hooks/useMassAssignment';
 
 // ─── Team color palette (24 teams) ───────────────────────────────────────────
@@ -143,8 +144,9 @@ export const MassAssignmentPanel: React.FC<MassAssignmentPanelProps> = ({
   const [expandedBlock, setExpandedBlock] = useState<number | null>(null);
 
   // Only field workers with a registered email count toward available slots
+  // (test/demo accounts like "prueba" are excluded from the real roster)
   const fieldUsers = useMemo(
-    () => usuarios.filter(u => u.rol !== 'admin' && !!u.email),
+    () => usuarios.filter(u => u.rol !== 'admin' && !!u.email && !isTestUser(u)),
     [usuarios]
   );
 

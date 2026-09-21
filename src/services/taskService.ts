@@ -131,6 +131,7 @@ export const taskService = {
       scheduledAt: tarea.scheduled_at || null,
       autoActivate: tarea.auto_activate ?? false,
       fechaOperacion: tarea.fecha_operacion || null,
+      metaEncuestas: tarea.meta_encuestas ?? null,
     });
 
     const payload = {
@@ -147,6 +148,7 @@ export const taskService = {
       scheduled_at: normalized.scheduled_at ?? null,
       auto_activate: normalized.auto_activate ?? false,
       fecha_operacion: normalized.fecha_operacion,
+      ...(normalized.meta_encuestas != null ? { meta_encuestas: normalized.meta_encuestas } : {}),
     };
 
     if (!payload.instruccion) {
@@ -204,6 +206,7 @@ export const taskService = {
         clave_seccion: payload.clave_seccion || payload.seccion || null,
         clave_manzana: payload.clave_manzana || payload.manzana || null,
         fecha_operacion: payload.fecha_operacion || hoy,
+        ...(payload.meta_encuestas != null ? { meta_encuestas: Number(payload.meta_encuestas) } : {}),
       }));
 
       const { data, error } = await supabase

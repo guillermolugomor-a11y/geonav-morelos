@@ -10,13 +10,15 @@ import {
   TaskMonitorView,
   UserDirectoryView,
   UserStatsView,
-  TaskModals
+  TaskModals,
+  CsvImportPanel
 } from './admin';
 import { useStore } from '../store/useStore';
 import { fetchWithCache } from '../utils/cache';
 import { SECCIONES_POR_DISTRITO } from '../constants/seccionesDistritos';
 import { SECCIONES_POR_MUNICIPIO, getMunicipioBySeccion } from '../constants/seccionesMunicipios';
 import { useMassAssignment } from '../hooks/useMassAssignment';
+import { CsvValidatedRow } from '../utils/csvImport';
 
 interface AdminPanelProps {
   perfil: UsuarioPerfil | null;
@@ -128,7 +130,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
   const [selectedSections, setSelectedSections] = useState<PadronSection[]>([]);
 
   // Nuevos estados para Modo Automático
-  const [selectionMode, setSelectionMode] = useState<'manual' | 'automatic'>('manual');
+  const [selectionMode, setSelectionMode] = useState<'manual' | 'automatic' | 'csv'>('manual');
   const [autoOriginSectionId, setAutoOriginSectionId] = useState<string>('');
   const [autoSelectionCount, setAutoSelectionCount] = useState<number>(5);
 
@@ -517,6 +519,46 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
     massAssignment.calcular(seccionesDisponibles, usuarios, zonaId);
   };
 
+  const seccionesPadronIds = useMemo(() => seccionesPadron.map(s => Number(s.id)), [seccionesPadron]);
+  const [csvSaving, setCsvSaving] = useState(false);
+  const [csvMessage, setCsvMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleCsvGuardar = async (rows: CsvValidatedRow[]): Promise<boolean> => {
+    if (rows.length === 0) return false;
+    setCsvSaving(true);
+    setCsvMessage(null);
+    try {
+      const fechaOperacionHoy = new Date().toISOString().split('T')[0];
+      const payloads = rows.map(r => buildTaskPayload({
+        userId: r.userId!,
+        polygonId: r.polygonId!,
+        instruccion: r.instruccion,
+        tipoCapa: r.tipoCapa,
+        fechaLimite: r.fechaLimiteISO,
+        selectedManzana: r.tipoCapa === 'manzana' ? { manzana: r.manzanaNum!, seccion: r.seccionNum! } : null,
+        selectedSection: { id: r.seccionNum },
+        fechaOperacion: fechaOperacionHoy,
+        metaEncuestas: r.metaEncuestas,
+      }));
+      const { error } = await taskService.asignarTareasMasivas(payloads, perfil?.id);
+      if (error) throw error;
+      setCsvMessage({ type: 'success', text: `${payloads.length} tareas asignadas desde el CSV.` });
+      refreshTasks();
+      return true;
+    } catch (err: any) {
+      const msg = String(err?.message ?? err);
+      setCsvMessage({
+        type: 'error',
+        text: msg.includes('meta_encuestas')
+          ? 'Falta la columna meta_encuestas en la base de datos. Aplica la migración 20260920000000_add_meta_encuestas_tareas.sql.'
+          : `Error al guardar: ${msg}`,
+      });
+      return false;
+    } finally {
+      setCsvSaving(false);
+    }
+  };
+
   const handleMassGuardar = async () => {
     if (!massAssignment.result) return;
     const fechaOperacionHoy = new Date().toISOString().split('T')[0];
@@ -782,6 +824,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ perfil, onNavigateToMap,
           onMassGuardar={handleMassGuardar}
           massIsSaving={massAssignment.isSaving}
           massSaveMessage={massAssignment.saveMessage}
+          csvImportSlot={
+            <CsvImportPanel
+              usuarios={usuarios}
+              seccionesIds={seccionesPadronIds}
+              manzanas={manzanasPadron}
+              seccionesOcupadas={seccionesOcupadas}
+              isSaving={csvSaving}
+              message={csvMessage}
+              onGuardar={handleCsvGuardar}
+            />
+          }
         />
       ) : viewMode === 'monitor' ? (
         <TaskMonitorView

@@ -51,6 +51,7 @@ export interface Tarea {
   is_collaborative?: boolean;       // Si la tarea es compartida por varios usuarios
   collaborator_ids?: string[];      // IDs de los usuarios que colaboran (para la UI)
   fecha_operacion?: string | null;  // Fecha del ciclo/ola de asignación (YYYY-MM-DD)
+  meta_encuestas?: number | null;   // Total de encuestas a levantar (importación CSV)
 }
 
 export interface TareaColaborador {

@@ -296,6 +296,14 @@ export const UserTasks: React.FC<UserTasksProps> = ({ perfil, onNavigateToMap })
                       {tarea.instruccion}
                     </p>
 
+                    {tarea.meta_encuestas != null && (
+                      <div className="mb-4 -mt-2">
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1.5 rounded-full">
+                          Meta: {tarea.meta_encuestas.toLocaleString()} encuestas
+                        </span>
+                      </div>
+                    )}
+
                     {tarea.comentarios_usuario && (
                       <div className="mb-4 p-3 bg-surface-container-low rounded-lg text-[10px] text-on-surface-variant border border-outline-variant/20 line-clamp-2">
                         <span className="font-bold text-primary uppercase mr-1">Último avance:</span>

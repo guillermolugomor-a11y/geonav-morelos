@@ -57,8 +57,8 @@ interface TaskAssignmentFormProps {
   // Multi-selección de secciones
   selectedSections: SectionItem[];
   setSelectedSections: (value: SectionItem[]) => void;
-  selectionMode: 'manual' | 'automatic';
-  setSelectionMode: (value: 'manual' | 'automatic') => void;
+  selectionMode: 'manual' | 'automatic' | 'csv';
+  setSelectionMode: (value: 'manual' | 'automatic' | 'csv') => void;
   autoOriginSectionId: string;
   setAutoOriginSectionId: (value: string) => void;
   autoSelectionCount: number;
@@ -95,6 +95,7 @@ interface TaskAssignmentFormProps {
   massSaveMessage?: { type: 'success' | 'error'; text: string } | null;
   seccionesDisponiblesMass?: SectionItem[];  // secciones sin tarea activa (para algoritmo)
   massTotalSecciones?: number;               // total incluyendo ocupadas (para etiqueta UI)
+  csvImportSlot?: React.ReactNode;           // panel de importación CSV (modo 'csv')
 }
 
 const formatDistance = (meters: number): string => {
@@ -168,8 +169,11 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
   massSaveMessage = null,
   seccionesDisponiblesMass,
   massTotalSecciones,
+  csvImportSlot,
 }) => {
   const isMassAutoMode = selectionMode === 'automatic';
+  const isCsvMode = selectionMode === 'csv';
+  const isManualFlow = !isMassAutoMode && !isCsvMode;
   const getUsername = (id: string) => usuarios.find(u => u.id === id)?.nombre || 'Desconocido';
   const [searchUserQuery, setSearchUserQuery] = React.useState('');
 
@@ -291,7 +295,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                   )}
                 </label>
                 {/* "Seleccionar Todos" sólo en modo manual */}
-                {!isMassAutoMode && (
+                {isManualFlow && (
                   <button
                     type="button"
                     onClick={() => {
@@ -314,7 +318,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
               </div>
 
               {/* Búsqueda sólo en modo manual */}
-              {!isMassAutoMode && (
+              {isManualFlow && (
                 <div className="relative">
                   <input
                     type="text"
@@ -401,16 +405,18 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                     );
                   })}
               </div>
-            ) : isMassAutoMode ? (
-              /* Placeholder: esperando cálculo */
+            ) : isMassAutoMode || isCsvMode ? (
+              /* Placeholder: esperando cálculo / equipos definidos por el CSV */
               <div className="bg-surface-container-low rounded-3xl p-6 shadow-inner text-center space-y-3">
                 <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
                   <Zap className="w-6 h-6 text-primary/50" />
                 </div>
                 <div>
-                  <p className="text-sm font-black text-on-surface/50">Distribución pendiente</p>
+                  <p className="text-sm font-black text-on-surface/50">{isCsvMode ? 'Equipos definidos por el CSV' : 'Distribución pendiente'}</p>
                   <p className="text-[10px] text-stone-400 font-medium mt-0.5">
-                    Configura y calcula la distribución en el panel derecho.
+                    {isCsvMode
+                      ? 'La columna Operativo del archivo indica a quién se asigna cada sección.'
+                      : 'Configura y calcula la distribución en el panel derecho.'}
                   </p>
                 </div>
               </div>
@@ -500,7 +506,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
             )} {/* closes the : ( manual list branch of the outer ternary */}
 
             {/* "X Seleccionados" only makes sense in manual mode */}
-            {!isMassAutoMode && selectedUsers.length > 0 && (
+            {isManualFlow && selectedUsers.length > 0 && (
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1.5 rounded-full">
                   {selectedUsers.length} Seleccionados
@@ -543,9 +549,17 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                   >
                     Automático
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectionMode('csv')}
+                    className={`flex-1 py-2.5 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${selectionMode === 'csv' ? 'bg-primary text-white shadow-sm' : 'text-stone-500 hover:text-primary hover:bg-white/50'}`}
+                  >
+                    CSV
+                  </button>
                 </div>
 
                 {/* Tipo de Zona: Distrito o Municipio */}
+                {!isCsvMode && (<>
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest ml-1 opacity-70">
                     Trabajar por
@@ -615,6 +629,8 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
                     </div>
                   </div>
                 )}
+
+                </>)}
 
                 {selectionMode === 'automatic' && (
                   <MassAssignmentPanel
@@ -888,7 +904,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
           </div>
 
           {/* Vencimiento sólo en modo manual */}
-          {!isMassAutoMode && (
+          {isManualFlow && (
           <div className="space-y-3">
             <label className="text-[10px] font-black uppercase tracking-[0.25em] text-on-surface-variant/40">
               Fecha de vencimiento <span className="font-medium normal-case tracking-normal opacity-60">(opcional)</span>
@@ -903,8 +919,10 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
           )}
         </div>
 
+        {isCsvMode && csvImportSlot}
+
         {/* ── MODO COLABORATIVO: Toggles only if > 1 user (sólo modo manual) ── */}
-        <div className={`transition-all duration-500 overflow-hidden ${!isMassAutoMode && selectedUsers.length > 1 ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
+        <div className={`transition-all duration-500 overflow-hidden ${isManualFlow && selectedUsers.length > 1 ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
           <div className={`p-6 rounded-[1.75rem] border transition-all flex flex-col md:flex-row items-center justify-between gap-6 ${
             isCollaborative
               ? 'bg-primary/5 border-primary/20 shadow-sm'
@@ -945,7 +963,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
         </div>
 
         {/* Instrucciones sólo en modo manual — MassAssignmentPanel tiene las suyas */}
-        {!isMassAutoMode && (
+        {isManualFlow && (
         <div className="space-y-3">
           <div className="rounded-[1.5rem] border border-outline-variant/10 overflow-hidden shadow-sm">
             <div className="flex items-center gap-3 px-5 py-4 border-b border-outline-variant/8 bg-white">
@@ -966,7 +984,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
         )}
 
         {/* ── SCHEDULER y BOTÓN: sólo en modo manual ── */}
-        {!isMassAutoMode && (<>
+        {isManualFlow && (<>
         <div className="bg-white rounded-[1.75rem] border border-outline-variant/8 overflow-hidden shadow-sm">
           <div className="flex items-center gap-3 px-6 py-4 border-b border-outline-variant/8">
             <Clock className="w-4 h-4 text-primary/40" />
@@ -1119,7 +1137,7 @@ export const TaskAssignmentForm: React.FC<TaskAssignmentFormProps> = React.memo(
             {submitting ? 'Procesando...' : scheduledAt ? 'Programar' : 'Asignar Tarea'}
           </button>
         </div>
-        </>)} {/* end !isMassAutoMode */}
+        </>)} {/* end isManualFlow */}
       </form>
     </>
   );

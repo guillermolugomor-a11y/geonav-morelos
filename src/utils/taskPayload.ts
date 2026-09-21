@@ -13,6 +13,7 @@ export interface TaskPayloadInput {
   scheduledAt?: string | null;    // fecha ISO para programación
   autoActivate?: boolean;           // activar automáticamente
   fechaOperacion?: string | null;   // fecha del ciclo de asignación (YYYY-MM-DD)
+  metaEncuestas?: number | null;    // total de encuestas a levantar (opcional)
 }
 
 const nullableString = (value?: string | null) => {
@@ -34,6 +35,7 @@ export const buildTaskPayload = ({
   scheduledAt,
   autoActivate = false,
   fechaOperacion,
+  metaEncuestas,
 }: TaskPayloadInput) => {
   const seccion =
     selectedManzana?.seccion ??
@@ -97,6 +99,8 @@ export const buildTaskPayload = ({
     scheduled_at: toMexicoUTC(scheduledAt),
     auto_activate: autoActivate,
     fecha_operacion: fechaOperacion ?? new Date().toISOString().split('T')[0],
+    // Solo se incluye si hay meta, para no requerir la columna en flujos que no la usan
+    ...(metaEncuestas != null ? { meta_encuestas: metaEncuestas } : {}),
   };
 };
 

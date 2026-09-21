@@ -701,6 +701,11 @@ export const TaskMonitorView: React.FC<TaskMonitorViewProps> = ({
                         <p className="text-[14px] text-on-surface-variant font-medium leading-relaxed italic border-l-3 border-outline-variant/10 pl-6 group-hover:border-primary/20 transition-all duration-700 truncate">
                           "{tarea.instruccion}"
                         </p>
+                        {tarea.meta_encuestas != null && (
+                          <span className="inline-block mt-2 ml-6 text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-2.5 py-1 rounded-full">
+                            Meta: {tarea.meta_encuestas.toLocaleString()} encuestas
+                          </span>
+                        )}
                         {(tarea.evidencia_url || (tarea.evidencia_urls && tarea.evidencia_urls.length > 0)) && (
                           <div className="mt-3 flex overflow-x-auto gap-2.5 pl-6 pb-2 custom-scrollbar">
                              {(tarea.evidencia_urls && tarea.evidencia_urls.length > 0) ? (

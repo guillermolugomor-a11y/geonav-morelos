@@ -26,6 +26,12 @@ app.use('/api', (req, _res, next) => {
   next();
 });
 
+// Página principal (IMES). GEONAV vive en /plataforma.
+const LANDING_FILE = path.join(__dirname, 'landing', 'index.html');
+app.get('/', (_req, res) => {
+  res.sendFile(LANDING_FILE);
+});
+
 // Configuración de la base de datos
 // Se recomienda usar la variable DATABASE_URL de Supabase
 const pool = new Pool({
@@ -185,9 +191,14 @@ async function startViteMiddleware() {
       console.error('[Server] ❌ Error cargando Vite:', err);
     }
   } else {
-    app.use(express.static('dist'));
-    app.get('*', (_req, res) => {
+    // index:false para que "/" no sirva GEONAV (lo atiende la página IMES).
+    app.use(express.static('dist', { index: false }));
+    app.get(['/plataforma', '/plataforma/*'], (_req, res) => {
       res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    });
+    // Cualquier otra ruta desconocida regresa a la página principal.
+    app.get('*', (_req, res) => {
+      res.redirect('/');
     });
   }
 }

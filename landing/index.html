@@ -1,6 +1,7 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>IMES Morelos (Copy)</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<script>try{var t=localStorage.getItem("imes-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t)}catch(e){document.documentElement.setAttribute("data-theme","light")}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -428,6 +429,15 @@ footer.site .legal{grid-column:1/-1;border-top:1px solid rgba(255,255,255,.12);p
 @media (max-width:860px){.checklist{grid-template-columns:1fr}}
 .contact .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:520px){.contact .row2{grid-template-columns:1fr}}
+/* Botón de modo claro/oscuro */
+.theme-btn{flex:none;display:inline-grid;place-items:center;width:40px;height:40px;border-radius:999px;border:1px solid rgba(255,255,255,.22);background:transparent;color:var(--deep-ink);cursor:pointer;transition:background-color .2s,border-color .2s}
+.theme-btn:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.4)}
+.theme-btn:focus-visible{outline:2px solid var(--brand-cyan);outline-offset:2px}
+.theme-btn svg{width:18px;height:18px}
+.theme-btn .moon{display:none}
+:root[data-theme="dark"] .theme-btn .sun{display:none}
+:root[data-theme="dark"] .theme-btn .moon{display:block}
+@media (max-width:900px){.theme-btn{position:absolute;top:10px;right:max(16px,env(safe-area-inset-right,0px))}header.top .wrap{position:relative}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -457,6 +467,10 @@ footer.site .legal{grid-column:1/-1;border-top:1px solid rgba(255,255,255,.12);p
       <a href="#conocimiento">Conocimiento</a>
       <a class="cta" href="#contacto">Contacto</a>
     </nav>
+    <button class="theme-btn" type="button" id="themeBtn" aria-label="Cambiar a modo oscuro">
+      <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
   </div>
 </header>
 
@@ -1263,6 +1277,23 @@ document.querySelectorAll("[data-copy]").forEach(b=>b.addEventListener("click",(
 }));
 
 route();
+})();
+
+(function(){
+  const root = document.documentElement;
+  const themeBtn = document.getElementById("themeBtn");
+  if (!themeBtn) return;
+  function syncThemeLabel(){
+    const dark = root.getAttribute("data-theme") === "dark";
+    themeBtn.setAttribute("aria-label", dark ? "Cambiar a modo claro" : "Cambiar a modo oscuro");
+  }
+  themeBtn.addEventListener("click", () => {
+    const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("imes-theme", next); } catch (e) { /* almacenamiento no disponible */ }
+    syncThemeLabel();
+  });
+  syncThemeLabel();
 })();
 </script>
 

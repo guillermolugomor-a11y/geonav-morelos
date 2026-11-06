@@ -28,9 +28,18 @@ app.use('/api', (req, _res, next) => {
 
 // Página principal (IMES). GEONAV vive en /plataforma.
 const LANDING_FILE = path.join(__dirname, 'landing', 'index.html');
-app.get('/', (_req, res) => {
+// Páginas de la IMES: un solo archivo que muestra la sección según la dirección.
+const LANDING_PAGES = ['/', '/instituto', '/que-hacemos', '/metodos', '/conocimiento', '/datos', '/contacto'];
+app.get(LANDING_PAGES, (_req, res) => {
   res.sendFile(LANDING_FILE);
 });
+// Versión anterior de la página IMES, solo para comparar (no la indexan buscadores).
+app.get('/anterior', (_req, res) => {
+  res.set('X-Robots-Tag', 'noindex, nofollow');
+  res.sendFile(path.join(__dirname, 'landing', 'index_backup.html'));
+});
+// Ícono e imagen para compartir de la página IMES.
+app.use('/imes', express.static(path.join(__dirname, 'landing', 'assets'), { maxAge: '7d' }));
 
 // Configuración de la base de datos
 // Se recomienda usar la variable DATABASE_URL de Supabase

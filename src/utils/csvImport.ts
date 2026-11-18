@@ -1,11 +1,13 @@
 import { UsuarioPerfil } from '../types';
 import { getMunicipioBySeccion } from '../constants/seccionesMunicipios';
+import { getDistritoBySeccion } from '../constants/seccionesDistritos';
 
 export interface CsvRow {
   line: number; // número de línea en el archivo (1 = encabezado)
   operativo: string;
   tipo: string;
   municipio: string;
+  distritoLocal: string;
   seccion: string;
   manzana: string;
   encuestas: string;
@@ -31,19 +33,19 @@ export interface CsvParseResult {
 }
 
 export const CSV_TEMPLATE_HEADERS = [
-  'Operativo', 'Tipo', 'Municipio', 'Sección', 'Manzana', 'Total de encuestas', 'Instrucción', 'Fecha límite',
+  'Operativo', 'Tipo', 'Municipio', 'Distrito local', 'Sección', 'Manzana', 'Total de encuestas', 'Instrucción', 'Fecha límite',
 ];
 
 export const CSV_TEMPLATE_EXAMPLE = [
-  'Equipo 1,Sección,Temixco,621,,10,Levantamiento de encuestas en la sección asignada,2026-09-30',
-  'Equipo 1,Manzana,Temixco,622,15,5,Levantamiento de encuestas en la manzana asignada,',
+  'Equipo 1,Sección,Temixco,5,621,,10,Levantamiento de encuestas en la sección asignada,2026-09-30',
+  'Equipo 1,Manzana,Temixco,5,622,15,5,Levantamiento de encuestas en la manzana asignada,',
 ];
 
 const normalize = (value: string) =>
   value
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
-    .replace(/\s+/g, ' ')
+    .replace(/[_\s]+/g, ' ')
     .trim()
     .toLowerCase();
 
@@ -87,6 +89,7 @@ const HEADER_ALIASES: Record<keyof Omit<CsvRow, 'line'>, string[]> = {
   operativo: ['operativo', 'equipo', 'usuario'],
   tipo: ['tipo'],
   municipio: ['municipio'],
+  distritoLocal: ['distrito local', 'distritos locales', 'distrito', 'dl'],
   seccion: ['seccion'],
   manzana: ['manzana'],
   encuestas: ['total de encuestas', 'encuestas', 'meta'],
@@ -122,6 +125,7 @@ export const parseCsv = (text: string): CsvParseResult => {
     operativo: get(r, 'operativo'),
     tipo: get(r, 'tipo'),
     municipio: get(r, 'municipio'),
+    distritoLocal: get(r, 'distritoLocal'),
     seccion: get(r, 'seccion'),
     manzana: get(r, 'manzana'),
     encuestas: get(r, 'encuestas'),
@@ -190,6 +194,20 @@ export const validateCsvRows = (rows: CsvRow[], ctx: CsvValidationContext): CsvV
       const real = getMunicipioBySeccion(seccionNum);
       if (real && normalize(real) !== normalize(row.municipio)) {
         errors.push(`La sección ${seccionNum} pertenece a ${real}, no a ${row.municipio}`);
+      }
+    }
+
+    // Distrito local (opcional, validación cruzada). Acepta "11", "DL 11" o "Distrito 11".
+    if (row.distritoLocal) {
+      const dlMatch = row.distritoLocal.match(/^\D*(\d{1,2})(?:\.0+)?\s*$/);
+      const distrito = dlMatch ? Number(dlMatch[1]) : NaN;
+      if (!dlMatch || distrito < 1 || distrito > 12) {
+        errors.push(`Distrito local "${row.distritoLocal}" no válido (1 a 12)`);
+      } else if (seccionOk) {
+        const realDl = getDistritoBySeccion(seccionNum);
+        if (realDl !== null && realDl !== distrito) {
+          errors.push(`La sección ${seccionNum} pertenece al distrito local ${realDl}, no al ${distrito}`);
+        }
       }
     }
 

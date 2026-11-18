@@ -100,8 +100,9 @@ export const CsvImportPanel: React.FC<CsvImportPanelProps> = ({
       </div>
 
       <p className="text-[11px] text-stone-500 font-medium">
-        Columnas: <b>Operativo, Tipo, Municipio, Sección, Manzana, Total de encuestas, Instrucción, Fecha límite</b>.
-        Obligatorias: Operativo, Sección, Total de encuestas e Instrucción. No se guarda nada hasta que confirmes.
+        Columnas: <b>Operativo, Tipo, Municipio, Distrito local, Sección, Manzana, Total de encuestas, Instrucción, Fecha límite</b>.
+        Obligatorias: Operativo, Sección, Total de encuestas e Instrucción. Si incluyes Municipio o Distrito local,
+        se verifica que la sección les pertenezca. No se guarda nada hasta que confirmes.
       </p>
 
       {message && (
@@ -134,6 +135,7 @@ export const CsvImportPanel: React.FC<CsvImportPanelProps> = ({
                   <th className="px-3 py-2 text-left">Operativo</th>
                   <th className="px-3 py-2 text-left">Tipo</th>
                   <th className="px-3 py-2 text-left">Municipio</th>
+                  <th className="px-3 py-2 text-left">DL</th>
                   <th className="px-3 py-2 text-left">Sección</th>
                   <th className="px-3 py-2 text-left">Mz</th>
                   <th className="px-3 py-2 text-right">Encuestas</th>
@@ -152,6 +154,7 @@ export const CsvImportPanel: React.FC<CsvImportPanelProps> = ({
                       <td className="px-3 py-2 font-bold">{r.operativo}</td>
                       <td className="px-3 py-2">{r.tipo || 'Sección'}</td>
                       <td className="px-3 py-2">{r.municipio}</td>
+                      <td className="px-3 py-2">{r.distritoLocal}</td>
                       <td className="px-3 py-2 font-black">{r.seccion}</td>
                       <td className="px-3 py-2">{r.manzana}</td>
                       <td className="px-3 py-2 text-right font-bold">{r.encuestas}</td>
